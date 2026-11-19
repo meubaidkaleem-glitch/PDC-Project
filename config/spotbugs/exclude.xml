@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusions. Each exclusion must state why it is safe.
+-->
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+  <!--
+    EI_EXPOSE_REP / EI_EXPOSE_REP2: numerical containers (matrices, primitive arrays) deliberately share
+    their backing arrays to avoid copying multi-megabyte data on every access. Ownership rules are documented
+    on each such type. Immutable contract records copy their collections defensively.
+  -->
+  <Match>
+    <Or>
+      <Bug pattern="EI_EXPOSE_REP"/>
+      <Bug pattern="EI_EXPOSE_REP2"/>
+    </Or>
+  </Match>
+</FindBugsFilter>
