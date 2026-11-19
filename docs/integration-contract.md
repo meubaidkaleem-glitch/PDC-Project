@@ -29,7 +29,7 @@ object serialization is **never** used across process boundaries.
 
 ---
 
-## 2. Task representation — `TaskSpec`  *(Core: planned, Phase 2)*
+## 2. Task representation — `TaskSpec`  *(Core: implemented — `org.districompute.core.task.TaskSpec`)*
 
 A task is an immutable request to run one algorithm on one input.
 
@@ -72,7 +72,7 @@ is reported in `TaskResult` ([§8](#8-final-result--taskresult)) and in progress
 
 ---
 
-## 3. Task status and permitted transitions  *(Core: planned, Phase 2)*
+## 3. Task status and permitted transitions  *(Core: implemented — `TaskStatus`, `TaskLifecycle`)*
 
 ```mermaid
 stateDiagram-v2
@@ -108,7 +108,7 @@ execution attempt with its own status history.
 
 ---
 
-## 4. Algorithm identifiers and versions  *(Core: planned, Phase 2)*
+## 4. Algorithm identifiers and versions  *(Core: implemented — `AlgorithmId`, `AlgorithmVersion`, `AlgorithmRegistry`)*
 
 * **Identifier.** Lowercase, dot-separated `family.operation`, matching
   `^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$`. Identifiers are permanent and never reused for a different
@@ -262,7 +262,7 @@ silently dropped.
 
 ---
 
-## 9. Error model — `ErrorInfo`  *(Core: planned, Phase 2)*
+## 9. Error model — `ErrorInfo`  *(Core: implemented — `ErrorCode`, `ErrorInfo`, `DistriComputeException`)*
 
 ```json
 {

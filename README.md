@@ -24,7 +24,7 @@ lists only what exists on this branch.
 |---|---|
 | Architecture review, plan, draft integration contract | Done (Phase 1) |
 | Build, quality checks, CI | Done (Phase 1) |
-| Task model, algorithm SPI, registry | Not started |
+| Task model, lifecycle, algorithm SPI, registry, error model, JSON codec | Done (Phase 2), see [docs/task-model.md](docs/task-model.md) |
 | Algorithms | Not started |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
@@ -55,6 +55,7 @@ To run the concurrency test suite on its own (CI runs it as a separate step):
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Repository review, responsibilities, dependencies, architecture, risks |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Phases, acceptance criteria, postponed features, status |
+| [docs/task-model.md](docs/task-model.md) | Task specification, lifecycle, parameter validation, algorithm SPI and registry |
 | [docs/integration-contract.md](docs/integration-contract.md) | Proposed shared contracts (task, status, partitions, results, errors, metrics) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, commits, pull requests, definition of done |
 

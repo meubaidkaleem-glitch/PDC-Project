@@ -37,7 +37,8 @@ contract, and that contract is versioned.
 | Phase | Status | Notes |
 |---|---|---|
 | 1 | Done | `./mvnw verify` passes locally (enforcer, `-Werror` compile, tests, JaCoCo, Checkstyle, SpotBugs). The CI workflow is committed; its first GitHub run is reported in the implementation report. |
-| 2–10 | Not started | — |
+| 2 | Done | Task model, lifecycle state machine, parameter schema and validator, algorithm SPI, registry with derived capabilities, error model, JSON codec. 54 unit and 2 concurrency tests pass. |
+| 3–10 | Not started | — |
 
 ## 4. Postponed features
 
