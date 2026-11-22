@@ -58,17 +58,23 @@ Run on the development container (OpenJDK 21.0.13, Maven 3.9.11):
 GitHub Actions results for this branch (from the public Actions API), job "Build, unit tests, concurrency tests"
 plus job "Code quality":
 
-| Commit | Content | CI |
-|---|---|---|
-| `1a55cd3` | Phase 1 | success |
-| `b489d13` | Phase 2 | success |
-| `1f34de8` | Phase 3 | success |
-| `00ef401` | Phase 4 | success |
-| `192aaa6` | Phase 5 | success |
-| `1960745` | Phase 6 | success |
-| `7be463f` | Phase 7 | success (every step, including concurrency and performance-scenario tests) |
-| `1e70c0c` | Phase 8 | success |
-| `6e20065` | Phase 10 (CLI, examples, end-to-end test, release docs) | **success**: run 45010972566, every step of both jobs, including concurrency and performance-scenario tests |
+| Commit | Original hash (CI ran on it) | Content | CI |
+|---|---|---|---|
+| `c284084` | `1a55cd3` | Phase 1 | success |
+| `6291c11` | `b489d13` | Phase 2 | success |
+| `3d12b7a` | `1f34de8` | Phase 3 | success |
+| `2f17606` | `00ef401` | Phase 4 | success |
+| `bc98d77` | `192aaa6` | Phase 5 | success |
+| `227b085` | `1960745` | Phase 6 | success |
+| `0cde4a0` | `7be463f` | Phase 7 | success (every step, including concurrency and performance-scenario tests) |
+| `6c64002` | `1e70c0c` | Phase 8 | success |
+| `dd1f9ce` | `6e20065` | Phase 10 (CLI, examples, end-to-end test, release docs) | **success**: run 45010972566, every step of both jobs, including concurrency and performance-scenario tests |
+
+**Note on hashes.** On 2026-11-22 the branch was re-authored: the author and committer of every commit changed
+from the session's git identity (Claude) to the contributor, and each commit keeps its `Co-Authored-By: Claude`
+line. File contents, commit messages and dates are unchanged, so every rewritten commit has the same tree as its
+original. The CI runs listed above ran on the original hashes. CI also runs again on the rewritten branch when
+it is pushed.
 
 Defects found and fixed during development (by tests and static analysis, not reported afterwards):
 * SpotBugs found a visibility race in `PartitionedTaskSession.value()` (an unsynchronized read of a field written
@@ -137,7 +143,8 @@ Measured on a shared 4-vCPU cloud VM (raw data and caveats in
 ## 9. Version and commit intended for integration
 
 * **Version:** `0.1.0-SNAPSHOT`. Tag `v0.1.0` after review and merge.
-* **Commit:** **`6e20065`** on `feature/core-engine`. This is the last commit that changes code, and it is
-  verified by GitHub Actions run 45010972566 (all steps succeeded) and by a clean local run (149 unit, 30
+* **Commit:** **`dd1f9ce`** on `feature/core-engine` (originally `6e20065`, same content). This is the last commit
+  that changes code. It is verified by GitHub Actions run 45010972566 on the original hash (all steps succeeded)
+  and by a clean local run (149 unit, 30
   concurrency and 4 performance-scenario tests, 0 Checkstyle violations, 0 SpotBugs bugs). Later commits on the
   branch change documentation only.
