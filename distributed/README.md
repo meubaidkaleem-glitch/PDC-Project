@@ -41,4 +41,5 @@ java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar ve
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Repository inspection, responsibilities, components, threading, identifiers, decisions, risks |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Phases, acceptance criteria, status, postponed features |
+| [docs/network-protocol.md](docs/network-protocol.md) | Wire protocol: framing, envelope, message types, errors, authentication, examples |
 | [docs/integration-contract.md](docs/integration-contract.md) | What the runtime takes from Core and offers the Application |

@@ -26,7 +26,7 @@ of time.
 | Phase | Status | Notes |
 |---|---|---|
 | 1 | Done | Repository inspected (one repository, one branch per component; Core complete on `feature/core-engine`). Layout decided: `distributed/` on a branch based on Core. Architecture, plan and draft integration contract written. Maven module builds against Core with the same quality gates (`-Xlint:all -Werror`, Checkstyle, SpotBugs, JaCoCo); runnable jar; CI workflow. |
-| 2 | Not started | |
+| 2 | Done | Envelope with 11 message types and payload records; Core `WorkUnitMessage`, `PartialResultMessage` and `ErrorInfo` embedded unchanged; id and protocol-version rules; codec that classifies malformed, unknown-type, wrong-version, invalid-envelope and invalid-payload input; newline framing with size limits and partial-read reassembly; duplicate-message filter; mutual HMAC-SHA256 registration proof with replay protection. 37 tests pass. The framing tests found an off-by-one in the size limit, which was fixed. |
 | 3 | Not started | |
 | 4 | Not started | |
 | 5 | Not started | |
