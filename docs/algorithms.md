@@ -6,14 +6,27 @@ generates inputs and verifies results, and its known limitations. The catalog is
 
 | Id | Version | Category | Modes implemented | Verification |
 |---|---|---|---|---|
-| `primes.count` | 1.0.0 | Number theory | `SEQUENTIAL_CPU` | Independent algorithm (exact) |
-| `sort.merge` | 1.0.0 | Sorting | `SEQUENTIAL_CPU` | Sortedness and multiset fingerprint |
-| `matrix.add` | 1.0.0 | Linear algebra | `SEQUENTIAL_CPU` | Exact recomputation |
-| `matrix.multiply` | 1.0.0 | Linear algebra | `SEQUENTIAL_CPU` | Freivalds with a floating-point error bound |
+| `primes.count` | 1.0.0 | Number theory | sequential, multithreaded, distributed-compatible (`RANGE`) | Independent algorithm (exact) |
+| `sort.merge` | 1.0.0 | Sorting | sequential, multithreaded, distributed-compatible (`CHUNK`) | Sortedness and multiset fingerprint |
+| `matrix.add` | 1.0.0 | Linear algebra | sequential, multithreaded, distributed-compatible (`BLOCK_2D`) | Exact recomputation |
+| `matrix.multiply` | 1.0.0 | Linear algebra | sequential, multithreaded, distributed-compatible (`BLOCK_2D`) | Freivalds with a floating-point error bound |
 
-"Modes implemented" lists only what works on this branch. Multithreaded and distributed-compatible execution
-arrive with the partitioning phase (see [implementation-plan.md](implementation-plan.md)), and this table will
-be updated when they do.
+"Distributed-compatible" means Core provides the partition plan, payload codecs, partial-result validation and
+aggregation. Actual distributed execution needs Contributor 2's runtime. GPU is not implemented for any
+algorithm.
+
+### Partitioning per algorithm
+
+| Algorithm | Partition | Partial result | Aggregation | Default plan |
+|---|---|---|---|---|
+| `primes.count` | sub-range of integers | count, with the range echoed back | sum (overflow-checked) | ≤ 4 × threads parts, each at least 2^20 integers |
+| `sort.merge` | contiguous chunk | sorted run, checked for sortedness on arrival | k-way heap merge, O(n log k), sequential | ≤ 4 × threads chunks, each at least 2^14 elements |
+| `matrix.add` | 2-D block (default: row bands) | result block | copy into C | 4 × threads row bands |
+| `matrix.multiply` | 2-D result block (default: row bands) | result block | copy into C | 4 × threads row bands; `blockRows`/`blockCols` for 2-D |
+
+Partition options come from `constraints.partitioning`: `targetPartitions` or `partitionSize` for ranges and
+chunks, and `blockRows` with `blockCols` (or `targetPartitions` row bands) for matrices. Plans are deterministic.
+`Partitioners.requireExactCover` checks that they cover the input exactly once.
 
 ## Deterministic input generation
 

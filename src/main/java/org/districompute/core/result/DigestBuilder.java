@@ -72,6 +72,19 @@ public final class DigestBuilder {
     }
 
     /**
+     * Appends length-prefixed raw bytes.
+     *
+     * @param bytes bytes to append
+     * @return this builder
+     */
+    public DigestBuilder putBytes(byte[] bytes) {
+        putLong(bytes.length);
+        flush();
+        digest.update(bytes);
+        return this;
+    }
+
+    /**
      * Appends a range of longs.
      *
      * @param values array

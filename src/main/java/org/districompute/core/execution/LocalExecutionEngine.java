@@ -1,8 +1,10 @@
 package org.districompute.core.execution;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ScheduledExecutorService;
@@ -16,20 +18,24 @@ import org.districompute.core.ErrorInfo;
 import org.districompute.core.algorithm.AlgorithmRef;
 import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.Parameters;
+import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.metrics.EnvironmentInfo;
 import org.districompute.core.metrics.ExecutionMetrics;
 import org.districompute.core.metrics.ResourceUsage;
+import org.districompute.core.partition.PartitionBounds;
 import org.districompute.core.partition.PartitioningOptions;
 import org.districompute.core.registry.AlgorithmCapabilities;
 import org.districompute.core.registry.AlgorithmRegistry;
 import org.districompute.core.resource.WorkloadProfile;
+import org.districompute.core.result.DigestBuilder;
+import org.districompute.core.result.PartialResultCollector;
 import org.districompute.core.result.ResultSummary;
 import org.districompute.core.result.TaskResult;
+import org.districompute.core.serialization.PayloadCodec;
 import org.districompute.core.serialization.SchemaVersion;
 import org.districompute.core.task.TaskLifecycle;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.core.task.TaskStatus;
-import org.districompute.core.validation.ParameterValidator;
 import org.districompute.core.validation.ValidationException;
 import org.districompute.core.validation.VerificationReport;
 import org.districompute.core.validation.Violation;
@@ -51,7 +57,6 @@ import org.slf4j.LoggerFactory;
 public final class LocalExecutionEngine implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalExecutionEngine.class);
-    private static final double MIB = 1024.0 * 1024.0;
 
     private final AlgorithmRegistry registry;
     private final EngineConfig config;
@@ -199,6 +204,7 @@ public final class LocalExecutionEngine implements AutoCloseable {
         private Object value;
         private long validationNanos;
         private long preparationNanos;
+        private long partitioningNanos;
         private long computeNanos;
         private long aggregationNanos;
         private long executionNanos;
@@ -230,23 +236,34 @@ public final class LocalExecutionEngine implements AutoCloseable {
                 ComputeAlgorithm<?, ?> algorithm = registry.resolve(spec.algorithm());
                 resolved = algorithm.descriptor().ref();
                 checkMode();
-                Parameters parameters = ParameterValidator.validate(algorithm.descriptor().parameters(),
-                        spec.parameters());
-                List<Violation> semantic = algorithm.validate(parameters);
-                if (!semantic.isEmpty()) {
-                    throw new ValidationException(semantic);
-                }
+                boolean partitioned = spec.constraints().mode() == ExecutionMode.MULTITHREADED_CPU;
+                int plannedThreads = partitioned ? requestedThreads() : 1;
+                Parameters parameters = TaskPreparation.validate(algorithm, spec, partitioned);
                 profile = algorithm.analyze(parameters);
-                checkMemory(profile);
+                TaskPreparation.checkMemory(profile, spec.constraints().maxMemoryBytes(), config.memoryHeadroom());
                 validationNanos = System.nanoTime() - validationStart;
                 transition(TaskStatus.VALIDATED);
-                threads = 1;
-                partitions = 1;
+                List<PartitionBounds> plan = List.of();
+                if (partitioned) {
+                    long planningStart = System.nanoTime();
+                    threads = plannedThreads;
+                    plan = ((PartitionedAlgorithm<?, ?, ?, ?>) algorithm).plan(parameters,
+                            spec.constraints().partitioning(), threads * 4);
+                    partitions = plan.size();
+                    partitioningNanos = System.nanoTime() - planningStart;
+                } else {
+                    threads = 1;
+                    partitions = 1;
+                }
                 transition(TaskStatus.PLANNED);
                 transition(TaskStatus.QUEUED);
                 admitted = awaitAdmission();
                 transition(TaskStatus.RUNNING);
-                runSequential(algorithm, parameters);
+                if (partitioned) {
+                    runPartitioned((PartitionedAlgorithm<?, ?, ?, ?>) algorithm, parameters, plan);
+                } else {
+                    runSequential(algorithm, parameters);
+                }
                 transition(TaskStatus.COMPLETED);
                 return outcome(null);
             } catch (TaskCancelledException e) {
@@ -318,6 +335,91 @@ public final class LocalExecutionEngine implements AutoCloseable {
             value = result;
         }
 
+        private <I, W, P, R> void runPartitioned(PartitionedAlgorithm<I, W, P, R> algorithm, Parameters parameters,
+                List<PartitionBounds> plan) {
+            ExecutionContext context = ExecutionContext.of(scope, progress);
+            long preparationStart = System.nanoTime();
+            I input = algorithm.prepareInput(parameters, context);
+            preparationNanos = System.nanoTime() - preparationStart;
+
+            long totalUnits = 0;
+            for (PartitionBounds bounds : plan) {
+                totalUnits += algorithm.workUnits(bounds);
+            }
+            progress.declareTotal(totalUnits, algorithm.workUnit(), plan.size());
+            ResourceUsage before = ResourceUsage.capture();
+            long executionStart = System.nanoTime();
+            List<Callable<P>> tasks = new ArrayList<>(plan.size());
+            for (int i = 0; i < plan.size(); i++) {
+                W work = algorithm.extract(input, plan.get(i));
+                int index = i;
+                tasks.add(() -> computePartition(algorithm, work, index, context));
+            }
+            long extractEnd = System.nanoTime();
+            PartialResultCollector<P> collector = new PartialResultCollector<>(spec.taskId(), plan,
+                    algorithm::partialProblem, partial -> fingerprint(algorithm.partialCodec(), partial));
+            List<TaskRun<P>> runs = pool.runAll(tasks, threads, scope, run -> {
+                PartialResultCollector.Offer offer = collector.offer(spec.taskId(), run.index(), run.value());
+                if (!offer.accepted()) {
+                    throw DistriComputeException.forPartition(ErrorCode.INVALID_PARTIAL_RESULT, run.index(),
+                            "Partition " + run.index() + " returned an invalid result: " + offer.detail(), null);
+                }
+                progress.partitionCompleted();
+            });
+            long computeEnd = System.nanoTime();
+            transition(TaskStatus.AGGREGATING);
+            R result = algorithm.aggregate(plan, collector.orderedResults(), context);
+            collector.close();
+            long executionEnd = System.nanoTime();
+
+            ResourceUsage coordinator = ResourceUsage.capture().minus(before);
+            long workerBytes = 0;
+            for (TaskRun<P> run : runs) {
+                busyNanos += run.busyNanos();
+                workerBytes = run.allocatedBytes() < 0 || workerBytes < 0 ? -1 : workerBytes + run.allocatedBytes();
+            }
+            long allocated = coordinator.threadAllocatedBytes() < 0 || workerBytes < 0 ? -1
+                    : coordinator.threadAllocatedBytes() + workerBytes;
+            usage = new ResourceUsage(coordinator.processCpuNanos(), coordinator.gcCount(), coordinator.gcMillis(),
+                    allocated);
+            partitioningNanos += extractEnd - executionStart;
+            computeNanos = computeEnd - extractEnd;
+            aggregationNanos = executionEnd - computeEnd;
+            executionNanos = partitioningNanos + (executionEnd - extractEnd);
+
+            transition(TaskStatus.VERIFYING);
+            long verificationStart = System.nanoTime();
+            verification = algorithm.verify(input, result, context);
+            verificationNanos = System.nanoTime() - verificationStart;
+            summary = algorithm.summarize(result);
+            if (!verification.passed()) {
+                throw new DistriComputeException(ErrorCode.VERIFICATION_FAILED, verification.message());
+            }
+            value = result;
+        }
+
+        private <W, P> P computePartition(PartitionedAlgorithm<?, W, P, ?> algorithm, W work, int index,
+                ExecutionContext context) {
+            try {
+                return algorithm.computePartition(work, context);
+            } catch (DistriComputeException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                throw DistriComputeException.forPartition(ErrorCode.PARTITION_FAILED, index,
+                        "Partition " + index + " failed: " + e, e);
+            }
+        }
+
+        private int requestedThreads() {
+            Integer requested = spec.constraints().maxThreads();
+            int threadCount = requested == null ? pool.threads() : requested;
+            if (threadCount > pool.threads()) {
+                throw new ValidationException(new Violation("constraints.maxThreads", Violation.Codes.ABOVE_MAXIMUM,
+                        threadCount + " threads requested but this engine has " + pool.threads() + " worker threads"));
+            }
+            return threadCount;
+        }
+
         private void checkMode() {
             ExecutionMode mode = spec.constraints().mode();
             AlgorithmCapabilities capabilities = registry.info(resolved.id()).orElseThrow().capabilities();
@@ -342,24 +444,6 @@ public final class LocalExecutionEngine implements AutoCloseable {
             }
         }
 
-        private void checkMemory(WorkloadProfile workload) {
-            Runtime runtime = Runtime.getRuntime();
-            long used = runtime.totalMemory() - runtime.freeMemory();
-            long budget = (long) ((runtime.maxMemory() - used) * config.memoryHeadroom());
-            Long cap = spec.constraints().maxMemoryBytes();
-            if (cap != null) {
-                budget = Math.min(budget, cap);
-            }
-            long needed = workload.estimatedPeakMemoryBytes();
-            if (needed > budget) {
-                throw new DistriComputeException(ErrorCode.RESOURCE_EXHAUSTED, String.format(
-                        "Estimated peak memory %.1f MiB exceeds the budget of %.1f MiB (max heap %.1f MiB%s). "
-                                + "Reduce the problem size, raise -Xmx, or run it on more nodes.",
-                        needed / MIB, budget / MIB, runtime.maxMemory() / MIB,
-                        cap == null ? "" : String.format(", task cap %.1f MiB", cap / MIB)));
-            }
-        }
-
         private ScheduledFuture<?> scheduleDeadline() {
             Long timeout = spec.constraints().timeoutMillis();
             if (timeout == null) {
@@ -379,10 +463,14 @@ public final class LocalExecutionEngine implements AutoCloseable {
             return outcome(error);
         }
 
+        private <P> String fingerprint(PayloadCodec<P> codec, P partial) {
+            return new DigestBuilder("partial").putBytes(codec.encode(partial)).finish();
+        }
+
         private ExecutionOutcome outcome(ErrorInfo error) {
             ResourceUsage measured = usage == null ? new ResourceUsage(-1, -1, -1, -1) : usage;
-            ExecutionMetrics metrics = new ExecutionMetrics(validationNanos, preparationNanos, 0, computeNanos,
-                    aggregationNanos, executionNanos, verificationNanos, busyNanos,
+            ExecutionMetrics metrics = new ExecutionMetrics(validationNanos, preparationNanos, partitioningNanos,
+                    computeNanos, aggregationNanos, executionNanos, verificationNanos, busyNanos,
                     ExecutionMetrics.schedulingOverhead(computeNanos, busyNanos, threads), threads, partitions,
                     measured.processCpuNanos(), measured.gcCount(), measured.gcMillis(),
                     measured.threadAllocatedBytes());

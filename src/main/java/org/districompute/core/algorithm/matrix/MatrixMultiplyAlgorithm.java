@@ -4,19 +4,26 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.districompute.core.algorithm.AlgorithmCategory;
 import org.districompute.core.algorithm.AlgorithmDescriptor;
 import org.districompute.core.algorithm.AlgorithmId;
 import org.districompute.core.algorithm.AlgorithmVersion;
-import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.ParameterSpec;
 import org.districompute.core.algorithm.Parameters;
+import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.algorithm.support.Sizes;
 import org.districompute.core.execution.ExecutionContext;
+import org.districompute.core.partition.BlockBounds;
+import org.districompute.core.partition.PartitionBounds;
+import org.districompute.core.partition.PartitionStrategyType;
+import org.districompute.core.partition.Partitioners;
+import org.districompute.core.partition.PartitioningOptions;
 import org.districompute.core.resource.DataDependency;
 import org.districompute.core.resource.ParallelismProfile;
 import org.districompute.core.resource.WorkloadProfile;
 import org.districompute.core.result.ResultSummary;
+import org.districompute.core.serialization.PayloadCodec;
 import org.districompute.core.validation.VerificationReport;
 import org.districompute.core.validation.Violation;
 
@@ -29,8 +36,12 @@ import org.districompute.core.validation.Violation;
  * order does not depend on the tile size or the row and column decomposition, so every configuration produces
  * bitwise-identical results. This holds across execution modes too, which allows exact cross-mode comparison.
  * Verification uses {@link FreivaldsVerifier}.
+ *
+ * <p>Partitioning: 2-D result blocks ({@code blockRows × blockCols}) or row bands (default). A block needs its row
+ * band of A and its column band of B, so the distributed communication volume grows with the number of blocks.
  */
-public class MatrixMultiplyAlgorithm implements ComputeAlgorithm<MatrixMultiplyInput, Matrix> {
+public class MatrixMultiplyAlgorithm
+        implements PartitionedAlgorithm<MatrixMultiplyInput, MultiplyWork, MatrixBlock, Matrix> {
 
     /** Algorithm identifier. */
     public static final String ID = "matrix.multiply";
@@ -111,8 +122,8 @@ public class MatrixMultiplyAlgorithm implements ComputeAlgorithm<MatrixMultiplyI
         dimensions.put("colsA", k);
         dimensions.put("colsB", n);
         return new WorkloadProfile(DESCRIPTOR.ref(), dimensions, 2.0 * m * k * n, "floating-point operations",
-                "O(m·k·n)", inputBytes, outputBytes, Sizes.saturatedSum(inputBytes, outputBytes, verificationBytes),
-                parallelism(m, n));
+                "O(m·k·n)", inputBytes, outputBytes,
+                Sizes.saturatedSum(inputBytes, outputBytes, outputBytes, verificationBytes), parallelism(m, n));
     }
 
     /**
@@ -123,8 +134,8 @@ public class MatrixMultiplyAlgorithm implements ComputeAlgorithm<MatrixMultiplyI
      * @return the parallelism profile
      */
     protected ParallelismProfile parallelism(long m, long n) {
-        return new ParallelismProfile(false, null, Sizes.saturatedProduct(m, n), DataDependency.NONE,
-                "O(m·n): copy result blocks into C");
+        return new ParallelismProfile(true, PartitionStrategyType.BLOCK_2D, Sizes.saturatedProduct(m, n),
+                DataDependency.NONE, "O(m·n): copy result blocks into C");
     }
 
     @Override
@@ -152,5 +163,73 @@ public class MatrixMultiplyAlgorithm implements ComputeAlgorithm<MatrixMultiplyI
     @Override
     public ResultSummary summarize(Matrix result) {
         return MatrixSummaries.summarize(result);
+    }
+
+    @Override
+    public PartitionStrategyType partitionStrategy() {
+        return PartitionStrategyType.BLOCK_2D;
+    }
+
+    @Override
+    public List<Violation> validatePartitioning(Parameters parameters, PartitioningOptions options) {
+        return Partitioners.validateBlocks(options);
+    }
+
+    @Override
+    public List<PartitionBounds> plan(Parameters parameters, PartitioningOptions options, int defaultPartitions) {
+        return List.copyOf(Partitioners.planBlocks(parameters.getInt("rowsA"), parameters.getInt("colsB"), options,
+                defaultPartitions));
+    }
+
+    @Override
+    public String workUnit() {
+        return "block rows";
+    }
+
+    @Override
+    public long workUnits(PartitionBounds bounds) {
+        return ((BlockBounds) bounds).rows();
+    }
+
+    @Override
+    public MultiplyWork extract(MatrixMultiplyInput input, PartitionBounds bounds) {
+        BlockBounds block = (BlockBounds) bounds;
+        return new MultiplyWork(input.a(), block.rowStart(), input.b(), block.colStart(), block, input.blockSize());
+    }
+
+    @Override
+    public MatrixBlock computePartition(MultiplyWork work, ExecutionContext context) {
+        BlockBounds block = work.block();
+        int inner = work.a().cols();
+        Matrix out = Matrix.zeros(block.rows(), block.cols());
+        MatrixKernels.multiplyAdd(work.a().data(), work.aRowOffset() * inner, inner, work.b().data(),
+                work.bColOffset(), work.b().cols(), out.data(), 0, block.cols(), block.rows(), inner, block.cols(),
+                work.blockSize(), context.cancellation(), context.progress());
+        return new MatrixBlock(block.rowStart(), block.colStart(), out);
+    }
+
+    @Override
+    public String partialResultType() {
+        return "matrix-block";
+    }
+
+    @Override
+    public Optional<String> partialProblem(PartitionBounds bounds, MatrixBlock partial) {
+        return MatrixBlock.problem(bounds, partial);
+    }
+
+    @Override
+    public Matrix aggregate(List<PartitionBounds> plan, List<MatrixBlock> partials, ExecutionContext context) {
+        return MatrixBlock.assemble(plan, partials, context.cancellation());
+    }
+
+    @Override
+    public PayloadCodec<MultiplyWork> workCodec() {
+        return MultiplyWork.CODEC;
+    }
+
+    @Override
+    public PayloadCodec<MatrixBlock> partialCodec() {
+        return MatrixBlock.CODEC;
     }
 }

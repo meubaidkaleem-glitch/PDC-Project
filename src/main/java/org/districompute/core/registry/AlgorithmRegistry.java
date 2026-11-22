@@ -18,6 +18,7 @@ import org.districompute.core.algorithm.AlgorithmId;
 import org.districompute.core.algorithm.AlgorithmRef;
 import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.ParameterSpec;
+import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.execution.ExecutionMode;
 import org.districompute.core.validation.ParameterValidator;
 import org.districompute.core.validation.ValidationException;
@@ -155,6 +156,11 @@ public final class AlgorithmRegistry {
      */
     static AlgorithmCapabilities deriveCapabilities(ComputeAlgorithm<?, ?> algorithm) {
         Set<ExecutionMode> modes = EnumSet.of(ExecutionMode.SEQUENTIAL_CPU);
+        if (algorithm instanceof PartitionedAlgorithm<?, ?, ?, ?> partitioned) {
+            modes.add(ExecutionMode.MULTITHREADED_CPU);
+            modes.add(ExecutionMode.DISTRIBUTED_CPU);
+            return new AlgorithmCapabilities(List.copyOf(modes), partitioned.partitionStrategy(), true, false);
+        }
         return new AlgorithmCapabilities(List.copyOf(modes), null, false, false);
     }
 

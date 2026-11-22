@@ -168,7 +168,7 @@ not guessed.
 
 ---
 
-## 6. Partition representation  *(Core: planned, Phase 5)*
+## 6. Partition representation  *(Core: implemented — `PartitionDescriptor`, `PartitionBounds`, `Partitioners`, payload codecs)*
 
 ```json
 {
@@ -200,7 +200,7 @@ not guessed.
 
 ---
 
-## 7. Partial results  *(Core: planned, Phase 5)*
+## 7. Partial results  *(Core: implemented — `PartialResultMessage`, `PartialResultCollector`)*
 
 ```json
 {
@@ -359,7 +359,46 @@ Listeners must not block. A listener that throws is isolated and logged, and nev
 | Core library | SemVer (`0.y.z` until the contract is `1.0`) | Releases are tagged. The Application pins a reviewed commit or tag as a submodule. |
 | Payload formats | `name/<n>` in the payload header and `format` field | A new layout means a new `<n>`. Decoders reject unknown versions. |
 
-## 14. Open questions for Contributors 2 and 3
+## 14. Core facade for the distributed runtime  *(Core: implemented)*
+
+Contributor 2's coordinator and workers call two classes in `org.districompute.core.partition`. Neither has
+networking or threads of its own.
+
+```java
+// Coordinator
+PartitionedTaskSession session = PartitionedTaskSession.open(registry, task /* mode DISTRIBUTED_CPU */, 2 * workers);
+for (PartitionDescriptor p : session.partitions()) {
+    send(worker(p), ContractJson.toJson(session.workUnit(p.index(), 1)));     // WorkUnitMessage
+}
+// on reply:
+Offer offer = session.accept(ContractJson.fromJson(json, PartialResultMessage.class));  // ACCEPTED, DUPLICATE, ...
+// on worker loss:
+session.markFailed(index, errorInfo);
+if (session.retryEligible(index)) {
+    send(otherWorker, ContractJson.toJson(session.workUnit(index, attempt + 1)));
+}
+// when session.isComplete():
+TaskResult result = session.complete();   // aggregates and verifies; COMPLETED only if verification passes
+
+// Worker
+PartialResultMessage reply = new PartitionWorker(registry, workerId).execute(workUnitMessage, token, progress);
+```
+
+Payload formats (little-endian, framed with magic `DCP1`, format name and CRC-32C):
+
+| Algorithm | Work unit | Partial result |
+|---|---|---|
+| `primes.count` | `primes-range/1`: lower, upper | `primes-count/1`: lower, upper, count |
+| `sort.merge` | `sort-chunk/1`: offset, length, elements | `sort-run/1`: offset, length, sorted elements |
+| `matrix.add` | `matrix-add-work/1`: block bounds, A and B sub-blocks | `matrix-block/1`: origin, shape, elements |
+| `matrix.multiply` | `matrix-multiply-work/1`: tile edge, block bounds, inner dim, A row band, B column band | `matrix-block/1` |
+
+The JSON envelope (`EncodedPayload`) adds base64, size and a CRC-32C, so tampering in transit is detected. The
+end-to-end behaviour is covered by `DistributedSessionTest`, which simulates the runtime with workers exchanging
+JSON strings: results equal the sequential digest, a lost worker is recovered by retry, and duplicate, corrupted,
+misplaced and foreign results are classified.
+
+## 15. Open questions for Contributors 2 and 3
 
 1. Build integration for Distributed: a CI `mvn install` of a pinned Core tag (proposed), JitPack, or GitHub
    Packages?

@@ -5,20 +5,27 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.districompute.core.algorithm.AlgorithmCategory;
 import org.districompute.core.algorithm.AlgorithmDescriptor;
 import org.districompute.core.algorithm.AlgorithmId;
 import org.districompute.core.algorithm.AlgorithmVersion;
-import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.ParameterSpec;
 import org.districompute.core.algorithm.Parameters;
+import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.algorithm.support.Sizes;
 import org.districompute.core.execution.ExecutionContext;
+import org.districompute.core.partition.ChunkBounds;
+import org.districompute.core.partition.PartitionBounds;
+import org.districompute.core.partition.PartitionStrategyType;
+import org.districompute.core.partition.Partitioners;
+import org.districompute.core.partition.PartitioningOptions;
 import org.districompute.core.resource.DataDependency;
 import org.districompute.core.resource.ParallelismProfile;
 import org.districompute.core.resource.WorkloadProfile;
 import org.districompute.core.result.DigestBuilder;
 import org.districompute.core.result.ResultSummary;
+import org.districompute.core.serialization.PayloadCodec;
 import org.districompute.core.validation.VerificationKind;
 import org.districompute.core.validation.VerificationReport;
 import org.districompute.core.validation.Violation;
@@ -27,8 +34,12 @@ import org.districompute.core.validation.Violation;
  * {@code sort.merge}: sorts 64-bit signed integers with merge sort. The input is either generated deterministically
  * ({@code input = GENERATED}) or supplied inline ({@code input = INLINE}). Verification checks that the output is
  * in order and is a permutation of the input ({@link MultisetFingerprint}).
+ *
+ * <p>Partitioning: contiguous chunks are sorted independently (in parallel or on remote workers) and then merged
+ * with a k-way merge in O(n log k). The merge runs sequentially, which bounds the achievable speedup (Amdahl's
+ * law). Its cost is reported separately as aggregation time.
  */
-public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
+public class MergeSortAlgorithm implements PartitionedAlgorithm<long[], SortChunk, SortedRun, long[]> {
 
     /** Algorithm identifier. */
     public static final String ID = "sort.merge";
@@ -38,6 +49,9 @@ public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
 
     /** Largest inline input size. */
     public static final int MAX_INLINE = 1_000_000;
+
+    /** Smallest default chunk, so per-partition overhead stays small relative to sorting work. */
+    public static final long MIN_CHUNK = 1L << 14;
 
     private static final int PREVIEW = 5;
 
@@ -63,7 +77,8 @@ public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
             List.of("Elements are 64-bit signed integers only",
                     "Generated inputs are limited to 10^8 elements and inline inputs to 10^6",
                     "size, distribution and seed are ignored for INLINE input",
-                    "Needs about 3 x 8 bytes per element (input, output and merge buffer)"));
+                    "Needs about 4 x 8 bytes per element (input, output, merge buffer or sorted runs)",
+                    "Partitioned execution merges the sorted runs sequentially, which limits speedup"));
 
     @Override
     public AlgorithmDescriptor descriptor() {
@@ -90,7 +105,7 @@ public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
         double comparisons = n < 2 ? 0 : n * (Math.log(n) / Math.log(2));
         long bytes = Sizes.wordBytes(n);
         return new WorkloadProfile(DESCRIPTOR.ref(), Map.of("size", n), comparisons, "comparisons (estimate)",
-                "O(n log n)", bytes, bytes, Sizes.saturatedProduct(bytes, 3), parallelism(n));
+                "O(n log n)", bytes, bytes, Sizes.saturatedProduct(bytes, 4), parallelism(n));
     }
 
     /**
@@ -100,7 +115,7 @@ public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
      * @return the parallelism profile
      */
     protected ParallelismProfile parallelism(long n) {
-        return new ParallelismProfile(false, null, Math.max(1, n / MergeSort.INSERTION_THRESHOLD),
+        return new ParallelismProfile(true, PartitionStrategyType.CHUNK, Math.max(1, n / MergeSort.INSERTION_THRESHOLD),
                 DataDependency.ORDERED_MERGE, "O(n log k): k-way merge of k sorted runs");
     }
 
@@ -182,5 +197,69 @@ public class MergeSortAlgorithm implements ComputeAlgorithm<long[], long[]> {
     private static long elementCount(Parameters parameters) {
         return "INLINE".equals(parameters.getString("input")) && parameters.has("values")
                 ? parameters.getLongArray("values").length : parameters.getLong("size");
+    }
+
+    @Override
+    public PartitionStrategyType partitionStrategy() {
+        return PartitionStrategyType.CHUNK;
+    }
+
+    @Override
+    public List<Violation> validatePartitioning(Parameters parameters, PartitioningOptions options) {
+        return Partitioners.validateLinear(options);
+    }
+
+    @Override
+    public List<PartitionBounds> plan(Parameters parameters, PartitioningOptions options, int defaultPartitions) {
+        return Partitioners.planLinear(0, elementCount(parameters), options, defaultPartitions, MIN_CHUNK).stream()
+                .map(range -> (PartitionBounds) new ChunkBounds(range.start(), range.elementCount())).toList();
+    }
+
+    @Override
+    public String workUnit() {
+        return "element passes";
+    }
+
+    @Override
+    public long workUnits(PartitionBounds bounds) {
+        return MergeSort.progressUnits(bounds.elementCount());
+    }
+
+    @Override
+    public SortChunk extract(long[] input, PartitionBounds bounds) {
+        ChunkBounds chunk = (ChunkBounds) bounds;
+        return new SortChunk(input, (int) chunk.offset(), (int) chunk.end(), chunk.offset());
+    }
+
+    @Override
+    public SortedRun computePartition(SortChunk work, ExecutionContext context) {
+        long[] run = Arrays.copyOfRange(work.values(), work.from(), work.to());
+        MergeSort.sortInPlace(run, context.cancellation(), context.progress());
+        return new SortedRun(work.offset(), run);
+    }
+
+    @Override
+    public String partialResultType() {
+        return "sorted-run";
+    }
+
+    @Override
+    public Optional<String> partialProblem(PartitionBounds bounds, SortedRun partial) {
+        return SortedRun.problem(bounds, partial);
+    }
+
+    @Override
+    public long[] aggregate(List<PartitionBounds> plan, List<SortedRun> partials, ExecutionContext context) {
+        return SortedRun.merge(partials, context.cancellation());
+    }
+
+    @Override
+    public PayloadCodec<SortChunk> workCodec() {
+        return SortChunk.CODEC;
+    }
+
+    @Override
+    public PayloadCodec<SortedRun> partialCodec() {
+        return SortedRun.CODEC;
     }
 }

@@ -8,8 +8,8 @@ failures, cancellation and memory limits are handled.
 | Mode | Executed by | Status on this branch |
 |---|---|---|
 | `SEQUENTIAL_CPU` | Core, `LocalExecutionEngine` | **Implemented** for all four priority-1 algorithms |
-| `MULTITHREADED_CPU` | Core, bounded worker pool | Planned (Phases 4–5); rejected with `UNSUPPORTED_EXECUTION_MODE` until then |
-| `DISTRIBUTED_CPU` | DistriCompute-Distributed, using Core's partition primitives | Core side planned (Phase 5); never executed by the local engine |
+| `MULTITHREADED_CPU` | Core, partitions on the bounded worker pool | **Implemented** for all four priority-1 algorithms |
+| `DISTRIBUTED_CPU` | DistriCompute-Distributed, through `PartitionedTaskSession` and `PartitionWorker` | Core side **implemented** and tested with a simulated runtime; never executed by the local engine |
 | `GPU`, `HYBRID` | — | Not implemented; always rejected |
 
 An algorithm's supported modes are derived from the interfaces it implements. The registry never trusts a
@@ -32,6 +32,22 @@ execute(spec)
 `execute` never throws for task-level problems. It always returns an `ExecutionOutcome` holding a serializable
 `TaskResult`, with a terminal status, the status history, the profile, metrics, environment and an `ErrorInfo`
 on failure. The full result value (for example the product matrix) is exposed only for `COMPLETED` tasks.
+
+### Multithreaded (partitioned) execution
+
+```
+PLANNED     algorithm.plan(parameters, options, defaultPartitions = 4 × threads)
+RUNNING     prepareInput · extract work units (local views, no copies) · runAll on the WorkerPool
+            · each completed partial → PartialResultCollector (validated as it arrives)
+AGGREGATING collector.orderedResults() (refuses if anything is missing) · algorithm.aggregate
+VERIFYING   the same independent verifier as sequential execution
+```
+
+Multithreaded and distributed execution use the **same** plan, extract, compute, validate and aggregate code.
+Distributed execution adds encoding and decoding. For every algorithm, every thread count and every partition
+shape tested, the result is bitwise identical to the sequential baseline (`PartitionedExecutionTest`), and
+digests are compared exactly. A partition that throws fails the task with `PARTITION_FAILED` and its index. An
+invalid partial result fails it with `INVALID_PARTIAL_RESULT`. Neither is ever aggregated.
 
 ## 3. Failure handling
 

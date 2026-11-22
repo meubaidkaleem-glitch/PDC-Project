@@ -28,7 +28,7 @@ lists only what exists on this branch.
 | P1 algorithms (`primes.count`, `sort.merge`, `matrix.add`, `matrix.multiply`), sequential, verified | Done (Phase 3), see [docs/algorithms.md](docs/algorithms.md) |
 | Local engine: full lifecycle, validation, memory guard, timeout, cancellation | Done for `SEQUENTIAL_CPU` (Phase 3), see [docs/execution-model.md](docs/execution-model.md) |
 | Bounded worker pool, admission control, progress events | Done (Phase 4) |
-| Multithreaded and distributed-compatible execution (partitioning, aggregation) | Not started (Phase 5) |
+| Partitioning, aggregation, partial-result validation, payload codecs; `MULTITHREADED_CPU`; coordinator and worker facade for `DISTRIBUTED_CPU` | Done (Phase 5) |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
 

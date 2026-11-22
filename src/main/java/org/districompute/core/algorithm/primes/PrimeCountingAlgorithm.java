@@ -3,19 +3,26 @@ package org.districompute.core.algorithm.primes;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.districompute.core.algorithm.AlgorithmCategory;
 import org.districompute.core.algorithm.AlgorithmDescriptor;
 import org.districompute.core.algorithm.AlgorithmId;
 import org.districompute.core.algorithm.AlgorithmVersion;
-import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.ParameterSpec;
 import org.districompute.core.algorithm.Parameters;
+import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.execution.ExecutionContext;
+import org.districompute.core.partition.PartitionBounds;
+import org.districompute.core.partition.PartitionStrategyType;
+import org.districompute.core.partition.Partitioners;
+import org.districompute.core.partition.PartitioningOptions;
+import org.districompute.core.partition.RangeBounds;
 import org.districompute.core.resource.DataDependency;
 import org.districompute.core.resource.ParallelismProfile;
 import org.districompute.core.resource.WorkloadProfile;
 import org.districompute.core.result.DigestBuilder;
 import org.districompute.core.result.ResultSummary;
+import org.districompute.core.serialization.PayloadCodec;
 import org.districompute.core.validation.VerificationKind;
 import org.districompute.core.validation.VerificationReport;
 import org.districompute.core.validation.Violation;
@@ -24,13 +31,16 @@ import org.districompute.core.validation.Violation;
  * {@code primes.count}: counts the primes in {@code [lowerBound, upperBound]} with an odd-only segmented sieve and
  * verifies the count with the independent prime-counting function π(x) ({@link PrimeCountingFunction}).
  */
-public class PrimeCountingAlgorithm implements ComputeAlgorithm<PrimeRange, Long> {
+public class PrimeCountingAlgorithm implements PartitionedAlgorithm<PrimeRange, PrimeRange, PrimeCount, Long> {
 
     /** Algorithm identifier. */
     public static final String ID = "primes.count";
 
     /** Largest supported upper bound (keeps sieve time and the O(x^3/4) verification practical). */
     public static final long MAX_BOUND = 100_000_000_000L;
+
+    /** Smallest default partition, so base-prime setup is amortized over enough sieving work. */
+    public static final long MIN_PARTITION_LENGTH = 1L << 20;
 
     private static final double MERTENS_CONSTANT = 0.2615;
 
@@ -93,8 +103,8 @@ public class PrimeCountingAlgorithm implements ComputeAlgorithm<PrimeRange, Long
      * @return the parallelism profile
      */
     protected ParallelismProfile parallelism(long length) {
-        return new ParallelismProfile(false, null, Math.max(1, length / (2L * SegmentedSieve.SEGMENT_ODDS)),
-                DataDependency.REDUCTION, "O(p): sum of partition counts");
+        return new ParallelismProfile(true, PartitionStrategyType.RANGE,
+                Math.max(1, length / MIN_PARTITION_LENGTH), DataDependency.REDUCTION, "O(p): sum of partition counts");
     }
 
     @Override
@@ -127,5 +137,86 @@ public class PrimeCountingAlgorithm implements ComputeAlgorithm<PrimeRange, Long
     public ResultSummary summarize(Long result) {
         String digest = new DigestBuilder("count").putLong(result).finish();
         return new ResultSummary("count", digest, Map.of("count", result));
+    }
+
+    @Override
+    public PartitionStrategyType partitionStrategy() {
+        return PartitionStrategyType.RANGE;
+    }
+
+    @Override
+    public List<Violation> validatePartitioning(Parameters parameters, PartitioningOptions options) {
+        return Partitioners.validateLinear(options);
+    }
+
+    @Override
+    public List<PartitionBounds> plan(Parameters parameters, PartitioningOptions options, int defaultPartitions) {
+        return List.copyOf(Partitioners.planLinear(parameters.getLong("lowerBound"),
+                parameters.getLong("upperBound") + 1, options, defaultPartitions, MIN_PARTITION_LENGTH));
+    }
+
+    @Override
+    public String workUnit() {
+        return "integers";
+    }
+
+    @Override
+    public long workUnits(PartitionBounds bounds) {
+        return bounds.elementCount();
+    }
+
+    @Override
+    public PrimeRange extract(PrimeRange input, PartitionBounds bounds) {
+        RangeBounds range = (RangeBounds) bounds;
+        return new PrimeRange(range.start(), range.endExclusive() - 1);
+    }
+
+    @Override
+    public PrimeCount computePartition(PrimeRange work, ExecutionContext context) {
+        int[] basePrimes = SegmentedSieve.oddPrimesUpTo(SegmentedSieve.isqrt(work.upper()));
+        long count = SegmentedSieve.countPrimes(work.lower(), work.upper(), basePrimes, context.cancellation(),
+                context.progress());
+        return new PrimeCount(work.lower(), work.upper(), count);
+    }
+
+    @Override
+    public String partialResultType() {
+        return "prime-count";
+    }
+
+    @Override
+    public Optional<String> partialProblem(PartitionBounds bounds, PrimeCount partial) {
+        if (!(bounds instanceof RangeBounds range)) {
+            return Optional.of("prime partitions need RANGE bounds");
+        }
+        if (partial.lower() != range.start() || partial.upper() != range.endExclusive() - 1) {
+            return Optional.of("count is for [" + partial.lower() + ", " + partial.upper() + "] but the partition is ["
+                    + range.start() + ", " + (range.endExclusive() - 1) + "]");
+        }
+        long maxPossible = range.elementCount() / 2 + 2;
+        if (partial.count() < 0 || partial.count() > maxPossible) {
+            return Optional.of("count " + partial.count() + " is impossible for " + range.elementCount()
+                    + " integers");
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Long aggregate(List<PartitionBounds> plan, List<PrimeCount> partials, ExecutionContext context) {
+        long total = 0;
+        for (PrimeCount partial : partials) {
+            total = Math.addExact(total, partial.count());
+        }
+        return total;
+    }
+
+    @Override
+    public PayloadCodec<PrimeRange> workCodec() {
+        return PrimeCount.RANGE_CODEC;
+    }
+
+    @Override
+    public PayloadCodec<PrimeCount> partialCodec() {
+        return PrimeCount.CODEC;
     }
 }
