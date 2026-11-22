@@ -39,5 +39,5 @@ from all three contributors, a `schemaVersion` bump, and coordinated updates in 
 * Checkstyle ([config/checkstyle/checkstyle.xml](config/checkstyle/checkstyle.xml)) and SpotBugs run during
   `./mvnw verify`. Fix every finding. If you suppress one, add a comment that justifies it.
 * Prefer immutable value types (records), small cohesive classes and explicit validation.
-* Performance claims must come from recorded measurements (see `docs/performance-methodology.md` once it
-  exists). Tests assert correctness, never timing.
+* Performance claims must come from recorded measurements (see
+  [docs/performance-methodology.md](docs/performance-methodology.md)). Tests assert correctness, never timing.

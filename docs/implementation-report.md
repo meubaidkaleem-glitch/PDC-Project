@@ -67,7 +67,8 @@ plus job "Code quality":
 | `192aaa6` | Phase 5 | success |
 | `1960745` | Phase 6 | success |
 | `7be463f` | Phase 7 | success (every step, including concurrency and performance-scenario tests) |
-| `1e70c0c` | Phase 8 | in progress when this report was written; see section 9 |
+| `1e70c0c` | Phase 8 | success |
+| `6e20065` | Phase 10 (CLI, examples, end-to-end test, release docs) | **success**: run 45010972566, every step of both jobs, including concurrency and performance-scenario tests |
 
 Defects found and fixed during development (by tests and static analysis, not reported afterwards):
 * SpotBugs found a visibility race in `PartitionedTaskSession.value()` (an unsynchronized read of a field written
@@ -136,5 +137,7 @@ Measured on a shared 4-vCPU cloud VM (raw data and caveats in
 ## 9. Version and commit intended for integration
 
 * **Version:** `0.1.0-SNAPSHOT`. Tag `v0.1.0` after review and merge.
-* **Commit:** the head of `feature/core-engine` that contains this report. Its hash and CI result are recorded
-  in the follow-up entry below, once CI has run on it.
+* **Commit:** **`6e20065`** on `feature/core-engine`. This is the last commit that changes code, and it is
+  verified by GitHub Actions run 45010972566 (all steps succeeded) and by a clean local run (149 unit, 30
+  concurrency and 4 performance-scenario tests, 0 Checkstyle violations, 0 SpotBugs bugs). Later commits on the
+  branch change documentation only.
