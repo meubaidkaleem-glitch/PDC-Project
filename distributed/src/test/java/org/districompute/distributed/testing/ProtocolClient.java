@@ -92,6 +92,37 @@ public final class ProtocolClient implements AutoCloseable {
     }
 
     /**
+     * Sends heartbeats in the background until the connection closes or the returned handle is stopped.
+     *
+     * @param workerId this worker's id
+     * @param capacity concurrency limit to report
+     * @param intervalMillis heartbeat interval
+     * @param running supplies the attempt ids to report as running
+     * @return stops the heartbeats when run
+     */
+    public Runnable startHeartbeats(String workerId, int capacity, long intervalMillis,
+            java.util.function.Supplier<java.util.List<String>> running) {
+        java.util.concurrent.atomic.AtomicBoolean stop = new java.util.concurrent.atomic.AtomicBoolean();
+        java.util.concurrent.atomic.AtomicLong sequence = new java.util.concurrent.atomic.AtomicLong();
+        Thread.ofVirtual().start(() -> {
+            while (!stop.get() && closed.getCount() > 0) {
+                try {
+                    send(Envelope.builder(MessageType.HEARTBEAT).workerId(workerId).payload(
+                            new org.districompute.distributed.protocol.HeartbeatPayload(sequence.incrementAndGet(),
+                                    running.get().size(), capacity, 1 << 20, -1, -1, 0, 0, running.get())));
+                    Thread.sleep(intervalMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                } catch (AssertionError e) {
+                    return;
+                }
+            }
+        });
+        return () -> stop.set(true);
+    }
+
+    /**
      * The proof sent by the last {@link #register} call.
      *
      * @return the proof

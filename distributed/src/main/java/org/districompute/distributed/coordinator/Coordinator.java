@@ -83,8 +83,11 @@ public final class Coordinator implements AutoCloseable {
 
     private void begin() {
         long tick = config.tickInterval().toMillis();
-        ticker.scheduleAtFixedRate(() -> loop.execute(() -> workers.tick(System.nanoTime())), tick, tick,
-                TimeUnit.MILLISECONDS);
+        ticker.scheduleAtFixedRate(() -> loop.execute(() -> {
+            long now = System.nanoTime();
+            workers.tick(now);
+            tasks.tick(now);
+        }), tick, tick, TimeUnit.MILLISECONDS);
         Thread.ofPlatform().name("coordinator-accept").daemon(true).start(this::acceptLoop);
         LOG.info("Coordinator {} listening for workers on {}:{}{}", config.coordinatorId(), config.bindAddress(),
                 port(), config.tls().enabled() ? " (TLS)" : "");

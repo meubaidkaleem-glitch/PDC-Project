@@ -36,6 +36,7 @@ public final class WorkerRecord {
     private int maxConcurrentTasks;
     private long idleSinceNanos;
     private long lastAssignedNanos;
+    private int invalidThisRegistration;
 
     WorkerRecord(String workerId) {
         this.workerId = Objects.requireNonNull(workerId, "workerId");
@@ -55,6 +56,7 @@ public final class WorkerRecord {
         this.lastHeartbeatSequence = 0;
         this.idleSinceNanos = nowNanos;
         this.assigned.clear();
+        this.invalidThisRegistration = 0;
         setStatus(WorkerStatus.ACTIVE, registrations == 1 ? "registered" : "re-registered", now);
     }
 
@@ -134,6 +136,16 @@ public final class WorkerRecord {
      */
     public void count(AttemptOutcome outcome) {
         outcomes.merge(outcome, 1L, Long::sum);
+    }
+
+    /**
+     * Counts an invalid or conflicting result for the quarantine rule.
+     *
+     * @return invalid results since the current registration
+     */
+    public int noteInvalidResult() {
+        count(AttemptOutcome.INVALID_RESULT);
+        return ++invalidThisRegistration;
     }
 
     /**

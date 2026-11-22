@@ -37,6 +37,7 @@ import org.districompute.distributed.protocol.CancelPayload;
 import org.districompute.distributed.protocol.CancelReason;
 import org.districompute.distributed.protocol.Envelope;
 import org.districompute.distributed.protocol.ErrorPayload;
+import org.districompute.distributed.protocol.HeartbeatPayload;
 import org.districompute.distributed.protocol.Ids;
 import org.districompute.distributed.protocol.MessageCodec;
 import org.districompute.distributed.protocol.MessageType;
@@ -45,6 +46,8 @@ import org.districompute.distributed.protocol.ResultPayload;
 import org.districompute.distributed.protocol.TaskPayload;
 import org.districompute.distributed.protocol.TaskProgressPayload;
 import org.districompute.distributed.protocol.WorkerCapabilities;
+import org.districompute.distributed.recovery.FailureKind;
+import org.districompute.distributed.recovery.RetryPolicy;
 import org.districompute.distributed.registry.AttemptOutcome;
 import org.districompute.distributed.registry.PerformanceStats;
 import org.districompute.distributed.registry.WorkerRecord;
@@ -93,6 +96,8 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
     private final Map<String, DistributedTask> finished;
     private final Map<String, DistributedTask> attemptIndex = new HashMap<>();
     private final Map<TaskPriority, ArrayDeque<Pending>> pending = new EnumMap<>(TaskPriority.class);
+    private final Map<String, Long> withoutCapableWorkerSince = new HashMap<>();
+    private final RetryPolicy retryPolicy;
     private boolean scheduleRequested;
 
     TaskManager(CoordinatorConfig config, ControlLoop loop, WorkerManager workers, Scheduler scheduler) {
@@ -106,6 +111,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         this.planning = executor("coordinator-planning", 2);
         this.encoding = executor("coordinator-encoding", 2);
         this.aggregation = executor("coordinator-aggregation", 2);
+        this.retryPolicy = new RetryPolicy(defaults.maxRejectionsPerPartition());
         for (TaskPriority priority : PRIORITY_ORDER) {
             pending.put(priority, new ArrayDeque<>());
         }
@@ -357,7 +363,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         PartitionState partition = partitionOf(task, attempt);
         partition.countRejection(attempt.workerId(), true);
         LOG.warn("Dispatch of {} failed: {}", attempt.ref().attemptId(), reason);
-        retryOrFail(task, partition, attempt, true, false, ErrorCode.EXECUTION_FAILED, reason);
+        retryOrFail(task, partition, attempt, FailureKind.DISPATCH_FAILED, true, ErrorCode.EXECUTION_FAILED, reason);
     }
 
     // ---------------------------------------------------------------- attempt messages (control loop)
@@ -434,20 +440,21 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             case CONFLICTING_DUPLICATE -> {
                 attempt.finish(AttemptStatus.INVALID, now, "conflicts with the accepted result: " + offer.detail(),
                         false);
-                worker.count(AttemptOutcome.INVALID_RESULT);
+                invalidResult(worker);
                 LOG.error("Worker {} returned a result for {} that conflicts with the accepted one: {}",
                         worker.workerId(), attempt.ref().attemptId(), offer.detail());
             }
             case INVALID, UNKNOWN_PARTITION -> {
                 attempt.finish(AttemptStatus.INVALID, now, "invalid result: " + offer.detail(), true);
-                worker.count(AttemptOutcome.INVALID_RESULT);
+                invalidResult(worker);
                 LOG.warn("Worker {} returned an invalid result for {}: {}", worker.workerId(),
                         attempt.ref().attemptId(), offer.detail());
                 if (partition.status() != PartitionStatus.COMPLETED) {
                     task.session().markFailed(partition.index(), new ErrorInfo(ErrorCode.INVALID_PARTIAL_RESULT,
                             offer.detail(), true, TaskStatus.RUNNING, partition.index(), List.of()));
-                    retryOrFail(task, partition, attempt, true, true, ErrorCode.INVALID_PARTIAL_RESULT,
-                            "invalid result from " + worker.workerId() + ": " + offer.detail());
+                    retryOrFail(task, partition, attempt, FailureKind.INVALID_RESULT, true,
+                            ErrorCode.INVALID_PARTIAL_RESULT, "invalid result from " + worker.workerId() + ": "
+                                    + offer.detail());
                 }
             }
             default -> throw new IllegalStateException("Unknown classification " + offer.classification());
@@ -468,8 +475,8 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 attempt.finish(AttemptStatus.REJECTED, now, error.message(), error.retryable());
                 worker.count(AttemptOutcome.REJECTED);
                 partition.countRejection(worker.workerId(), true);
-                retryOrFail(task, partition, attempt, error.retryable(), !error.retryable(), ErrorCode.EXECUTION_FAILED,
-                        "rejected by " + worker.workerId() + ": " + error.message());
+                retryOrFail(task, partition, attempt, FailureKind.REJECTED, error.retryable(),
+                        ErrorCode.EXECUTION_FAILED, "rejected by " + worker.workerId() + ": " + error.message());
             }
             case TASK_FAILED -> {
                 if (!wasLive) {
@@ -483,18 +490,20 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                         error.retryable());
                 worker.count(timeout ? AttemptOutcome.TIMED_OUT : AttemptOutcome.FAILED);
                 task.session().markFailed(partition.index(), coreError);
-                retryOrFail(task, partition, attempt, error.retryable(), true, coreError.code(),
-                        "failed on " + worker.workerId() + ": " + error.message());
+                retryOrFail(task, partition, attempt, timeout ? FailureKind.TIMED_OUT : FailureKind.TASK_FAILED,
+                        error.retryable(), coreError.code(), "failed on " + worker.workerId() + ": "
+                                + error.message());
             }
             case TASK_CANCELLED, UNKNOWN_TASK -> {
                 if (!wasLive) {
                     break;
                 }
-                // Not requested by the coordinator: the worker is stopping or lost the attempt.
+                // Not requested by the coordinator: the worker is stopping, or it does not know the attempt.
                 attempt.finish(AttemptStatus.LOST, now, error.message(), true);
                 worker.count(AttemptOutcome.LOST);
-                retryOrFail(task, partition, attempt, true, false, ErrorCode.EXECUTION_FAILED,
-                        "lost on " + worker.workerId() + ": " + error.message());
+                retryOrFail(task, partition, attempt, error.code() == ProtocolErrorCode.TASK_CANCELLED
+                        ? FailureKind.WORKER_STOPPED : FailureKind.MISSING_FROM_HEARTBEAT, true,
+                        ErrorCode.EXECUTION_FAILED, "lost on " + worker.workerId() + ": " + error.message());
             }
             default -> LOG.warn("Worker {} reported {} for {}: {}", worker.workerId(), error.code(),
                     attempt.ref().attemptId(), error.message());
@@ -504,34 +513,134 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     /**
      * Decides what happens to a partition after a failed attempt: nothing while another attempt is live, a new
-     * attempt if the failure and the partition allow it and budgets remain, otherwise the task fails.
+     * attempt if the retry policy allows it, otherwise the task fails with the reason.
      */
-    private void retryOrFail(DistributedTask task, PartitionState partition, Attempt failed, boolean retryable,
-            boolean countFailure, ErrorCode code, String reason) {
+    private void retryOrFail(DistributedTask task, PartitionState partition, Attempt failed, FailureKind kind,
+            boolean failureRetryable, ErrorCode code, String reason) {
         if (task.isFinished() || task.isCompleting() || partition.status() == PartitionStatus.COMPLETED) {
             return;
         }
-        if (countFailure) {
+        if (kind.countsAgainstBudget()) {
             partition.countFailure(failed.workerId());
         }
         if (!partition.live().isEmpty() || partition.queued()) {
             return;
         }
-        boolean budgetLeft = partition.countedFailures() < task.maxAttempts()
-                && partition.rejections() < defaults.maxRejectionsPerPartition();
-        if (retryable && task.session().retryEligible(partition.index()) && budgetLeft) {
-            LOG.info("Retrying {} ({}): {}", partition.descriptor().partitionId(),
-                    partition.countedFailures() + " counted failures", reason);
+        RetryPolicy.Decision decision = retryPolicy.decide(kind, failureRetryable,
+                task.session().retryEligible(partition.index()), partition.countedFailures(), task.maxAttempts(),
+                partition.rejections());
+        if (decision.retry()) {
+            LOG.info("Retrying {} after {} ({} counted failures): {}", partition.descriptor().partitionId(), kind,
+                    partition.countedFailures(), reason);
             enqueue(task, partition);
             requestSchedule();
             return;
         }
-        String why = !retryable ? "the failure is not retryable"
-                : !task.session().retryEligible(partition.index()) ? "the partition is not retry-safe"
-                : "the retry budget is exhausted (" + partition.countedFailures() + " failures, "
-                        + partition.rejections() + " refusals)";
         failTask(task, new ErrorInfo(code, "Partition " + partition.descriptor().partitionId() + " failed: " + reason
-                + "; " + why, false, TaskStatus.RUNNING, partition.index(), List.of()));
+                + "; " + decision.reason(), false, TaskStatus.RUNNING, partition.index(), List.of()));
+    }
+
+    private void invalidResult(WorkerRecord worker) {
+        int invalid = worker.noteInvalidResult();
+        if (invalid >= defaults.quarantineThreshold()
+                && (worker.status() == WorkerStatus.ACTIVE || worker.status() == WorkerStatus.SUSPECT)) {
+            workers.changeStatus(worker, WorkerStatus.QUARANTINED, invalid + " invalid or conflicting results since "
+                    + "it registered; it receives no further attempts", config.clock().instant());
+            // Its results are no longer trusted: move its running attempts to other workers.
+            Instant now = config.clock().instant();
+            for (String attemptId : new ArrayList<>(worker.assignedAttempts())) {
+                DistributedTask task = attemptIndex.get(attemptId);
+                Attempt attempt = task == null ? null : task.attempt(attemptId);
+                if (attempt == null || attempt.status().isTerminal()) {
+                    continue;
+                }
+                attempt.finish(AttemptStatus.CANCELLED, now, "worker " + worker.workerId() + " was quarantined",
+                        true);
+                sendCancel(attempt, CancelReason.SUPERSEDED);
+                retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.WORKER_QUARANTINED, true,
+                        ErrorCode.EXECUTION_FAILED, "worker " + worker.workerId() + " was quarantined");
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- timeouts (control loop)
+
+    /**
+     * Enforces task deadlines, attempt timeouts and the no-capable-worker timeout.
+     *
+     * @param nowNanos current monotonic time
+     */
+    void tick(long nowNanos) {
+        for (DistributedTask task : new ArrayList<>(active.values())) {
+            if (task.isFinished() || task.isCompleting()) {
+                continue;
+            }
+            Long timeoutMillis = task.spec().constraints().timeoutMillis();
+            if (timeoutMillis != null && nowNanos - task.submittedNanos() > timeoutMillis * 1_000_000L) {
+                failTask(task, new ErrorInfo(ErrorCode.TIMEOUT, "Task " + task.taskId() + " exceeded its timeout of "
+                        + timeoutMillis + " ms", true, task.status(), null, List.of()));
+                continue;
+            }
+            if (task.session() != null) {
+                attemptTimeouts(task, nowNanos);
+                capableWorkers(task, nowNanos);
+            }
+        }
+    }
+
+    private void attemptTimeouts(DistributedTask task, long nowNanos) {
+        long timeout = task.attemptTimeoutMillis();
+        long limitNanos = (timeout + Math.max(200, timeout / 10)) * 1_000_000L;
+        for (Attempt attempt : task.attempts()) {
+            if (attempt.status().isTerminal()) {
+                continue;
+            }
+            long start = attempt.sentNanos() >= 0 ? attempt.sentNanos() : attempt.decidedNanos();
+            if (!attempt.wasAccepted() && attempt.sentNanos() >= 0
+                    && nowNanos - attempt.sentNanos() > defaults.acceptTimeout().toNanos()) {
+                String reason = "no TASK_ACCEPTED within " + defaults.acceptTimeout().toMillis() + " ms";
+                attempt.finish(AttemptStatus.LOST, config.clock().instant(), reason, true);
+                workers.registry().get(attempt.workerId()).ifPresent(w -> w.count(AttemptOutcome.LOST));
+                sendCancel(attempt, CancelReason.TIMEOUT);
+                LOG.warn("{} on {}: {}", attempt.ref().attemptId(), attempt.workerId(), reason);
+                retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.NOT_ACCEPTED, true,
+                        ErrorCode.EXECUTION_FAILED, "not confirmed by " + attempt.workerId() + " (" + reason + ")");
+                continue;
+            }
+            if (nowNanos - start <= limitNanos) {
+                continue;
+            }
+            // The slot stays occupied until the worker answers the CANCEL or disconnects.
+            String reason = "no result within " + timeout + " ms (coordinator timeout)";
+            attempt.finish(AttemptStatus.TIMED_OUT, config.clock().instant(), reason, true);
+            workers.registry().get(attempt.workerId()).ifPresent(w -> w.count(AttemptOutcome.TIMED_OUT));
+            sendCancel(attempt, CancelReason.TIMEOUT);
+            LOG.warn("{} on {}: {}", attempt.ref().attemptId(), attempt.workerId(), reason);
+            retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.TIMED_OUT, true, ErrorCode.TIMEOUT,
+                    "timed out on " + attempt.workerId() + " (" + reason + ")");
+        }
+    }
+
+    private void capableWorkers(DistributedTask task, long nowNanos) {
+        boolean waiting = task.partitions().stream().anyMatch(PartitionState::queued);
+        boolean capable = workers.registry().connected().stream()
+                .filter(w -> w.status() != WorkerStatus.QUARANTINED)
+                .anyMatch(w -> Eligibility.incapable(w.capabilities(), task.requirements()).isEmpty());
+        if (!waiting || capable) {
+            withoutCapableWorkerSince.remove(task.taskId());
+            return;
+        }
+        long since = withoutCapableWorkerSince.computeIfAbsent(task.taskId(), id -> nowNanos);
+        if (nowNanos - since > defaults.noWorkerTimeout().toNanos()) {
+            List<String> why = workers.registry().connected().stream().map(w -> w.workerId() + ": "
+                    + (w.status() == WorkerStatus.QUARANTINED ? "quarantined"
+                            : Eligibility.incapable(w.capabilities(), task.requirements()).orElse("capable")))
+                    .toList();
+            failTask(task, new ErrorInfo(ErrorCode.UNSUPPORTED_EXECUTION_MODE, "No connected worker can run "
+                    + task.requirements().algorithm() + " partitions (waited " + defaults.noWorkerTimeout().toMillis()
+                    + " ms); workers: " + (why.isEmpty() ? "none" : String.join("; ", why)), true, task.status(),
+                    null, List.of()));
+        }
     }
 
     // ---------------------------------------------------------------- workers (control loop)
@@ -561,8 +670,37 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             }
             attempt.finish(AttemptStatus.LOST, now, "worker " + worker.workerId() + " lost: " + reason, true);
             worker.count(AttemptOutcome.LOST);
-            retryOrFail(task, partitionOf(task, attempt), attempt, true, true, ErrorCode.EXECUTION_FAILED,
-                    "worker " + worker.workerId() + " was lost (" + reason + ")");
+            retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.WORKER_LOST, true,
+                    ErrorCode.EXECUTION_FAILED, "worker " + worker.workerId() + " was lost (" + reason + ")");
+        }
+        requestSchedule();
+    }
+
+    /**
+     * Reconciles the coordinator's view with the worker's: an accepted attempt that the heartbeat no longer lists,
+     * and whose final message has not arrived, is lost (messages on a connection are ordered, so a final message
+     * sent before the heartbeat would already have been processed).
+     */
+    @Override
+    public void workerHeartbeat(WorkerRecord worker, HeartbeatPayload heartbeat) {
+        Set<String> listed = new HashSet<>(heartbeat.runningAttempts());
+        Instant now = config.clock().instant();
+        for (String attemptId : new ArrayList<>(worker.assignedAttempts())) {
+            DistributedTask task = attemptIndex.get(attemptId);
+            Attempt attempt = task == null ? null : task.attempt(attemptId);
+            if (attempt == null || !attempt.wasAccepted() || listed.contains(attemptId)) {
+                continue;
+            }
+            releaseSlot(attempt);
+            if (attempt.status().isTerminal()) {
+                continue;
+            }
+            attempt.finish(AttemptStatus.LOST, now, "no longer listed in the heartbeat of " + worker.workerId()
+                    + " and no result arrived", true);
+            worker.count(AttemptOutcome.LOST);
+            LOG.warn("{} disappeared from the heartbeat of {}", attemptId, worker.workerId());
+            retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.MISSING_FROM_HEARTBEAT, true,
+                    ErrorCode.EXECUTION_FAILED, "missing from the heartbeat of " + worker.workerId());
         }
         requestSchedule();
     }
@@ -638,6 +776,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         }
         task.finish(result, now, metrics);
         active.remove(task.taskId());
+        withoutCapableWorkerSince.remove(task.taskId());
         finished.put(task.taskId(), task);
         LOG.info("Task {} {} ({} attempts)", task.taskId(), result.status(), task.attempts().size());
         requestSchedule();

@@ -233,6 +233,15 @@ public final class Attempt {
     }
 
     /**
+     * Whether the worker confirmed the attempt with {@code TASK_ACCEPTED}.
+     *
+     * @return {@code true} once accepted
+     */
+    public boolean wasAccepted() {
+        return acceptedAt != null;
+    }
+
+    /**
      * Monotonic time of the scheduling decision.
      *
      * @return {@link System#nanoTime()} value
