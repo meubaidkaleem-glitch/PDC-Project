@@ -61,5 +61,6 @@ dashes). The secret can come from the `DISTRICOMPUTE_SECRET` environment variabl
 | [docs/architecture.md](docs/architecture.md) | Repository inspection, responsibilities, components, threading, identifiers, decisions, risks |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Phases, acceptance criteria, status, postponed features |
 | [docs/worker-lifecycle.md](docs/worker-lifecycle.md) | Starting workers, capabilities, states, heartbeats, execution, reconnection, shutdown |
+| [docs/scheduling.md](docs/scheduling.md) | Dispatch model, eligibility rules, the five policies, decision records, adding a policy |
 | [docs/network-protocol.md](docs/network-protocol.md) | Wire protocol: framing, envelope, message types, errors, authentication, examples |
 | [docs/integration-contract.md](docs/integration-contract.md) | What the runtime takes from Core and offers the Application |

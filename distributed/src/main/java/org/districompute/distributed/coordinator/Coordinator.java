@@ -18,7 +18,7 @@ import org.districompute.distributed.communication.Connection;
 import org.districompute.distributed.communication.Sockets;
 import org.districompute.distributed.registry.WorkerRecord;
 import org.districompute.distributed.registry.WorkerSnapshot;
-import org.districompute.distributed.scheduler.LeastLoadedPolicy;
+import org.districompute.distributed.scheduler.Policies;
 import org.districompute.distributed.scheduler.PolicyName;
 import org.districompute.distributed.scheduler.Scheduler;
 import org.districompute.distributed.security.RegistrationAuthenticator;
@@ -54,7 +54,7 @@ public final class Coordinator implements AutoCloseable {
         this.authenticator = new RegistrationAuthenticator(config.secret(), config.maxClockSkew(), config.clock());
         this.loop = new ControlLoop("coordinator-loop", 100_000);
         this.workers = new WorkerManager(config, authenticator);
-        this.scheduler = new Scheduler(config.tasks().policy(), List.of(new LeastLoadedPolicy()));
+        this.scheduler = new Scheduler(config.tasks().policy(), Policies.builtIn());
         this.tasks = new TaskManager(config, loop, workers, scheduler);
         workers.addListener(tasks);
         workers.setAttemptMessages(tasks);
