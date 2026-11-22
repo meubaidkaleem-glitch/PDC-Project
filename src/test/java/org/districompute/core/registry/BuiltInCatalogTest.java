@@ -20,10 +20,12 @@ import org.junit.jupiter.api.Test;
 class BuiltInCatalogTest {
 
     @Test
-    void discoversThePriorityOneAlgorithms() {
+    void discoversTheBuiltInAlgorithms() {
         List<String> ids = AlgorithmRegistry.loadDefault().catalog().stream()
                 .map(info -> info.descriptor().id().value()).toList();
-        assertEquals(List.of("matrix.add", "matrix.multiply", "primes.count", "sort.merge"), ids);
+        assertEquals(List.of("data.filter", "data.statistics", "matrix.add", "matrix.multiply", "numeric.integrate",
+                "numeric.monte-carlo", "numeric.polynomial-eval", "numeric.root-find", "primes.count", "sort.merge"),
+                ids);
     }
 
     @Test

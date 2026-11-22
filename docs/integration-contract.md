@@ -121,7 +121,7 @@ execution attempt with its own status history.
   | `matrix.add` | Dense matrix addition | P1 |
   | `matrix.multiply` | Dense matrix multiplication | P1 (main demonstration) |
   | `numeric.integrate`, `numeric.polynomial-eval`, `numeric.root-find`, `numeric.monte-carlo` | Numerical operations | P2 |
-  | `data.search`, `data.filter`, `data.statistics` | Data processing | P2 |
+  | `data.filter` (search and filter), `data.statistics` | Data processing | P2 |
 
 * **Version.** Semantic version `MAJOR.MINOR.PATCH` of the *algorithm contract*: its parameters, result
   semantics and partition payload format. This is independent of the Core release version.

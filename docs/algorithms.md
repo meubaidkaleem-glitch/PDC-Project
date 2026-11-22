@@ -10,6 +10,12 @@ generates inputs and verifies results, and its known limitations. The catalog is
 | `sort.merge` | 1.0.0 | Sorting | sequential, multithreaded, distributed-compatible (`CHUNK`) | Sortedness and multiset fingerprint |
 | `matrix.add` | 1.0.0 | Linear algebra | sequential, multithreaded, distributed-compatible (`BLOCK_2D`) | Exact recomputation |
 | `matrix.multiply` | 1.0.0 | Linear algebra | sequential, multithreaded, distributed-compatible (`BLOCK_2D`) | Freivalds with a floating-point error bound |
+| `numeric.integrate` | 1.0.0 | Numerical | sequential, multithreaded, distributed-compatible (`RANGE`) | Closed-form antiderivative within error bounds |
+| `numeric.polynomial-eval` | 1.0.0 | Numerical | sequential, multithreaded, distributed-compatible (`CHUNK`) | 512 exact (BigDecimal) samples within Horner's bound |
+| `numeric.root-find` | 1.0.0 | Numerical | sequential, multithreaded, distributed-compatible (`RANGE`) | Sign-change bracket of every reported root |
+| `numeric.monte-carlo` | 1.0.0 | Numerical | sequential, multithreaded, distributed-compatible (`RANGE`) | Statistical (5 standard errors) |
+| `data.statistics` | 1.0.0 | Data processing | sequential, multithreaded, distributed-compatible (`CHUNK`) | Independent two-pass recomputation |
+| `data.filter` | 1.0.0 | Data processing | sequential, multithreaded, distributed-compatible (`CHUNK`) | Exact sequential rescan |
 
 "Distributed-compatible" means Core provides the partition plan, payload codecs, partial-result validation and
 aggregation. Actual distributed execution needs Contributor 2's runtime. GPU is not implemented for any
@@ -128,3 +134,32 @@ Computes `C = A × B`, where A is `rowsA × colsA`, B is `rowsB × colsB` and `r
   example; profile estimates.
 * **Limitations:** dense doubles only. The classical O(mkn) algorithm (no Strassen). Three 20,000² matrices need
   about 9.6 GB, and the memory guard rejects such requests before allocating when the heap is too small.
+
+---
+
+## Numerical operations
+
+The functions are an explicit catalog (`RealFunction`): `POLYNOMIAL` (coefficients `a0, a1, …`, degree < 64),
+`SIN`, `COS` and `EXP`. Arbitrary expressions are deliberately not supported. Every catalog function has a
+closed-form antiderivative and computable bounds for |f| and |f''''|, which give analytic reference values and
+rigorous tolerances.
+
+| Operation | Method | Partitioning | Cross-mode equality | Verification and tolerance | Limitations |
+|---|---|---|---|---|---|
+| `numeric.integrate` | Composite Simpson on `panels` equal panels, Neumaier-compensated sums | Ranges of panel indices; partial compensated sums are combined | Within rounding (floating-point addition is not associative) | `F(b) − F(a)` within 2 × (Simpson truncation `(b−a)h⁴/2880·max|f''''|` + rounding bound) | Exact only up to cubics; 3 evaluations per panel |
+| `numeric.polynomial-eval` | Horner at a uniform grid or inline points | Chunks of points | **Bitwise** | 512 deterministic samples evaluated exactly with `BigDecimal`, within `2·γ_2d·Σ|a_i||x|^i` | Unsampled points are covered by cross-mode equality, not exact checks |
+| `numeric.root-find` | Scan `subintervals` for sign changes, then bisect to `tolerance` | Ranges of subintervals (root isolation); bisection of one root stays sequential | **Bitwise** | Each root lies in range, roots increase, and a sign change occurs within ±tolerance (or the value is zero within rounding) | Misses roots without a sign change (even multiplicity) and roots closer than one subinterval; cannot prove completeness |
+| `numeric.monte-carlo` | π from `samples` points; sample i uses `CounterRandom(seed, 1/2, i)` | Ranges of sample indices | **Bitwise** (the hit count doesn't depend on partitioning) | Statistical: within 5 standard errors of π (false alarm ≈ 6·10⁻⁷) | Accuracy O(1/√n); statistical verification |
+
+## Data-processing operations
+
+| Operation | Method | Partitioning | Cross-mode equality | Verification | Limitations |
+|---|---|---|---|---|---|
+| `data.statistics` | One pass per chunk (Welford); chunks merged with Chan–Golub–LeVeque | Chunks | Count, min and max exact; mean and variance within rounding | Independent two-pass recomputation; relative tolerance 1e-9 of the data scale (generous, not a proven bound) | At least one value; `NORMAL` data via Box–Muller |
+| `data.filter` | Count values in `[minValue, maxValue]` and return the first `limit` indices | Chunks; counts summed, indices concatenated in chunk order and truncated | **Bitwise** | Exact sequential rescan | 64-bit integers; inclusive range predicate; at most 10,000 indices returned |
+
+Sorting is `sort.merge` (above). Searching and filtering are both served by `data.filter`.
+
+**Iterative algorithms.** Operations whose steps depend on each other (bisection, Newton iteration, time-stepping
+simulations) cannot be freely partitioned. Core parallelizes only their independent parts (for example root
+isolation), and their profiles report `dataDependency = ITERATIVE`.

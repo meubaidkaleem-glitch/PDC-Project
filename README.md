@@ -29,6 +29,7 @@ lists only what exists on this branch.
 | Local engine: full lifecycle, validation, memory guard, timeout, cancellation | Done for `SEQUENTIAL_CPU` (Phase 3), see [docs/execution-model.md](docs/execution-model.md) |
 | Bounded worker pool, admission control, progress events | Done (Phase 4) |
 | Partitioning, aggregation, partial-result validation, payload codecs; `MULTITHREADED_CPU`; coordinator and worker facade for `DISTRIBUTED_CPU` | Done (Phase 5) |
+| Numerical (integration, polynomial evaluation, root finding, Monte Carlo) and data operations (statistics, filter and search) | Done (Phase 6) |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
 

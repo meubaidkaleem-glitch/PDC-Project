@@ -41,7 +41,8 @@ contract, and that contract is versioned.
 | 3 | Done | Prime counting, merge sort, matrix addition, cache-blocked matrix multiplication with independent verifiers; deterministic generators; workload profiles; memory guard; `LocalExecutionEngine` (sequential) driving the full lifecycle. **Milestone M1 reached.** 101 unit and 2 concurrency tests pass. |
 | 4 | Done | Bounded `WorkerPool` (fixed threads, bounded queue, controlled submission, completion queue, fail-fast, structured completion, shutdown), engine admission control, throttled monotonic progress events, shutdown cancellation. Concurrency suite: 15 tests, stable over 5 consecutive runs. |
 | 5 | Done | Partition model and deterministic planners; `PartitionedAlgorithm` for all P1 algorithms; `PartialResultCollector` (accepted, duplicate, conflicting, invalid, unknown, late, missing, failed); versioned CRC-32C binary codecs; `MULTITHREADED_CPU` through partitions, bitwise identical to sequential; coordinator and worker facade (`PartitionedTaskSession`, `PartitionWorker`) tested with a simulated JSON-exchanging runtime including retry after a lost worker. 122 unit and 28 concurrency tests pass. |
-| 6–10 | Not started | — |
+| 6 | Done | Numerical integration, polynomial evaluation, root finding, Monte Carlo π; descriptive statistics, filter and search. All partitionable and verified, with documented limitations. 162 tests pass. |
+| 7–10 | Not started | — |
 
 ## 4. Postponed features
 
