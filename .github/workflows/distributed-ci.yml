@@ -89,3 +89,20 @@ jobs:
           name: distributed-jacoco-report
           path: distributed/target/site/jacoco/
           if-no-files-found: ignore
+
+  mpi-demos:
+    name: MPI demonstrations (build and run with 4 processes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Install Open MPI
+        run: sudo apt-get update && sudo apt-get install -y openmpi-bin libopenmpi-dev
+
+      - name: Build (warnings are errors)
+        run: make -C distributed/mpi
+
+      - name: Run and verify every demonstration
+        run: NP=4 distributed/mpi/run-demos.sh

@@ -63,5 +63,6 @@ dashes). The secret can come from the `DISTRICOMPUTE_SECRET` environment variabl
 | [docs/worker-lifecycle.md](docs/worker-lifecycle.md) | Starting workers, capabilities, states, heartbeats, execution, reconnection, shutdown |
 | [docs/scheduling.md](docs/scheduling.md) | Dispatch model, eligibility rules, the five policies, decision records, adding a policy |
 | [docs/fault-tolerance.md](docs/fault-tolerance.md) | Failure detection, recovery, retry policy, quarantine, slot accounting, limitations |
+| [mpi/README.md](mpi/README.md) | MPI demonstrations in C (separate from the Java runtime): build, run, real output, comparison |
 | [docs/network-protocol.md](docs/network-protocol.md) | Wire protocol: framing, envelope, message types, errors, authentication, examples |
 | [docs/integration-contract.md](docs/integration-contract.md) | What the runtime takes from Core and offers the Application |
