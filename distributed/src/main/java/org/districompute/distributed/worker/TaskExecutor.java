@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -135,11 +136,32 @@ final class TaskExecutor implements AutoCloseable {
         Running attempt = new Running(ref, unit.descriptor().index(), outbox, receivedNanos);
         running.put(ref.attemptId(), attempt);
         int now = active.incrementAndGet();
-        outbox.send(reply(MessageType.TASK_ACCEPTED, ref, task.messageId(),
-                new TaskAcceptedPayload(now, capacity)));
-        attempt.timeout = timers.schedule(() -> attempt.cancellation.cancel(CancellationReason.TIMEOUT),
-                payload.timeoutMillis(), TimeUnit.MILLISECONDS);
-        pool.execute(() -> run(attempt, unit));
+        try {
+            attempt.timeout = timers.schedule(() -> attempt.cancellation.cancel(CancellationReason.TIMEOUT),
+                    payload.timeoutMillis(), TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            // The worker stopped after the admission check: refuse instead of admitting.
+            forget(attempt);
+            outbox.send(reply(MessageType.ERROR, ref, task.messageId(), new ErrorPayload(
+                    ProtocolErrorCode.TASK_REJECTED, "Worker " + config.workerId() + " is stopping", true, false,
+                    null)));
+            return;
+        }
+        // Queued before execution starts, so it always precedes the attempt's final message.
+        outbox.send(reply(MessageType.TASK_ACCEPTED, ref, task.messageId(), new TaskAcceptedPayload(now, capacity)));
+        try {
+            pool.execute(() -> run(attempt, unit));
+        } catch (RejectedExecutionException e) {
+            forget(attempt);
+            attempt.timeout.cancel(false);
+            outbox.send(reply(MessageType.ERROR, ref, null, new ErrorPayload(ProtocolErrorCode.TASK_CANCELLED,
+                    "Worker " + config.workerId() + " is stopping", true, false, null)));
+        }
+    }
+
+    private void forget(Running attempt) {
+        running.remove(attempt.ref.attemptId());
+        active.decrementAndGet();
     }
 
     /**
@@ -249,6 +271,7 @@ final class TaskExecutor implements AutoCloseable {
 
     @Override
     public void close() {
+        accepting = false;
         cancelAll("worker stopped");
         pool.shutdownNow();
         timers.shutdownNow();
@@ -293,6 +316,7 @@ final class TaskExecutor implements AutoCloseable {
 
     private void run(Running attempt, WorkUnitMessage unit) {
         long started = System.nanoTime();
+        Envelope last;
         try {
             attempt.cancellation.throwIfCancelled();
             PartialResultMessage partial = partitionWorker.execute(unit, attempt.cancellation,
@@ -302,58 +326,65 @@ final class TaskExecutor implements AutoCloseable {
                     ended - attempt.receivedNanos);
             completed.incrementAndGet();
             // A result is useful even if a CANCEL raced with it: the coordinator decides what to do with it.
-            attempt.outbox.send(reply(MessageType.RESULT, attempt.ref, null, new ResultPayload(partial, timing)));
+            last = reply(MessageType.RESULT, attempt.ref, null, new ResultPayload(partial, timing));
         } catch (TaskCancelledException e) {
-            cancelled(attempt, e.reason());
+            last = cancelled(attempt, e.reason());
         } catch (DistriComputeException e) {
             failed.incrementAndGet();
             LOG.info("Attempt {} failed: {}", attempt.ref.attemptId(), e.getMessage());
             ErrorInfo error = e.toErrorInfo(TaskStatus.RUNNING);
             ErrorInfo located = new ErrorInfo(error.code(), error.message(), error.retryable(), error.status(),
                     attempt.partitionIndex, error.violations());
-            attempt.outbox.send(reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
-                    ProtocolErrorCode.TASK_FAILED, e.getMessage(), error.retryable(), false, located)));
+            last = reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(ProtocolErrorCode.TASK_FAILED,
+                    e.getMessage(), error.retryable(), false, located));
         } catch (RuntimeException | Error e) {
             failed.incrementAndGet();
             LOG.error("Attempt {} failed unexpectedly", attempt.ref.attemptId(), e);
             String message = "Unexpected " + e.getClass().getSimpleName() + " in worker " + config.workerId()
                     + " (details in the worker's log)";
-            attempt.outbox.send(reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
-                    ProtocolErrorCode.TASK_FAILED, message, true, false, new ErrorInfo(ErrorCode.EXECUTION_FAILED,
-                            message, true, TaskStatus.RUNNING, attempt.partitionIndex, List.of()))));
+            last = reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(ProtocolErrorCode.TASK_FAILED,
+                    message, true, false, new ErrorInfo(ErrorCode.EXECUTION_FAILED, message, true,
+                            TaskStatus.RUNNING, attempt.partitionIndex, List.of())));
+        }
+        ScheduledFuture<?> timeout = attempt.timeout;
+        if (timeout != null) {
+            timeout.cancel(false);
+        }
+        synchronized (finished) {
+            finished.put(attempt.ref.attemptId(), Boolean.TRUE);
+        }
+        // Free the slot before the final message leaves: the coordinator may reuse it as soon as it reads the
+        // message. The attempt stays in the heartbeat's list until its final message is queued, because messages
+        // on a connection are ordered.
+        active.decrementAndGet();
+        try {
+            if (last != null) {
+                attempt.outbox.send(last);
+            }
         } finally {
-            ScheduledFuture<?> timeout = attempt.timeout;
-            if (timeout != null) {
-                timeout.cancel(false);
-            }
-            synchronized (finished) {
-                finished.put(attempt.ref.attemptId(), Boolean.TRUE);
-            }
             running.remove(attempt.ref.attemptId());
-            active.decrementAndGet();
         }
     }
 
-    private void cancelled(Running attempt, CancellationReason reason) {
+    private Envelope cancelled(Running attempt, CancellationReason reason) {
         switch (reason) {
             case TIMEOUT -> {
                 failed.incrementAndGet();
                 String message = "Attempt " + attempt.ref.attemptId() + " exceeded its timeout on worker "
                         + config.workerId();
-                attempt.outbox.send(reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
-                        ProtocolErrorCode.TASK_FAILED, message, true, false, new ErrorInfo(ErrorCode.TIMEOUT,
-                                message, true, TaskStatus.RUNNING, attempt.partitionIndex, List.of()))));
+                return reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(ProtocolErrorCode.TASK_FAILED,
+                        message, true, false, new ErrorInfo(ErrorCode.TIMEOUT, message, true, TaskStatus.RUNNING,
+                                attempt.partitionIndex, List.of())));
             }
             case SHUTDOWN -> {
-                if (attempt.outbox.isOpen()) {
-                    attempt.outbox.send(reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
-                            ProtocolErrorCode.TASK_CANCELLED, "Worker " + config.workerId() + " is stopping", true,
-                            false, null)));
-                }
+                return attempt.outbox.isOpen() ? reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
+                        ProtocolErrorCode.TASK_CANCELLED, "Worker " + config.workerId() + " is stopping", true,
+                        false, null)) : null;
             }
-            default -> attempt.outbox.send(reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(
-                    ProtocolErrorCode.TASK_CANCELLED, "Cancelled at the coordinator's request", false, false,
-                    null)));
+            default -> {
+                return reply(MessageType.ERROR, attempt.ref, null, new ErrorPayload(ProtocolErrorCode.TASK_CANCELLED,
+                        "Cancelled at the coordinator's request", false, false, null));
+            }
         }
     }
 

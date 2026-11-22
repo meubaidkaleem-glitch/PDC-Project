@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Objects;
+import org.districompute.core.registry.AlgorithmRegistry;
 import org.districompute.distributed.communication.TlsConfig;
 import org.districompute.distributed.security.RegistrationAuthenticator;
 import org.districompute.distributed.security.SharedSecret;
@@ -30,6 +31,8 @@ import org.districompute.distributed.security.SharedSecret;
  * @param maxClockSkew tolerated clock difference for registration proofs
  * @param tickInterval how often timeouts are checked
  * @param clock clock for timestamps
+ * @param tasks task defaults and limits
+ * @param registry Core algorithms available to the coordinator (validation, planning, aggregation)
  */
 public record CoordinatorConfig(
         String coordinatorId,
@@ -49,7 +52,9 @@ public record CoordinatorConfig(
         boolean allowFaultSimulationWorkers,
         Duration maxClockSkew,
         Duration tickInterval,
-        Clock clock) {
+        Clock clock,
+        TaskDefaults tasks,
+        AlgorithmRegistry registry) {
 
     /** Default worker port. */
     public static final int DEFAULT_PORT = 7650;
@@ -61,6 +66,8 @@ public record CoordinatorConfig(
         Objects.requireNonNull(secret, "secret (the cluster's shared secret is required)");
         Objects.requireNonNull(tls, "tls");
         Objects.requireNonNull(clock, "clock");
+        Objects.requireNonNull(tasks, "tasks");
+        Objects.requireNonNull(registry, "registry");
         if (port < 0 || port > 65_535) {
             throw new IllegalArgumentException("port must be between 0 and 65535");
         }
@@ -116,6 +123,8 @@ public record CoordinatorConfig(
         private Duration maxClockSkew = RegistrationAuthenticator.DEFAULT_MAX_CLOCK_SKEW;
         private Duration tickInterval = Duration.ofMillis(100);
         private Clock clock = Clock.systemUTC();
+        private TaskDefaults tasks = TaskDefaults.DEFAULTS;
+        private AlgorithmRegistry registry;
 
         private Builder(SharedSecret secret) {
             this.secret = secret;
@@ -291,6 +300,28 @@ public record CoordinatorConfig(
         }
 
         /**
+         * Sets the task defaults and limits.
+         *
+         * @param value the defaults
+         * @return this builder
+         */
+        public Builder tasks(TaskDefaults value) {
+            this.tasks = value;
+            return this;
+        }
+
+        /**
+         * Sets the Core registry (default: the built-in algorithms).
+         *
+         * @param value the registry
+         * @return this builder
+         */
+        public Builder registry(AlgorithmRegistry value) {
+            this.registry = value;
+            return this;
+        }
+
+        /**
          * Builds the configuration.
          *
          * @return the validated configuration
@@ -299,7 +330,8 @@ public record CoordinatorConfig(
             return new CoordinatorConfig(coordinatorId, bindAddress, port, secret, tls, maxMessageBytes,
                     registrationTimeout, heartbeatInterval, suspectAfter, heartbeatTimeout, maxWorkers,
                     maxPendingConnections, outboundQueueCapacity, maxProtocolErrors, allowFaultSimulationWorkers,
-                    maxClockSkew, tickInterval, clock);
+                    maxClockSkew, tickInterval, clock, tasks,
+                    registry != null ? registry : AlgorithmRegistry.loadDefault());
         }
     }
 

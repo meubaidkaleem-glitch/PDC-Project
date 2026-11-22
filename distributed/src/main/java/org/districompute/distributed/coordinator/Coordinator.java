@@ -6,16 +6,25 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.districompute.core.DistriComputeException;
+import org.districompute.core.task.TaskSpec;
 import org.districompute.distributed.communication.Connection;
 import org.districompute.distributed.communication.Sockets;
 import org.districompute.distributed.registry.WorkerRecord;
 import org.districompute.distributed.registry.WorkerSnapshot;
+import org.districompute.distributed.scheduler.LeastLoadedPolicy;
+import org.districompute.distributed.scheduler.PolicyName;
+import org.districompute.distributed.scheduler.Scheduler;
 import org.districompute.distributed.security.RegistrationAuthenticator;
+import org.districompute.distributed.task.DistributedTask;
+import org.districompute.distributed.task.SubmitOptions;
+import org.districompute.distributed.task.TaskSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +45,8 @@ public final class Coordinator implements AutoCloseable {
     private final RegistrationAuthenticator authenticator;
     private final ServerSocket server;
     private final ScheduledExecutorService ticker;
+    private final Scheduler scheduler;
+    private final TaskManager tasks;
     private final AtomicBoolean closed = new AtomicBoolean();
 
     private Coordinator(CoordinatorConfig config) throws IOException {
@@ -43,6 +54,10 @@ public final class Coordinator implements AutoCloseable {
         this.authenticator = new RegistrationAuthenticator(config.secret(), config.maxClockSkew(), config.clock());
         this.loop = new ControlLoop("coordinator-loop", 100_000);
         this.workers = new WorkerManager(config, authenticator);
+        this.scheduler = new Scheduler(config.tasks().policy(), List.of(new LeastLoadedPolicy()));
+        this.tasks = new TaskManager(config, loop, workers, scheduler);
+        workers.addListener(tasks);
+        workers.setAttemptMessages(tasks);
         try {
             this.server = Sockets.listen(config.tls(), config.bindAddress(), config.port(), 128);
         } catch (IOException e) {
@@ -113,6 +128,95 @@ public final class Coordinator implements AutoCloseable {
     }
 
     /**
+     * Submits a task with the coordinator's default options.
+     *
+     * @param spec Core task specification (mode {@code DISTRIBUTED_CPU})
+     * @return a handle to wait for, inspect or cancel the task
+     * @throws DistriComputeException if the task is refused (unknown algorithm, unsupported mode, too many tasks)
+     * @throws IllegalArgumentException if the task id is already in use
+     */
+    public TaskHandle submit(TaskSpec spec) {
+        return submit(spec, SubmitOptions.DEFAULTS);
+    }
+
+    /**
+     * Submits a task. Validation, planning and dispatch happen asynchronously; problems found then end the task
+     * with a {@code FAILED} result instead of an exception.
+     *
+     * @param spec Core task specification (mode {@code DISTRIBUTED_CPU})
+     * @param options runtime options
+     * @return a handle to wait for, inspect or cancel the task
+     * @throws DistriComputeException if the task is refused (unknown algorithm, unsupported mode, too many tasks)
+     * @throws IllegalArgumentException if the task id is already in use or an option is invalid
+     */
+    public TaskHandle submit(TaskSpec spec, SubmitOptions options) {
+        Objects.requireNonNull(spec, "spec");
+        Objects.requireNonNull(options, "options");
+        DistributedTask task = loop.call(() -> tasks.submit(spec, options), QUERY_TIMEOUT);
+        return new TaskHandle(spec.taskId(), task.completion(), this);
+    }
+
+    /**
+     * A task's current state.
+     *
+     * @param taskId the task id
+     * @return the snapshot, if the task is active or retained
+     */
+    public Optional<TaskSnapshot> task(String taskId) {
+        return loop.call(() -> tasks.snapshot(taskId), QUERY_TIMEOUT);
+    }
+
+    /**
+     * All active and retained tasks.
+     *
+     * @return snapshots, finished tasks first
+     */
+    public List<TaskSnapshot> tasks() {
+        return loop.call(tasks::snapshots, QUERY_TIMEOUT);
+    }
+
+    /**
+     * Cancels a task. Running attempts are cancelled on their workers.
+     *
+     * @param taskId the task id
+     * @return {@code true} if the task was running and is now cancelled
+     */
+    public boolean cancel(String taskId) {
+        return loop.call(() -> tasks.cancel(taskId, "cancelled by the client"), QUERY_TIMEOUT);
+    }
+
+    /**
+     * The default scheduling policy.
+     *
+     * @return the policy
+     */
+    public PolicyName schedulingPolicy() {
+        return loop.call(scheduler::defaultPolicy, QUERY_TIMEOUT);
+    }
+
+    /**
+     * The scheduling policies this coordinator offers.
+     *
+     * @return their names
+     */
+    public List<PolicyName> availablePolicies() {
+        return loop.call(scheduler::available, QUERY_TIMEOUT);
+    }
+
+    /**
+     * Changes the default scheduling policy for tasks submitted from now on.
+     *
+     * @param policy the policy
+     * @throws IllegalArgumentException if it is not available
+     */
+    public void setSchedulingPolicy(PolicyName policy) {
+        loop.call(() -> {
+            scheduler.setDefaultPolicy(policy);
+            return null;
+        }, QUERY_TIMEOUT);
+    }
+
+    /**
      * Stops accepting workers, sends {@code SHUTDOWN} (with {@code reconnect: true}, so workers come back when a
      * coordinator restarts on the same address) and closes all connections.
      */
@@ -130,6 +234,7 @@ public final class Coordinator implements AutoCloseable {
         ticker.shutdownNow();
         try {
             loop.call(() -> {
+                tasks.shutdown();
                 workers.shutdown("coordinator " + config.coordinatorId() + " is shutting down", true);
                 return null;
             }, QUERY_TIMEOUT);
@@ -137,6 +242,7 @@ public final class Coordinator implements AutoCloseable {
             LOG.warn("Could not notify workers of the shutdown: {}", e.getMessage());
         }
         loop.close();
+        tasks.close();
     }
 
     ControlLoop loop() {

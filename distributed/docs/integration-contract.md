@@ -29,7 +29,7 @@ Two equivalent ways to integrate:
 
 | Option | When | Status |
 |---|---|---|
-| **Embedded:** the Application starts a `Coordinator` in its own JVM and calls its Java API | One deployment unit; events delivered in-process (for example forwarded to WebSockets or SSE) | Partly implemented: start, stop, worker list (Phase 3) |
+| **Embedded:** the Application starts a `Coordinator` in its own JVM and calls its Java API | One deployment unit; events delivered in-process (for example forwarded to WebSockets or SSE) | Partly implemented: workers (Phase 3), tasks, results, snapshots, metrics, cancellation, default policy (Phase 5) |
 | **Standalone:** the coordinator runs as its own process; the Application calls its HTTP API and reads its event stream | The coordinator runs on another machine, or independently of the Application | Planned (Phase 8, 11) |
 
 Both expose the same operations:
@@ -73,6 +73,34 @@ A `WorkerSnapshot` serializes to:
 | `counters` | `assigned`, `succeeded`, `failed`, `rejected`, `timedOut`, `lost`, `invalidResults`, `duplicateResults` |
 | `performance` | Per algorithm: `samples`, `operationsPerSecond`, `transferBytesPerSecond`, `meanKernelMillis` |
 
+### 2.2 Submitting tasks and reading results  *(implemented)*
+
+```java
+TaskSpec spec = TaskSpec.builder("matrix.multiply").taskId(uuid).experimentId("exp-42")
+        .parameter("rowsA", 1024).parameter("colsA", 1024).parameter("colsB", 1024)
+        .mode(ExecutionMode.DISTRIBUTED_CPU).build();
+TaskHandle handle = coordinator.submit(spec, SubmitOptions.DEFAULTS
+        .withPolicy(PolicyName.PERFORMANCE_AWARE)      // optional; the coordinator default otherwise
+        .withMaxAttempts(3)                           // attempts per partition, counting failures
+        .withAttemptTimeout(Duration.ofMinutes(5))
+        .withMaxWorkers(2));                          // limited worker availability (experiments)
+TaskSnapshot progress = handle.snapshot();             // any time
+TaskOutcome outcome = handle.await(Duration.ofMinutes(10));
+TaskResult result = outcome.result();                  // Core's document: status, digest, verification, metrics
+TaskSnapshot detail = outcome.snapshot();              // partitions, attempts, decisions, DistributedMetrics
+coordinator.cancel(spec.taskId());                     // or handle.cancel()
+```
+
+* `submit` throws only when a task is refused outright: an unknown algorithm (`UNKNOWN_ALGORITHM`), a mode the
+  runtime does not run here (`UNSUPPORTED_EXECUTION_MODE`), too many running tasks (`RESOURCE_EXHAUSTED`), or a
+  task id already in use (`IllegalArgumentException`).
+* Everything found later (Core validation errors, exhausted retries, verification failure, cancellation) ends the
+  task with a `FAILED` or `CANCELLED` `TaskResult` and Core's `ErrorInfo`. The future never completes
+  exceptionally.
+* A task fails clearly rather than reporting success when a partition cannot be completed: a non-retryable
+  failure, a partition Core marks as not retry-safe, or an exhausted retry budget. The message names the partition
+  and the reason.
+
 ## 3. Events
 
 Planned (Phase 8). Every event has a global `sequence`, a `timestamp`, a `type` and the ids that apply
@@ -81,19 +109,60 @@ changed and disconnected; task submitted, status changed, progress, completed, f
 assigned (with the scheduling decision), accepted, progress, completed, failed, timed out and retried; result
 rejected (with Core's classification); scheduling policy changed; strategy override recorded.
 
-## 4. Task snapshots
+## 4. Task snapshots  *(implemented)*
 
-Planned (Phase 5). A snapshot contains Core's task status, one entry per partition (Core partition status plus
-the attempts), and for each attempt: `attemptId`, worker, attempt state, scheduling decision, timings and failure
-reason.
+`TaskSnapshot` (JSON field names as listed):
 
-Attempt states: `DISPATCHED`, `ACCEPTED`, `RUNNING`, `SUCCEEDED`, `REJECTED`, `FAILED`, `TIMED_OUT`, `LOST`,
-`CANCELLED`.
+| Field | Meaning |
+|---|---|
+| `taskId`, `experimentId`, `algorithm`, `mode` | From the `TaskSpec` |
+| `status` | Core `TaskStatus` (`VALIDATING` while Core plans, then Core's session status) |
+| `policy` | Scheduling policy used |
+| `submittedAt`, `finishedAt` | Coordinator times |
+| `totalPartitions`, `completedPartitions`, `attempts`, `retries` | Progress counters |
+| `error` | Core `ErrorInfo` once the task failed or was cancelled |
+| `metrics` | `DistributedMetrics` ([§5](#5-distributed-metrics--implemented)) |
+| `partitions[]` | `index`, `partitionId`, `status` (Core `PartitionStatus`) and `attempts[]` |
+| `result` | Core's `TaskResult` once the task has ended |
 
-## 5. Distributed metrics
+Each attempt (`AttemptSnapshot`) has `attemptId` (`<partitionId>/a<n>`), `attempt`, `workerId`, `status`, the
+`assignment` (scheduling decision record, [scheduling.md](scheduling.md)), `dispatchedAt`, `acceptedAt`,
+`finishedAt`, the timings `serializationNanos`, `roundTripNanos`, `transferNanos`, `workerQueueNanos`,
+`workerExecuteNanos`, `computeNanos` and `resultProcessingNanos` (`-1` = not measured), `bytesSent`,
+`bytesReceived`, progress (`progressUnits`, `progressTotal`, `progressUnit`), and `failure` with `retryable`.
 
-Planned (Phase 8). Computation, communication and scheduling are reported separately, as Core's contract
-(§10) requires.
+Attempt states: `DISPATCHING`, `DISPATCHED`, `ACCEPTED`, `RUNNING`, then exactly one of `SUCCEEDED`, `REJECTED`,
+`FAILED`, `TIMED_OUT`, `LOST`, `INVALID` (Core rejected the result), `CANCELLED` or `SUPERSEDED` (another attempt
+of the same partition delivered first).
+
+## 5. Distributed metrics  *(implemented)*
+
+Core's `ExecutionMetrics` inside `TaskResult` keep Core's definitions. For a distributed task, Core's
+`computeNanos` is the coordinator's wall time from the first dispatch to the last accepted result, so it
+*includes* communication. `DistributedMetrics` separates the parts:
+
+| Field | Clock | Meaning |
+|---|---|---|
+| `totalNanos` | coordinator | Submission to end of task |
+| `queueNanos` | coordinator | Submission to first dispatch (includes planning) |
+| `planningNanos` | coordinator | Core session opening: validation, workload analysis, partition plan, input preparation |
+| `distributedNanos` | coordinator | First dispatch to last accepted result |
+| `aggregationNanos` | coordinator | Core aggregation and verification after the last result |
+| `kernelNanos` | workers | Σ kernel time of accepted attempts (**computation**) |
+| `workerExecuteNanos` | workers | Σ decode + kernel + encode of all attempts that reported timings |
+| `transferNanos` | both, never compared | Σ (coordinator round trip − worker residence) of accepted attempts (**communication**) |
+| `serializationNanos`, `resultProcessingNanos` | coordinator | Σ encoding of work units and frames, Σ decoding and classifying results |
+| `schedulingNanos` | coordinator | Σ time in scheduling decisions and their bookkeeping (**scheduling overhead**) |
+| `bytesSent`, `bytesReceived` | coordinator | Σ `TASK` and `RESULT` frame sizes |
+| `partitions`, `attempts`, `succeededAttempts`, `failedAttempts`, `retries`, `workersUsed` | | Counts |
+| `workerUtilization` | | `workerExecuteNanos / (distributedNanos × slots of the workers used)` |
+| `throughputPartitionsPerSecond` | | Completed partitions per second of `distributedNanos` |
+| `loadImbalance` | | Largest per-worker kernel time ÷ mean (1.0 = balanced) |
+| `perWorker[]` | | `workerId`, `attempts`, `succeeded`, `kernelNanos`, `executeNanos`, `transferNanos`, `bytes` |
+
+Sums run over attempts, so with parallel workers they can exceed wall time. Comparisons with sequential and local
+parallel execution should use Core's `executionNanos` (local) against `distributedNanos` plus
+`aggregationNanos` (distributed), and report communication and scheduling from this table.
 
 ## 6. Versioning
 

@@ -195,6 +195,18 @@ final class WorkerSession implements Connection.Listener {
         return Envelope.builder(type).workerId(workerId).attempt(ref).inReplyTo(inReplyTo).payload(payload);
     }
 
+    /**
+     * Queues an already encoded frame.
+     *
+     * @param frame the frame
+     * @return {@code true} if queued
+     * @throws IllegalArgumentException if the frame exceeds the worker's limit
+     */
+    boolean sendFrame(byte[] frame) {
+        Connection c = connection;
+        return c != null && c.send(frame);
+    }
+
     void closeAfterFlush() {
         Connection c = connection;
         if (c != null) {
