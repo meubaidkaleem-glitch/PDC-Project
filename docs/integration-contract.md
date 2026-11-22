@@ -398,7 +398,26 @@ end-to-end behaviour is covered by `DistributedSessionTest`, which simulates the
 JSON strings: results equal the sequential digest, a lost worker is recovered by retry, and duplicate, corrupted,
 misplaced and foreign results are classified.
 
-## 15. Open questions for Contributors 2 and 3
+## 15. Resource snapshot and strategy assessment  *(Core: implemented — `ResourceSnapshot`, `StrategyAdvisor`)*
+
+Contributor 2 supplies the resources and Core assesses the strategies. Core never invents workers.
+
+```json
+{
+  "schemaVersion": "0.1",
+  "capturedAt": "2026-11-22T10:00:00Z",
+  "local": { "nodeId": "coordinator", "cpuCores": 4, "memoryBytes": 3000000000 },
+  "workers": [ { "nodeId": "worker-1", "cpuCores": 8, "memoryBytes": 16000000000 } ],
+  "network": { "bandwidthBytesPerSecond": 125000000, "latencyMillis": 0.5 },
+  "gpuDevices": []
+}
+```
+
+The result (`StrategyRecommendation`) holds one assessment per mode, each with `verdict`, `threads`,
+`estimatedSeconds` and `reasons`. It also gives the `recommended` mode (or `null` if none is suitable), whether
+measured `calibrated` throughput was used, and the `assumptions`.
+
+## 16. Open questions for Contributors 2 and 3
 
 1. Build integration for Distributed: a CI `mvn install` of a pinned Core tag (proposed), JitPack, or GitHub
    Packages?

@@ -20,6 +20,7 @@ import org.districompute.core.algorithm.ComputeAlgorithm;
 import org.districompute.core.algorithm.ParameterSpec;
 import org.districompute.core.algorithm.PartitionedAlgorithm;
 import org.districompute.core.execution.ExecutionMode;
+import org.districompute.core.resource.GpuStatus;
 import org.districompute.core.validation.ParameterValidator;
 import org.districompute.core.validation.ValidationException;
 
@@ -35,8 +36,10 @@ public final class AlgorithmRegistry {
 
     private final Map<AlgorithmId, ComputeAlgorithm<?, ?>> algorithms;
     private final Map<AlgorithmId, AlgorithmInfo> catalog;
+    private final GpuStatus gpuStatus;
 
-    private AlgorithmRegistry(Collection<? extends ComputeAlgorithm<?, ?>> candidates) {
+    private AlgorithmRegistry(Collection<? extends ComputeAlgorithm<?, ?>> candidates, GpuStatus gpuStatus) {
+        this.gpuStatus = gpuStatus;
         Map<AlgorithmId, ComputeAlgorithm<?, ?>> byId = new TreeMap<>();
         Map<AlgorithmId, AlgorithmInfo> infos = new TreeMap<>();
         for (ComputeAlgorithm<?, ?> algorithm : candidates) {
@@ -47,7 +50,7 @@ public final class AlgorithmRegistry {
                         + byId.get(descriptor.id()).getClass().getName() + " and " + algorithm.getClass().getName());
             }
             checkDefaults(descriptor);
-            infos.put(descriptor.id(), new AlgorithmInfo(descriptor, deriveCapabilities(algorithm)));
+            infos.put(descriptor.id(), new AlgorithmInfo(descriptor, deriveCapabilities(algorithm, gpuStatus)));
         }
         this.algorithms = byId;
         this.catalog = infos;
@@ -60,7 +63,18 @@ public final class AlgorithmRegistry {
      * @return the registry
      */
     public static AlgorithmRegistry of(Collection<? extends ComputeAlgorithm<?, ?>> algorithms) {
-        return new AlgorithmRegistry(List.copyOf(algorithms));
+        return new AlgorithmRegistry(List.copyOf(algorithms), GpuStatus.none());
+    }
+
+    /**
+     * Creates a registry from the given algorithms and a GPU detection result.
+     *
+     * @param algorithms algorithm instances
+     * @param gpuStatus detected GPU backends
+     * @return the registry
+     */
+    public static AlgorithmRegistry of(Collection<? extends ComputeAlgorithm<?, ?>> algorithms, GpuStatus gpuStatus) {
+        return new AlgorithmRegistry(List.copyOf(algorithms), Objects.requireNonNull(gpuStatus, "gpuStatus"));
     }
 
     /**
@@ -94,7 +108,7 @@ public final class AlgorithmRegistry {
         for (AlgorithmProvider provider : ServiceLoader.load(AlgorithmProvider.class, classLoader)) {
             found.addAll(provider.algorithms());
         }
-        return of(found);
+        return of(found, GpuStatus.detect(classLoader));
     }
 
     /**
@@ -149,19 +163,33 @@ public final class AlgorithmRegistry {
     }
 
     /**
-     * Derives capabilities from the interfaces an algorithm implements.
+     * Returns the GPU detection result used for the capabilities.
+     *
+     * @return the GPU status
+     */
+    public GpuStatus gpuStatus() {
+        return gpuStatus;
+    }
+
+    /**
+     * Derives capabilities from the interfaces an algorithm implements and from detected GPU backends.
      *
      * @param algorithm the algorithm
+     * @param gpu detected GPU backends
      * @return its capabilities
      */
-    static AlgorithmCapabilities deriveCapabilities(ComputeAlgorithm<?, ?> algorithm) {
+    static AlgorithmCapabilities deriveCapabilities(ComputeAlgorithm<?, ?> algorithm, GpuStatus gpu) {
         Set<ExecutionMode> modes = EnumSet.of(ExecutionMode.SEQUENTIAL_CPU);
+        boolean onGpu = gpu.backendFor(algorithm.descriptor().id()).isPresent();
+        if (onGpu) {
+            modes.add(ExecutionMode.GPU);
+        }
         if (algorithm instanceof PartitionedAlgorithm<?, ?, ?, ?> partitioned) {
             modes.add(ExecutionMode.MULTITHREADED_CPU);
             modes.add(ExecutionMode.DISTRIBUTED_CPU);
-            return new AlgorithmCapabilities(List.copyOf(modes), partitioned.partitionStrategy(), true, false);
+            return new AlgorithmCapabilities(List.copyOf(modes), partitioned.partitionStrategy(), true, onGpu);
         }
-        return new AlgorithmCapabilities(List.copyOf(modes), null, false, false);
+        return new AlgorithmCapabilities(List.copyOf(modes), null, false, onGpu);
     }
 
     private static void checkDefaults(AlgorithmDescriptor descriptor) {

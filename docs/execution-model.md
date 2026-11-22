@@ -10,7 +10,7 @@ failures, cancellation and memory limits are handled.
 | `SEQUENTIAL_CPU` | Core, `LocalExecutionEngine` | **Implemented** for all four priority-1 algorithms |
 | `MULTITHREADED_CPU` | Core, partitions on the bounded worker pool | **Implemented** for all four priority-1 algorithms |
 | `DISTRIBUTED_CPU` | DistriCompute-Distributed, through `PartitionedTaskSession` and `PartitionWorker` | Core side **implemented** and tested with a simulated runtime; never executed by the local engine |
-| `GPU`, `HYBRID` | — | Not implemented; always rejected |
+| `GPU`, `HYBRID` | — | Not implemented; always rejected with the detection reason (see [gpu-backend.md](gpu-backend.md)) |
 
 An algorithm's supported modes are derived from the interfaces it implements. The registry never trusts a
 hand-written list. The local engine rejects non-local modes with a message pointing to the responsible
@@ -113,7 +113,31 @@ is throttled to `EngineConfig.progressIntervalMillis` (default 100 ms). Events a
 of a completed task reports 100%. A task's listener is never called concurrently. A failing listener is logged
 once and never affects the task.
 
-## 9. Measurements
+## 9. Strategy assessment (`StrategyAdvisor`)
+
+`StrategyAdvisor.recommend(profile, capabilities, resources, history, gpuStatus)` gives every mode a verdict
+(`RECOMMENDED`, `SUITABLE`, `UNSUITABLE` or `UNSUPPORTED`) with reasons, and recommends the fastest suitable mode.
+
+* **Inputs.** The workload profile (operations, memory, data dependency, aggregation) and the derived
+  capabilities come from Core. The `ResourceSnapshot` (workers, network) is supplied by the distributed runtime;
+  Core can describe only its own node (`ResourceSnapshot.localOnly()`). `history` holds measured throughput
+  (`Calibration.fromReport(benchmarkReport)`), supplied by the application from stored benchmark reports.
+* **Unsupported** means no implementation: the algorithm is not partitionable, there is no GPU backend, or the
+  mode is `HYBRID`.
+* **Unsuitable** means implemented but a bad idea here: too small to parallelize, peak memory above the node
+  budget, only one processor, no workers registered, or estimated communication above the sequential compute
+  time.
+* **Small-workload threshold.** Uncalibrated, it is 10⁷ estimated operations. Calibrated, it is a sequential
+  estimate below 20 ms. This rests on measurements in the development container: 128³ matrix multiplication
+  (about 4·10⁶ flops) ran **0.88×** with 2 threads, while 256³ (about 3.4·10⁷ flops) ran **1.89×** with 4 threads.
+* **Without calibration** no time is estimated. The advisor then prefers multithreaded execution for large
+  workloads and sequential for small ones, and lists this assumption. **With calibration**, measured throughput
+  decides, and it can overrule the assumption that parallel is faster (this is tested).
+* **Default efficiencies** (0.75 for independent partitions, 0.4 when partial results need a sequential ordered
+  merge) and the per-partition overhead (50 µs) are assumptions. They are listed in every recommendation and can
+  be changed through `StrategyAdvisor.Settings`.
+
+## 10. Measurements
 
 `ExecutionMetrics` separates validation, input preparation, compute, aggregation and verification time.
 `executionNanos` (partitioning + compute + aggregation) is the speedup basis. Process CPU time, GC activity and

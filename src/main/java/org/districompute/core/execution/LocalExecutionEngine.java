@@ -423,6 +423,10 @@ public final class LocalExecutionEngine implements AutoCloseable {
         private void checkMode() {
             ExecutionMode mode = spec.constraints().mode();
             AlgorithmCapabilities capabilities = registry.info(resolved.id()).orElseThrow().capabilities();
+            if (mode == ExecutionMode.GPU) {
+                throw new DistriComputeException(ErrorCode.UNSUPPORTED_EXECUTION_MODE,
+                        "GPU execution is not available in this release: " + registry.gpuStatus().summary());
+            }
             if (!mode.isLocal()) {
                 throw new DistriComputeException(ErrorCode.UNSUPPORTED_EXECUTION_MODE, mode
                         + " is not executed by the local engine; submit the task to the component that provides it");
