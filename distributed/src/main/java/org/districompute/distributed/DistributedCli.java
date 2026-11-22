@@ -8,6 +8,7 @@ import java.util.List;
 import org.districompute.core.CoreVersion;
 import org.districompute.distributed.cli.CoordinatorCommand;
 import org.districompute.distributed.cli.Options;
+import org.districompute.distributed.cli.WorkerCommand;
 
 /**
  * Command-line entry point of the runnable jar ({@code java -jar districompute-distributed-...-all.jar}).
@@ -46,7 +47,7 @@ public final class DistributedCli {
             return 0;
         }
         return switch (args.get(0)) {
-            case "coordinator" -> runCommand(args, out, err, "coordinator");
+            case "coordinator", "worker" -> runCommand(args, out, err, args.get(0));
             case "version" -> {
                 out.println("districompute-distributed " + DistributedVersion.version() + " (core "
                         + CoreVersion.version() + ")");
@@ -65,6 +66,7 @@ public final class DistributedCli {
             List<String> rest = args.subList(1, args.size());
             return switch (command) {
                 case "coordinator" -> CoordinatorCommand.run(Options.parse(rest, CoordinatorCommand.FLAGS), out);
+                case "worker" -> WorkerCommand.run(Options.parse(rest, WorkerCommand.FLAGS), out);
                 default -> throw new IllegalStateException(command);
             };
         } catch (IllegalArgumentException e) {
@@ -82,6 +84,9 @@ public final class DistributedCli {
         out.println("Commands:");
         out.println("  coordinator  run a coordinator: --port 7650 --secret-file <file> [--bind 0.0.0.0]");
         out.println("               [--tls-keystore <p12> --tls-keystore-password <pw>] [--config <file>]");
+        out.println("  worker       run a worker: --coordinator <host:port> --secret-file <file> [--id <id>]");
+        out.println("               [--max-concurrent-tasks N] [--labels k=v,...] [--algorithms id,...]");
+        out.println("               [--tls-truststore <p12> --tls-truststore-password <pw>] [--config <file>]");
         out.println("  version      print the runtime and Core versions");
         out.println("  help         print this help");
         out.println();
