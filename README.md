@@ -2,6 +2,9 @@
 
 > GitHub repository: `PDC-Project`. This repository is the **DistriCompute-Core** component of the DistriCompute
 > project (see [docs/architecture.md §2.1](docs/architecture.md#21-repository-naming)).
+>
+> The distributed runtime (DistriCompute-Distributed, Contributor 2) is in [distributed/](distributed), on
+> branch `feature/distributed-engine`.
 
 DistriCompute is an adaptive heterogeneous platform for distributed parallel computing and performance
 analysis. **Core** is its computational engine: a plain Java 21 library that provides

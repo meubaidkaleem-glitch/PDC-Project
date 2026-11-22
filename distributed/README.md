@@ -1,0 +1,44 @@
+# DistriCompute-Distributed
+
+The distributed runtime of DistriCompute (Contributor 2): a coordinator and independent worker processes that
+communicate over a versioned JSON-over-TCP protocol. Workers register their capabilities and execute
+partitions of DistriCompute-Core tasks. The coordinator schedules, dispatches, recovers from failures,
+aggregates and verifies results through Core, and reports progress and metrics to the Application.
+
+> This directory is the DistriCompute-Distributed component. It lives next to DistriCompute-Core (the
+> repository root) on branch `feature/distributed-engine`; see [docs/architecture.md](docs/architecture.md#12-layout-decision).
+
+## Status
+
+Development follows the phases in [docs/implementation-plan.md](docs/implementation-plan.md). The status table
+there records only completed work.
+
+## Build
+
+Requirements: JDK 21 or newer. Maven is not needed: the repository's Maven Wrapper downloads it.
+
+From the repository root:
+
+```bash
+./mvnw install -DskipTests
+```
+
+```bash
+./mvnw -f distributed/pom.xml verify
+```
+
+The first command installs DistriCompute-Core from this checkout into the local Maven repository. The second
+builds the runtime, runs the unit and integration tests, and runs Checkstyle and SpotBugs. It produces
+`distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar`, a runnable jar that contains Core:
+
+```bash
+java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar version
+```
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Repository inspection, responsibilities, components, threading, identifiers, decisions, risks |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | Phases, acceptance criteria, status, postponed features |
+| [docs/integration-contract.md](docs/integration-contract.md) | What the runtime takes from Core and offers the Application |

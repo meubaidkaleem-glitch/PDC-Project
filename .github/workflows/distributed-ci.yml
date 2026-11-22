@@ -1,0 +1,91 @@
+name: Distributed CI
+
+# Builds and tests the distributed runtime in distributed/. It depends on DistriCompute-Core from the same
+# commit, which is installed into the local Maven repository first (Core's own tests run in "Core CI").
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distributed-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, unit, integration, fault and multi-process tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install DistriCompute-Core from this commit (tests run in Core CI)
+        run: ./mvnw -B -ntp install -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip
+
+      - name: Build the distributed runtime (tests skipped)
+        run: ./mvnw -B -ntp -f distributed/pom.xml -DskipTests package
+
+      - name: Unit tests
+        run: ./mvnw -B -ntp -f distributed/pom.xml test -Dtest.excludedGroups=integration,fault,process,performance
+
+      - name: Integration tests (coordinator and workers over loopback TCP)
+        run: ./mvnw -B -ntp -f distributed/pom.xml test -Dtest.groups=integration -Dtest.excludedGroups=
+
+      - name: Fault tests (disconnects, missed heartbeats, timeouts, invalid and duplicate results)
+        run: ./mvnw -B -ntp -f distributed/pom.xml test -Dtest.groups=fault -Dtest.excludedGroups=
+
+      - name: Multi-process tests (workers in separate JVMs)
+        run: ./mvnw -B -ntp -f distributed/pom.xml test -Dtest.groups=process -Dtest.excludedGroups=
+
+      - name: Performance-scenario tests (correctness only, no timing assertions)
+        run: ./mvnw -B -ntp -f distributed/pom.xml test -Dtest.groups=performance -Dtest.excludedGroups=
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: distributed-surefire-reports
+          path: distributed/target/surefire-reports/
+          if-no-files-found: ignore
+
+  code-quality:
+    name: Code quality (Enforcer, Checkstyle, SpotBugs, coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install DistriCompute-Core from this commit
+        run: ./mvnw -B -ntp install -DskipTests -Dcheckstyle.skip -Dspotbugs.skip -Djacoco.skip
+
+      - name: Verify (unit and integration tests, coverage, Checkstyle, SpotBugs)
+        run: ./mvnw -B -ntp -f distributed/pom.xml verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: distributed-jacoco-report
+          path: distributed/target/site/jacoco/
+          if-no-files-found: ignore
