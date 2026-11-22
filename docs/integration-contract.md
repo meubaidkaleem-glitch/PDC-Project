@@ -138,7 +138,7 @@ modes are derived from the interfaces the implementation actually provides. They
 
 ---
 
-## 5. Resource requirement model — `WorkloadProfile`  *(Core: planned, Phases 3 and 5)*
+## 5. Resource requirement model — `WorkloadProfile`  *(Core: implemented for P1 algorithms; plan-dependent communication fields in Phase 5)*
 
 Produced from parameters alone, without allocating the input.
 
@@ -233,7 +233,7 @@ silently dropped.
 
 ---
 
-## 8. Final result — `TaskResult`  *(Core: planned, Phases 2–3)*
+## 8. Final result — `TaskResult`  *(Core: implemented — `TaskResult`, produced by `LocalExecutionEngine`)*
 
 ```json
 {
@@ -300,7 +300,7 @@ could plausibly succeed, so the work is eligible for automatic recovery.
 
 ---
 
-## 10. Execution metrics  *(Core: planned, Phases 4 and 7)*
+## 10. Execution metrics  *(Core: implemented — `ExecutionMetrics`; multithreaded fields filled from Phase 4)*
 
 All durations are wall-clock nanoseconds measured with `System.nanoTime()` on the executing node, unless the
 definition says otherwise.

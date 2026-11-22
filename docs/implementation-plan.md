@@ -38,7 +38,8 @@ contract, and that contract is versioned.
 |---|---|---|
 | 1 | Done | `./mvnw verify` passes locally (enforcer, `-Werror` compile, tests, JaCoCo, Checkstyle, SpotBugs). The CI workflow is committed; its first GitHub run is reported in the implementation report. |
 | 2 | Done | Task model, lifecycle state machine, parameter schema and validator, algorithm SPI, registry with derived capabilities, error model, JSON codec. 54 unit and 2 concurrency tests pass. |
-| 3–10 | Not started | — |
+| 3 | Done | Prime counting, merge sort, matrix addition, cache-blocked matrix multiplication with independent verifiers; deterministic generators; workload profiles; memory guard; `LocalExecutionEngine` (sequential) driving the full lifecycle. **Milestone M1 reached.** 101 unit and 2 concurrency tests pass. |
+| 4–10 | Not started | — |
 
 ## 4. Postponed features
 
