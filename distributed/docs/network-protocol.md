@@ -179,9 +179,13 @@ restart), it reconnects. With `reconnect: false`, it stops.
   with `RESULT` if the kernel finished first. The coordinator keeps the worker's slot occupied until then.
 * `timeoutMillis` in `TASK` is the attempt's budget. The worker cancels the kernel when it is exceeded. The
   coordinator enforces the same timeout on its side, so a hung worker cannot hold an attempt for ever.
-* `HEARTBEAT.runningAttempts` lists the admitted attempts. Messages on a connection are ordered. If an attempt
-  that the coordinator saw accepted is missing from a later heartbeat, and no `RESULT` or `ERROR` arrived, the
-  worker has lost it. The coordinator treats it as failed and may retry it.
+* `HEARTBEAT.runningAttempts` lists the admitted attempts. A worker must build each heartbeat so that it lists
+  every attempt whose `TASK_ACCEPTED` it sent before that heartbeat, and keep listing an attempt until its final
+  message has been queued. The reference worker builds heartbeats and acknowledgements under one lock to guarantee
+  this. Messages on a connection are ordered. So if an attempt that the coordinator saw accepted is missing from
+  two consecutive heartbeats, and no `RESULT` or `ERROR` arrived, the worker has lost it. The coordinator treats it
+  as failed and may retry it. Requiring two heartbeats is a safety margin for workers that build heartbeats less
+  carefully.
 
 ## 8. Timing fields
 

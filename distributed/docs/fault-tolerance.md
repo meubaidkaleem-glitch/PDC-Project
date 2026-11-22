@@ -10,7 +10,7 @@ real workers or scripted protocol peers over TCP.
 |---|---|---|---|
 | Worker disconnects (crash, kill, reset) | The connection's reader sees end of stream or an I/O error | Immediate | Worker `DISCONNECTED`. Its live attempts become `LOST` and are retried. |
 | Worker stops sending heartbeats (hung process, cut network) | Control-loop tick compares the last heartbeat with the limits | `SUSPECT` after 5 s, `DISCONNECTED` after 10 s (heartbeat every 2 s) | `SUSPECT`: no new attempts; a heartbeat restores `ACTIVE`. Timeout: the connection is closed, then as above. |
-| Worker loses an accepted attempt | Its heartbeat no longer lists the attempt, and no final message arrived | Next heartbeat | Attempt `LOST` ("no longer listed in the heartbeat"), retried. |
+| Worker loses an accepted attempt | Two consecutive heartbeats no longer list the attempt, and no final message arrived | Second heartbeat | Attempt `LOST` ("no longer listed in the heartbeat"), retried. |
 | Worker never confirms an attempt | No `TASK_ACCEPTED` | 30 s (`acceptTimeout`) | Attempt `LOST`, `CANCEL` sent, retried. |
 | Attempt takes too long | The worker cancels the kernel at `timeoutMillis` and reports Core `TIMEOUT`; the coordinator enforces the same limit plus max(200 ms, 10 %) for workers that hang | 10 min (`attemptTimeout`, per task) | Attempt `TIMED_OUT`, `CANCEL` sent, retried. The worker's slot stays occupied until the worker answers or disconnects. |
 | Task exceeds its deadline | `TaskSpec.constraints.timeoutMillis` | Per task | Task `FAILED` with Core `TIMEOUT`. Its attempts are cancelled on the workers. |

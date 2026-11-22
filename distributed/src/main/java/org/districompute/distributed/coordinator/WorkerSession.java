@@ -37,6 +37,8 @@ final class WorkerSession implements Connection.Listener {
         void onMessage(WorkerSession session, Envelope message, long receivedNanos, int frameBytes);
 
         void onClosed(WorkerSession session, CloseReason reason);
+
+        void onAuthenticationFailed(WorkerSession session, String workerId, String reason);
     }
 
     /** Lifecycle of the session; changed only on the control loop. */
@@ -110,6 +112,9 @@ final class WorkerSession implements Connection.Listener {
                         message.payload(RegisterPayload.class).proof());
             } catch (AuthenticationException e) {
                 LOG.warn("{}: registration of {} rejected: {}", source, message.workerId(), e.getMessage());
+                String claimed = message.workerId();
+                String reason = "authentication failed: " + e.getMessage();
+                loop.accept(() -> inbound.onAuthenticationFailed(this, claimed, reason));
                 protocolError(ProtocolErrorCode.AUTHENTICATION_FAILED, e.getMessage(), message.messageId(), null,
                         true);
                 return;

@@ -36,6 +36,7 @@ public final class Attempt {
     private String progressUnit;
     private String failure;
     private boolean retryable;
+    private boolean missingFromHeartbeat;
 
     /**
      * Creates an attempt in state {@link AttemptStatus#DISPATCHING}.
@@ -230,6 +231,18 @@ public final class Attempt {
      */
     public boolean slotHeld() {
         return slotHeld;
+    }
+
+    /**
+     * Records whether the worker's latest heartbeat listed the attempt.
+     *
+     * @param listed whether it was listed
+     * @return {@code true} if it was also missing from the previous heartbeat
+     */
+    public boolean heartbeatListed(boolean listed) {
+        boolean twice = !listed && missingFromHeartbeat;
+        missingFromHeartbeat = !listed;
+        return twice;
     }
 
     /**

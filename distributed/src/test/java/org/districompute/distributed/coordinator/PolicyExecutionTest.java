@@ -64,7 +64,9 @@ class PolicyExecutionTest {
         List<AttemptSnapshot> attempts = outcome.snapshot().partitions().stream()
                 .flatMap(p -> p.attempts().stream()).sorted(Comparator.comparing(a -> a.assignment().decidedAt()))
                 .toList();
-        assertEquals(12, attempts.size());
+        assertEquals(12, attempts.size(), "unexpected extra attempts: " + attempts.stream()
+                .filter(a -> a.status() != org.districompute.distributed.task.AttemptStatus.SUCCEEDED)
+                .map(a -> a.attemptId() + " " + a.status() + " on " + a.workerId() + ": " + a.failure()).toList());
         for (AttemptSnapshot attempt : attempts) {
             assertEquals(policy, attempt.assignment().policy());
             assertEquals(attempt.workerId(), attempt.assignment().workerId());

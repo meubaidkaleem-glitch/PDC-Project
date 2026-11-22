@@ -96,6 +96,11 @@ final class TaskExecutor implements AutoCloseable {
         }
     };
     private final AtomicInteger active = new AtomicInteger();
+    /**
+     * Makes "admit an attempt and queue its TASK_ACCEPTED" atomic with "list the running attempts and queue a
+     * heartbeat", so a heartbeat always lists every attempt accepted before it on the connection.
+     */
+    private final Object admission = new Object();
     private final AtomicLong completed = new AtomicLong();
     private final AtomicLong failed = new AtomicLong();
     private volatile int capacity;
@@ -134,21 +139,24 @@ final class TaskExecutor implements AutoCloseable {
             return;
         }
         Running attempt = new Running(ref, unit.descriptor().index(), outbox, receivedNanos);
-        running.put(ref.attemptId(), attempt);
-        int now = active.incrementAndGet();
-        try {
-            attempt.timeout = timers.schedule(() -> attempt.cancellation.cancel(CancellationReason.TIMEOUT),
-                    payload.timeoutMillis(), TimeUnit.MILLISECONDS);
-        } catch (RejectedExecutionException e) {
-            // The worker stopped after the admission check: refuse instead of admitting.
-            forget(attempt);
-            outbox.send(reply(MessageType.ERROR, ref, task.messageId(), new ErrorPayload(
-                    ProtocolErrorCode.TASK_REJECTED, "Worker " + config.workerId() + " is stopping", true, false,
-                    null)));
-            return;
+        synchronized (admission) {
+            running.put(ref.attemptId(), attempt);
+            int now = active.incrementAndGet();
+            try {
+                attempt.timeout = timers.schedule(() -> attempt.cancellation.cancel(CancellationReason.TIMEOUT),
+                        payload.timeoutMillis(), TimeUnit.MILLISECONDS);
+            } catch (RejectedExecutionException e) {
+                // The worker stopped after the admission check: refuse instead of admitting.
+                forget(attempt);
+                outbox.send(reply(MessageType.ERROR, ref, task.messageId(), new ErrorPayload(
+                        ProtocolErrorCode.TASK_REJECTED, "Worker " + config.workerId() + " is stopping", true, false,
+                        null)));
+                return;
+            }
+            // Queued before execution starts, so it always precedes the attempt's final message.
+            outbox.send(reply(MessageType.TASK_ACCEPTED, ref, task.messageId(),
+                    new TaskAcceptedPayload(now, capacity)));
         }
-        // Queued before execution starts, so it always precedes the attempt's final message.
-        outbox.send(reply(MessageType.TASK_ACCEPTED, ref, task.messageId(), new TaskAcceptedPayload(now, capacity)));
         try {
             pool.execute(() -> run(attempt, unit));
         } catch (RejectedExecutionException e) {
@@ -156,6 +164,17 @@ final class TaskExecutor implements AutoCloseable {
             attempt.timeout.cancel(false);
             outbox.send(reply(MessageType.ERROR, ref, null, new ErrorPayload(ProtocolErrorCode.TASK_CANCELLED,
                     "Worker " + config.workerId() + " is stopping", true, false, null)));
+        }
+    }
+
+    /**
+     * Builds and queues a heartbeat atomically with admissions (see {@link #admission}).
+     *
+     * @param heartbeat receives the running attempt ids and queues the heartbeat
+     */
+    void heartbeat(java.util.function.Consumer<List<String>> heartbeat) {
+        synchronized (admission) {
+            heartbeat.accept(runningAttempts());
         }
     }
 

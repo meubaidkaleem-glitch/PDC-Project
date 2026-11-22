@@ -100,7 +100,18 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
     private final RetryPolicy retryPolicy;
     private boolean scheduleRequested;
 
-    TaskManager(CoordinatorConfig config, ControlLoop loop, WorkerManager workers, Scheduler scheduler) {
+    private final RuntimeEvents events;
+    private final long[] counters = new long[Counter.values().length];
+
+    /** Coordinator-wide counters for {@code CoordinatorMetrics}. */
+    enum Counter {
+        TASKS_SUBMITTED, TASKS_COMPLETED, TASKS_FAILED, TASKS_CANCELLED, ATTEMPTS_DISPATCHED, ATTEMPTS_SUCCEEDED,
+        ATTEMPTS_FAILED, PARTITIONS_RETRIED, BYTES_SENT, BYTES_RECEIVED
+    }
+
+    TaskManager(CoordinatorConfig config, ControlLoop loop, WorkerManager workers, Scheduler scheduler,
+            RuntimeEvents events) {
+        this.events = events;
         this.config = config;
         this.defaults = config.tasks();
         this.loop = loop;
@@ -159,6 +170,9 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         int defaultPartitions = Math.max(1, perSlot * capableSlots(resolved, options.maxWorkers()));
         LOG.info("Task {} ({}) submitted with policy {}; planning {} default partitions", spec.taskId(), resolved,
                 policy, defaultPartitions);
+        counters[Counter.TASKS_SUBMITTED.ordinal()]++;
+        events.taskSubmitted(task);
+        publishStatus(task);
         planning.execute(() -> open(task, defaultPartitions));
         return task;
     }
@@ -195,6 +209,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             return;
         }
         task.partitions().forEach(p -> enqueue(task, p));
+        publishStatus(task);
         LOG.info("Task {} planned: {} partitions in {} ms", task.taskId(), task.partitions().size(),
                 openNanos / 1_000_000);
         requestSchedule();
@@ -315,6 +330,8 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         task.addAttempt(partition, attempt);
         attemptIndex.put(ref.attemptId(), task);
         worker.assign(ref.attemptId(), attempt.decidedNanos());
+        counters[Counter.ATTEMPTS_DISPATCHED.ordinal()]++;
+        events.attemptAssigned(task, attempt);
         LOG.debug("{} -> {}: {}", ref.attemptId(), workerId, assign.record().explanation());
         long timeout = task.attemptTimeoutMillis();
         TaskPriority priority = task.spec().priority();
@@ -352,6 +369,8 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             return;
         }
         attempt.sent(at, nanos, serialization, bytes);
+        counters[Counter.BYTES_SENT.ordinal()] += bytes;
+        publishStatus(task);
     }
 
     private void dispatchFailed(DistributedTask task, Attempt attempt, String reason) {
@@ -359,7 +378,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             return;
         }
         releaseSlot(attempt);
-        attempt.finish(AttemptStatus.FAILED, config.clock().instant(), reason, true);
+        end(task, attempt, AttemptStatus.FAILED, reason, true);
         PartitionState partition = partitionOf(task, attempt);
         partition.countRejection(attempt.workerId(), true);
         LOG.warn("Dispatch of {} failed: {}", attempt.ref().attemptId(), reason);
@@ -388,10 +407,15 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             return;
         }
         switch (message.type()) {
-            case TASK_ACCEPTED -> attempt.accepted(config.clock().instant());
+            case TASK_ACCEPTED -> {
+                attempt.accepted(config.clock().instant());
+                events.attemptAccepted(task, attempt);
+            }
             case TASK_PROGRESS -> {
                 TaskProgressPayload progress = message.payload(TaskProgressPayload.class);
                 attempt.progress(progress.completedUnits(), progress.totalUnits(), progress.unit());
+                events.attemptProgress(task, attempt, progress.completedUnits(), progress.totalUnits(),
+                        progress.unit());
             }
             case RESULT -> result(task, attempt, worker, message.payload(ResultPayload.class), receivedNanos,
                     frameBytes);
@@ -404,22 +428,24 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             long receivedNanos, int frameBytes) {
         attempt.resultReceived(receivedNanos, frameBytes + 1L, payload.timing(),
                 payload.partialResult().computeNanos());
+        counters[Counter.BYTES_RECEIVED.ordinal()] += frameBytes + 1L;
         long start = System.nanoTime();
         PartialResultCollector.Offer offer = task.session().accept(payload.partialResult());
         attempt.resultProcessed(System.nanoTime() - start);
         releaseSlot(attempt);
         PartitionState partition = partitionOf(task, attempt);
-        Instant now = config.clock().instant();
         switch (offer.classification()) {
             case ACCEPTED -> {
-                attempt.finish(AttemptStatus.SUCCEEDED, now, null, false);
+                end(task, attempt, AttemptStatus.SUCCEEDED, null, false);
                 worker.count(AttemptOutcome.SUCCEEDED);
                 worker.history().observe(task.requirements().algorithm().id(),
                         task.requirements().operationsPerPartition(), attempt.computeNanos(),
                         attempt.bytesSent() + attempt.bytesReceived(), attempt.transferNanos());
                 task.partitionCompleted(partition, receivedNanos);
+                events.taskProgress(task, (int) task.partitions().stream()
+                        .filter(p -> p.status() == PartitionStatus.COMPLETED).count());
                 for (Attempt other : partition.live()) {
-                    other.finish(AttemptStatus.SUPERSEDED, now, "another attempt delivered first", false);
+                    end(task, other, AttemptStatus.SUPERSEDED, "another attempt delivered first", false);
                     sendCancel(other, CancelReason.SUPERSEDED);
                 }
                 if (task.session().isComplete() && !task.isCompleting()) {
@@ -428,24 +454,26 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             }
             case DUPLICATE -> {
                 if (!attempt.status().isTerminal() || attempt.status() == AttemptStatus.SUPERSEDED) {
-                    attempt.finish(AttemptStatus.SUPERSEDED, now, "identical to the accepted result", false);
+                    end(task, attempt, AttemptStatus.SUPERSEDED, "identical to the accepted result", false);
                 }
                 worker.count(AttemptOutcome.DUPLICATE_RESULT);
+                events.resultIgnored(task, attempt, "DUPLICATE", offer.detail());
             }
             case LATE -> {
                 if (!attempt.status().isTerminal()) {
-                    attempt.finish(AttemptStatus.SUPERSEDED, now, "the task had already ended", false);
+                    end(task, attempt, AttemptStatus.SUPERSEDED, "the task had already ended", false);
                 }
+                events.resultIgnored(task, attempt, "LATE", offer.detail());
             }
             case CONFLICTING_DUPLICATE -> {
-                attempt.finish(AttemptStatus.INVALID, now, "conflicts with the accepted result: " + offer.detail(),
+                end(task, attempt, AttemptStatus.INVALID, "conflicts with the accepted result: " + offer.detail(),
                         false);
                 invalidResult(worker);
                 LOG.error("Worker {} returned a result for {} that conflicts with the accepted one: {}",
                         worker.workerId(), attempt.ref().attemptId(), offer.detail());
             }
             case INVALID, UNKNOWN_PARTITION -> {
-                attempt.finish(AttemptStatus.INVALID, now, "invalid result: " + offer.detail(), true);
+                end(task, attempt, AttemptStatus.INVALID, "invalid result: " + offer.detail(), true);
                 invalidResult(worker);
                 LOG.warn("Worker {} returned an invalid result for {}: {}", worker.workerId(),
                         attempt.ref().attemptId(), offer.detail());
@@ -464,7 +492,6 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     private void attemptError(DistributedTask task, Attempt attempt, WorkerRecord worker, ErrorPayload error) {
         PartitionState partition = partitionOf(task, attempt);
-        Instant now = config.clock().instant();
         boolean wasLive = !attempt.status().isTerminal();
         releaseSlot(attempt);
         switch (error.code()) {
@@ -472,7 +499,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 if (!wasLive) {
                     break;
                 }
-                attempt.finish(AttemptStatus.REJECTED, now, error.message(), error.retryable());
+                end(task, attempt, AttemptStatus.REJECTED, error.message(), error.retryable());
                 worker.count(AttemptOutcome.REJECTED);
                 partition.countRejection(worker.workerId(), true);
                 retryOrFail(task, partition, attempt, FailureKind.REJECTED, error.retryable(),
@@ -486,7 +513,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                         : new ErrorInfo(ErrorCode.EXECUTION_FAILED, error.message(), error.retryable(),
                                 TaskStatus.RUNNING, partition.index(), List.of());
                 boolean timeout = coreError.code() == ErrorCode.TIMEOUT;
-                attempt.finish(timeout ? AttemptStatus.TIMED_OUT : AttemptStatus.FAILED, now, error.message(),
+                end(task, attempt, timeout ? AttemptStatus.TIMED_OUT : AttemptStatus.FAILED, error.message(),
                         error.retryable());
                 worker.count(timeout ? AttemptOutcome.TIMED_OUT : AttemptOutcome.FAILED);
                 task.session().markFailed(partition.index(), coreError);
@@ -499,7 +526,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                     break;
                 }
                 // Not requested by the coordinator: the worker is stopping, or it does not know the attempt.
-                attempt.finish(AttemptStatus.LOST, now, error.message(), true);
+                end(task, attempt, AttemptStatus.LOST, error.message(), true);
                 worker.count(AttemptOutcome.LOST);
                 retryOrFail(task, partition, attempt, error.code() == ProtocolErrorCode.TASK_CANCELLED
                         ? FailureKind.WORKER_STOPPED : FailureKind.MISSING_FROM_HEARTBEAT, true,
@@ -533,6 +560,8 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             LOG.info("Retrying {} after {} ({} counted failures): {}", partition.descriptor().partitionId(), kind,
                     partition.countedFailures(), reason);
             enqueue(task, partition);
+            counters[Counter.PARTITIONS_RETRIED.ordinal()]++;
+            events.partitionRetried(task, partition, kind, reason);
             requestSchedule();
             return;
         }
@@ -547,14 +576,13 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             workers.changeStatus(worker, WorkerStatus.QUARANTINED, invalid + " invalid or conflicting results since "
                     + "it registered; it receives no further attempts", config.clock().instant());
             // Its results are no longer trusted: move its running attempts to other workers.
-            Instant now = config.clock().instant();
             for (String attemptId : new ArrayList<>(worker.assignedAttempts())) {
                 DistributedTask task = attemptIndex.get(attemptId);
                 Attempt attempt = task == null ? null : task.attempt(attemptId);
                 if (attempt == null || attempt.status().isTerminal()) {
                     continue;
                 }
-                attempt.finish(AttemptStatus.CANCELLED, now, "worker " + worker.workerId() + " was quarantined",
+                end(task, attempt, AttemptStatus.CANCELLED, "worker " + worker.workerId() + " was quarantined",
                         true);
                 sendCancel(attempt, CancelReason.SUPERSEDED);
                 retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.WORKER_QUARANTINED, true,
@@ -599,7 +627,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             if (!attempt.wasAccepted() && attempt.sentNanos() >= 0
                     && nowNanos - attempt.sentNanos() > defaults.acceptTimeout().toNanos()) {
                 String reason = "no TASK_ACCEPTED within " + defaults.acceptTimeout().toMillis() + " ms";
-                attempt.finish(AttemptStatus.LOST, config.clock().instant(), reason, true);
+                end(task, attempt, AttemptStatus.LOST, reason, true);
                 workers.registry().get(attempt.workerId()).ifPresent(w -> w.count(AttemptOutcome.LOST));
                 sendCancel(attempt, CancelReason.TIMEOUT);
                 LOG.warn("{} on {}: {}", attempt.ref().attemptId(), attempt.workerId(), reason);
@@ -612,7 +640,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             }
             // The slot stays occupied until the worker answers the CANCEL or disconnects.
             String reason = "no result within " + timeout + " ms (coordinator timeout)";
-            attempt.finish(AttemptStatus.TIMED_OUT, config.clock().instant(), reason, true);
+            end(task, attempt, AttemptStatus.TIMED_OUT, reason, true);
             workers.registry().get(attempt.workerId()).ifPresent(w -> w.count(AttemptOutcome.TIMED_OUT));
             sendCancel(attempt, CancelReason.TIMEOUT);
             LOG.warn("{} on {}: {}", attempt.ref().attemptId(), attempt.workerId(), reason);
@@ -657,7 +685,6 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     @Override
     public void workerDisconnected(WorkerRecord worker, List<String> assignedAttempts, String reason) {
-        Instant now = config.clock().instant();
         for (String attemptId : assignedAttempts) {
             DistributedTask task = attemptIndex.get(attemptId);
             Attempt attempt = task == null ? null : task.attempt(attemptId);
@@ -668,7 +695,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             if (attempt.status().isTerminal()) {
                 continue;
             }
-            attempt.finish(AttemptStatus.LOST, now, "worker " + worker.workerId() + " lost: " + reason, true);
+            end(task, attempt, AttemptStatus.LOST, "worker " + worker.workerId() + " lost: " + reason, true);
             worker.count(AttemptOutcome.LOST);
             retryOrFail(task, partitionOf(task, attempt), attempt, FailureKind.WORKER_LOST, true,
                     ErrorCode.EXECUTION_FAILED, "worker " + worker.workerId() + " was lost (" + reason + ")");
@@ -677,25 +704,29 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
     }
 
     /**
-     * Reconciles the coordinator's view with the worker's: an accepted attempt that the heartbeat no longer lists,
-     * and whose final message has not arrived, is lost (messages on a connection are ordered, so a final message
-     * sent before the heartbeat would already have been processed).
+     * Reconciles the coordinator's view with the worker's: an accepted attempt that two consecutive heartbeats no
+     * longer list, and whose final message has not arrived, is lost (messages on a connection are ordered, so a
+     * final message sent before the heartbeats would already have been processed).
      */
     @Override
     public void workerHeartbeat(WorkerRecord worker, HeartbeatPayload heartbeat) {
         Set<String> listed = new HashSet<>(heartbeat.runningAttempts());
-        Instant now = config.clock().instant();
         for (String attemptId : new ArrayList<>(worker.assignedAttempts())) {
             DistributedTask task = attemptIndex.get(attemptId);
             Attempt attempt = task == null ? null : task.attempt(attemptId);
-            if (attempt == null || !attempt.wasAccepted() || listed.contains(attemptId)) {
+            if (attempt == null || !attempt.wasAccepted()) {
+                continue;
+            }
+            // Two consecutive heartbeats must omit the attempt: a margin against workers that do not build
+            // heartbeats atomically with their acknowledgements.
+            if (!attempt.heartbeatListed(listed.contains(attemptId))) {
                 continue;
             }
             releaseSlot(attempt);
             if (attempt.status().isTerminal()) {
                 continue;
             }
-            attempt.finish(AttemptStatus.LOST, now, "no longer listed in the heartbeat of " + worker.workerId()
+            end(task, attempt, AttemptStatus.LOST, "no longer listed in the heartbeat of " + worker.workerId()
                     + " and no result arrived", true);
             worker.count(AttemptOutcome.LOST);
             LOG.warn("{} disappeared from the heartbeat of {}", attemptId, worker.workerId());
@@ -709,6 +740,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     private void complete(DistributedTask task) {
         task.startCompleting();
+        publishStatus(task);
         aggregation.execute(() -> {
             long start = System.nanoTime();
             TaskResult result;
@@ -770,16 +802,47 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 : CancelReason.TASK_FINISHED;
         for (Attempt attempt : task.attempts()) {
             if (!attempt.status().isTerminal()) {
-                attempt.finish(AttemptStatus.CANCELLED, now, "task " + result.status(), false);
+                end(task, attempt, AttemptStatus.CANCELLED, "task " + result.status(), false);
                 sendCancel(attempt, reason);
             }
         }
         task.finish(result, now, metrics);
+        switch (result.status()) {
+            case COMPLETED -> counters[Counter.TASKS_COMPLETED.ordinal()]++;
+            case CANCELLED -> counters[Counter.TASKS_CANCELLED.ordinal()]++;
+            default -> counters[Counter.TASKS_FAILED.ordinal()]++;
+        }
+        publishStatus(task);
+        events.taskFinished(task, result, metrics.compute(task));
         active.remove(task.taskId());
         withoutCapableWorkerSince.remove(task.taskId());
         finished.put(task.taskId(), task);
         LOG.info("Task {} {} ({} attempts)", task.taskId(), result.status(), task.attempts().size());
         requestSchedule();
+    }
+
+    private void end(DistributedTask task, Attempt attempt, AttemptStatus status, String reason, boolean retryable) {
+        boolean wasLive = !attempt.status().isTerminal();
+        attempt.finish(status, config.clock().instant(), reason, retryable);
+        if (status == AttemptStatus.SUCCEEDED) {
+            counters[Counter.ATTEMPTS_SUCCEEDED.ordinal()]++;
+        } else if (wasLive && status != AttemptStatus.SUPERSEDED && status != AttemptStatus.CANCELLED) {
+            counters[Counter.ATTEMPTS_FAILED.ordinal()]++;
+        }
+        events.attemptEnded(task, attempt);
+    }
+
+    private void publishStatus(DistributedTask task) {
+        TaskStatus now = task.status();
+        TaskStatus before = task.publishedStatus();
+        if (now != before) {
+            task.setPublishedStatus(now);
+            events.taskStatus(task, before, now);
+        }
+    }
+
+    long counter(Counter counter) {
+        return counters[counter.ordinal()];
     }
 
     private void sendCancel(Attempt attempt, CancelReason reason) {
@@ -816,6 +879,10 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     Optional<DistributedTask> task(String taskId) {
         return Optional.ofNullable(active.containsKey(taskId) ? active.get(taskId) : finished.get(taskId));
+    }
+
+    int activeTasks() {
+        return active.size();
     }
 
     int pendingPartitions() {

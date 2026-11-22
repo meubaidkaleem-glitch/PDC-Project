@@ -83,7 +83,9 @@ public final class DistributedCli {
         out.println();
         out.println("Commands:");
         out.println("  coordinator  run a coordinator: --port 7650 --secret-file <file> [--bind 0.0.0.0]");
-        out.println("               [--tls-keystore <p12> --tls-keystore-password <pw>] [--config <file>]");
+        out.println("               [--tls-keystore <p12> --tls-keystore-password <pw>] [--policy dynamic]");
+        out.println("               [--http-port 8650 --http-bind 127.0.0.1 --http-token-file <file>]");
+        out.println("               [--config <file>]");
         out.println("  worker       run a worker: --coordinator <host:port> --secret-file <file> [--id <id>]");
         out.println("               [--max-concurrent-tasks N] [--labels k=v,...] [--algorithms id,...]");
         out.println("               [--tls-truststore <p12> --tls-truststore-password <pw>] [--config <file>]");

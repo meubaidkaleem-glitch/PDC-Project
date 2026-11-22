@@ -388,11 +388,13 @@ public final class WorkerNode implements AutoCloseable {
                 connection.close(CloseReason.LOCAL);
                 return;
             }
-            send(Envelope.builder(MessageType.HEARTBEAT).workerId(config.workerId())
+            long freeHeap = CapabilityProbe.freeHeap();
+            double load = CapabilityProbe.systemLoadAverage();
+            double cpu = CapabilityProbe.processCpuLoad();
+            executor.heartbeat(running -> send(Envelope.builder(MessageType.HEARTBEAT).workerId(config.workerId())
                     .payload(new HeartbeatPayload(heartbeatSequence.incrementAndGet(), executor.active(),
-                            executor.capacity(), CapabilityProbe.freeHeap(), CapabilityProbe.systemLoadAverage(),
-                            CapabilityProbe.processCpuLoad(), executor.completed(), executor.failed(),
-                            executor.runningAttempts())));
+                            executor.capacity(), freeHeap, load, cpu, executor.completed(), executor.failed(),
+                            running))));
         }
 
         @Override

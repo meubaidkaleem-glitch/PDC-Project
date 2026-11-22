@@ -68,6 +68,7 @@ final class WorkerManager implements WorkerSession.Inbound {
     private final Map<String, WorkerSession> byWorker = new HashMap<>();
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private AttemptMessages attempts = WorkerManager::unknownAttempt;
+    private RuntimeEvents events;
     private boolean shuttingDown;
 
     WorkerManager(CoordinatorConfig config, RegistrationAuthenticator authenticator) {
@@ -82,6 +83,18 @@ final class WorkerManager implements WorkerSession.Inbound {
 
     void setAttemptMessages(AttemptMessages handler) {
         this.attempts = handler;
+    }
+
+    void setEvents(RuntimeEvents value) {
+        this.events = value;
+        addListener(value);
+    }
+
+    @Override
+    public void onAuthenticationFailed(WorkerSession session, String workerId, String reason) {
+        if (events != null) {
+            events.workerRejected(workerId, reason);
+        }
     }
 
     WorkerRegistry registry() {
@@ -307,8 +320,11 @@ final class WorkerManager implements WorkerSession.Inbound {
         }
     }
 
-    private static void reject(WorkerSession session, Envelope register, ProtocolErrorCode code, String reason) {
+    private void reject(WorkerSession session, Envelope register, ProtocolErrorCode code, String reason) {
         LOG.warn("Registration of {} rejected: {}", register.workerId(), reason);
+        if (events != null) {
+            events.workerRejected(register.workerId(), reason);
+        }
         session.send(Envelope.builder(MessageType.ERROR).inReplyTo(register.messageId())
                 .workerId(register.workerId()).payload(new ErrorPayload(code, reason, false, true, null)));
         session.closeAfterFlush();

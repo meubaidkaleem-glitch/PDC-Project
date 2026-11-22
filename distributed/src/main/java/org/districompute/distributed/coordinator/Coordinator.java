@@ -5,7 +5,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -16,7 +18,11 @@ import org.districompute.core.DistriComputeException;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.distributed.communication.Connection;
 import org.districompute.distributed.communication.Sockets;
+import org.districompute.distributed.metrics.CoordinatorMetrics;
+import org.districompute.distributed.monitoring.EventBus;
+import org.districompute.distributed.monitoring.EventType;
 import org.districompute.distributed.registry.WorkerRecord;
+import org.districompute.distributed.registry.WorkerStatus;
 import org.districompute.distributed.registry.WorkerSnapshot;
 import org.districompute.distributed.scheduler.Policies;
 import org.districompute.distributed.scheduler.PolicyName;
@@ -47,15 +53,22 @@ public final class Coordinator implements AutoCloseable {
     private final ScheduledExecutorService ticker;
     private final Scheduler scheduler;
     private final TaskManager tasks;
+    private final EventBus eventBus;
+    private final RuntimeEvents events;
+    private final Instant startedAt;
     private final AtomicBoolean closed = new AtomicBoolean();
 
     private Coordinator(CoordinatorConfig config) throws IOException {
         this.config = config;
         this.authenticator = new RegistrationAuthenticator(config.secret(), config.maxClockSkew(), config.clock());
         this.loop = new ControlLoop("coordinator-loop", 100_000);
+        this.startedAt = config.clock().instant();
+        this.eventBus = new EventBus(10_000, 10_000, config.clock());
+        this.events = new RuntimeEvents(eventBus);
         this.workers = new WorkerManager(config, authenticator);
+        workers.setEvents(events);
         this.scheduler = new Scheduler(config.tasks().policy(), Policies.builtIn());
-        this.tasks = new TaskManager(config, loop, workers, scheduler);
+        this.tasks = new TaskManager(config, loop, workers, scheduler, events);
         workers.addListener(tasks);
         workers.setAttemptMessages(tasks);
         try {
@@ -89,6 +102,9 @@ public final class Coordinator implements AutoCloseable {
             tasks.tick(now);
         }), tick, tick, TimeUnit.MILLISECONDS);
         Thread.ofPlatform().name("coordinator-accept").daemon(true).start(this::acceptLoop);
+        events.coordinator(EventType.COORDINATOR_STARTED, config.coordinatorId(), "coordinator "
+                + config.coordinatorId() + " listening on port " + port(), Map.of("port", port(),
+                "tls", config.tls().enabled(), "policy", config.tasks().policy().name()));
         LOG.info("Coordinator {} listening for workers on {}:{}{}", config.coordinatorId(), config.bindAddress(),
                 port(), config.tls().enabled() ? " (TLS)" : "");
     }
@@ -214,8 +230,55 @@ public final class Coordinator implements AutoCloseable {
      */
     public void setSchedulingPolicy(PolicyName policy) {
         loop.call(() -> {
+            PolicyName before = scheduler.defaultPolicy();
             scheduler.setDefaultPolicy(policy);
+            if (before != policy) {
+                events.policyChanged(before, policy);
+            }
             return null;
+        }, QUERY_TIMEOUT);
+    }
+
+    /**
+     * The runtime's event stream: subscribe, or read recent events.
+     *
+     * @return the event bus
+     */
+    public EventBus events() {
+        return eventBus;
+    }
+
+    /**
+     * Coordinator-wide figures.
+     *
+     * @return the metrics
+     */
+    public CoordinatorMetrics metrics() {
+        return loop.call(() -> {
+            Map<String, Integer> byStatus = new java.util.TreeMap<>();
+            int totalSlots = 0;
+            int busySlots = 0;
+            for (WorkerRecord worker : workers.registry().all()) {
+                byStatus.merge(worker.status().name(), 1, Integer::sum);
+                if (worker.status().isConnected()) {
+                    busySlots += worker.assignedAttempts().size();
+                    if (worker.status() == WorkerStatus.ACTIVE) {
+                        totalSlots += worker.maxConcurrentTasks();
+                    }
+                }
+            }
+            return new CoordinatorMetrics(config.coordinatorId(), startedAt,
+                    java.time.Duration.between(startedAt, config.clock().instant()).toMillis(), byStatus, totalSlots,
+                    busySlots, tasks.activeTasks(), tasks.pendingPartitions(),
+                    tasks.counter(TaskManager.Counter.TASKS_SUBMITTED),
+                    tasks.counter(TaskManager.Counter.TASKS_COMPLETED), tasks.counter(TaskManager.Counter.TASKS_FAILED),
+                    tasks.counter(TaskManager.Counter.TASKS_CANCELLED),
+                    tasks.counter(TaskManager.Counter.ATTEMPTS_DISPATCHED),
+                    tasks.counter(TaskManager.Counter.ATTEMPTS_SUCCEEDED),
+                    tasks.counter(TaskManager.Counter.ATTEMPTS_FAILED),
+                    tasks.counter(TaskManager.Counter.PARTITIONS_RETRIED),
+                    tasks.counter(TaskManager.Counter.BYTES_SENT), tasks.counter(TaskManager.Counter.BYTES_RECEIVED),
+                    eventBus.lastSequence());
         }, QUERY_TIMEOUT);
     }
 
@@ -229,6 +292,8 @@ public final class Coordinator implements AutoCloseable {
             return;
         }
         LOG.info("Coordinator {} shutting down", config.coordinatorId());
+        events.coordinator(EventType.COORDINATOR_STOPPING, config.coordinatorId(), "coordinator "
+                + config.coordinatorId() + " shutting down", Map.of());
         try {
             server.close();
         } catch (IOException e) {
@@ -246,6 +311,7 @@ public final class Coordinator implements AutoCloseable {
         }
         loop.close();
         tasks.close();
+        eventBus.close();
     }
 
     ControlLoop loop() {

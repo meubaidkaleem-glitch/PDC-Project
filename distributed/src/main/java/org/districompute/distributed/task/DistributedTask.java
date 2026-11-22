@@ -56,6 +56,7 @@ public final class DistributedTask {
     private long finishedNanos = -1;
     private TaskResult result;
     private boolean completing;
+    private TaskStatus publishedStatus;
 
     /**
      * Creates a submitted task.
@@ -214,7 +215,12 @@ public final class DistributedTask {
         if (result != null) {
             return result.status();
         }
-        return session != null ? session.status() : lifecycle.current();
+        if (session == null) {
+            return lifecycle.current();
+        }
+        TaskStatus core = session.status();
+        // Every partition is in and Core's aggregation has been started on another thread.
+        return completing && core == TaskStatus.RUNNING ? TaskStatus.AGGREGATING : core;
     }
 
     /**
@@ -345,6 +351,24 @@ public final class DistributedTask {
      */
     public void startCompleting() {
         this.completing = true;
+    }
+
+    /**
+     * The status last published as an event.
+     *
+     * @return the status, or {@code null} before the first event
+     */
+    public TaskStatus publishedStatus() {
+        return publishedStatus;
+    }
+
+    /**
+     * Records the status last published as an event.
+     *
+     * @param status the status
+     */
+    public void setPublishedStatus(TaskStatus status) {
+        this.publishedStatus = status;
     }
 
     /**

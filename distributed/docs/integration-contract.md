@@ -30,7 +30,7 @@ Two equivalent ways to integrate:
 | Option | When | Status |
 |---|---|---|
 | **Embedded:** the Application starts a `Coordinator` in its own JVM and calls its Java API | One deployment unit; events delivered in-process (for example forwarded to WebSockets or SSE) | Partly implemented: workers (Phase 3), tasks, results, snapshots, metrics, cancellation, default policy (Phase 5) |
-| **Standalone:** the coordinator runs as its own process; the Application calls its HTTP API and reads its event stream | The coordinator runs on another machine, or independently of the Application | Planned (Phase 8, 11) |
+| **Standalone:** the coordinator runs as its own process; the Application calls its HTTP API and reads its event stream | The coordinator runs on another machine, or independently of the Application | Implemented (Phase 8): [§2.3](#23-http-api-of-a-standalone-coordinator--implemented) |
 
 Both expose the same operations:
 
@@ -101,13 +101,66 @@ coordinator.cancel(spec.taskId());                     // or handle.cancel()
   failure, a partition Core marks as not retry-safe, or an exhausted retry budget. The message names the partition
   and the reason.
 
-## 3. Events
+### 2.3 HTTP API of a standalone coordinator  *(implemented)*
 
-Planned (Phase 8). Every event has a global `sequence`, a `timestamp`, a `type` and the ids that apply
-(`experimentId`, `taskId`, `partitionId`, `attemptId`, `workerId`). Planned types: worker registered, status
-changed and disconnected; task submitted, status changed, progress, completed, failed and cancelled; partition
-assigned (with the scheduling decision), accepted, progress, completed, failed, timed out and retried; result
-rejected (with Core's classification); scheduling policy changed; strategy override recorded.
+Started with `coordinator --http-port 8650` (binds `127.0.0.1` unless `--http-bind` says otherwise). If a token
+is configured (`--http-token-file` or `DISTRICOMPUTE_HTTP_TOKEN`), every request needs
+`Authorization: Bearer <token>`. `--http-cors-origin` adds CORS headers for a browser client. Errors are
+`{"error": {"code": "...", "message": "..."}}`.
+
+| Method and path | Response |
+|---|---|
+| `GET /api/v1/health` | `status`, `coordinatorId`, `protocolVersion`, `runtimeVersion`, `coreVersion`, `workerPort`, `workersConnected` |
+| `GET /api/v1/workers`, `GET /api/v1/workers/{id}` | `WorkerSnapshot` list or one (404 if unknown) |
+| `POST /api/v1/tasks` | Body `{"task": <Core TaskSpec>, "policy": "DYNAMIC", "partitionsPerSlot": 2, "attemptTimeoutMillis": 60000, "maxAttempts": 3, "maxWorkers": 2}` (all but `task` optional). **202** with `taskId`, `experimentId`, `location`. 400 for an invalid `TaskSpec` (Core's violations included) or an unknown algorithm or mode, 409 for a duplicate task id, 503 when too many tasks are running. |
+| `GET /api/v1/tasks` | `TaskSummary` list (no per-partition detail) |
+| `GET /api/v1/tasks/{taskId}` | `TaskSnapshot`, with Core's `TaskResult` once finished |
+| `POST /api/v1/tasks/{taskId}/cancel` | `{"taskId": "...", "cancelled": true}` |
+| `GET /api/v1/metrics` | `CoordinatorMetrics`: workers per status, slots, tasks, attempts, retries, bytes |
+| `GET /api/v1/scheduling`, `PUT /api/v1/scheduling` | `{"policy": "LEAST_LOADED", "available": [...]}`; `PUT` with `{"policy": "DYNAMIC"}` |
+| `GET /api/v1/catalog` | Core's catalog entries plus the connected workers that offer each algorithm |
+| `GET /api/v1/events?after=<seq>&limit=<n>` | Events after a sequence number, from the history (10 000 events) |
+| `GET /api/v1/events/stream?after=<seq>` | **Server-Sent Events**: `id: <sequence>`, `event: <type>`, `data: <event JSON>`. Resumes after `Last-Event-ID`. A `: keep-alive` comment every 15 s. At most 32 streams. |
+
+## 3. Events  *(implemented)*
+
+Java: `coordinator.events().subscribe(listener)` (or `subscribe(listener, afterSequence)` to replay the history
+first), and `coordinator.events().recent(afterSequence, limit)`. HTTP: the two `events` routes above.
+
+```json
+{ "sequence": 42, "timestamp": "2026-11-22T15:30:01.123Z", "type": "ATTEMPT_ASSIGNED",
+  "workerId": "lab-pc-07", "experimentId": "exp-42", "taskId": "t-1", "partitionId": "t-1/p3",
+  "attemptId": "t-1/p3/a1", "message": "t-1/p3/a1 -> lab-pc-07",
+  "details": { "attempt": 1, "policy": "LEAST_LOADED",
+               "explanation": "least loaded: lab-pc-07 uses 0 of 4 slots (0%); the lowest of 3 eligible workers",
+               "eligibleWorkers": 3, "rejectedWorkers": 0, "decisionNanos": 41200 } }
+```
+
+| Type | `details` keys |
+|---|---|
+| `COORDINATOR_STARTED`, `COORDINATOR_STOPPING` | `coordinatorId`, `port`, `tls`, `policy` |
+| `WORKER_REGISTERED` | `hostname`, `cpuCores`, `maxConcurrentTasks`, `algorithms`, `gpuAvailable`, `faultSimulation`, `reconnection`, `sessionId` |
+| `WORKER_REJECTED` | `reason` |
+| `WORKER_STATUS_CHANGED` | `from`, `to`, `reason` |
+| `WORKER_DISCONNECTED` | `reason`, `attemptsAffected` |
+| `TASK_SUBMITTED` | `algorithm`, `policy`, `priority` |
+| `TASK_STATUS_CHANGED` | `from`, `to` (Core `TaskStatus`: `VALIDATING`, `QUEUED`, `RUNNING`, `AGGREGATING`, terminal), `partitions` |
+| `TASK_PROGRESS` | `completedPartitions`, `totalPartitions`, `percent` |
+| `TASK_FINISHED` | `status`, `metrics` (`DistributedMetrics`), and `digest` and `verificationPassed`, or `errorCode` and `error` |
+| `ATTEMPT_ASSIGNED` | `attempt`, `policy`, `explanation`, `eligibleWorkers`, `rejectedWorkers`, `decisionNanos` |
+| `ATTEMPT_ACCEPTED` | — |
+| `ATTEMPT_PROGRESS` | `completedUnits`, `totalUnits`, `unit` |
+| `ATTEMPT_SUCCEEDED` | `status`, `attempt`, `computeNanos`, `transferNanos`, `roundTripNanos`, `bytes` |
+| `ATTEMPT_FAILED` | `status` (`REJECTED`, `FAILED`, `TIMED_OUT`, `LOST`, `INVALID`, `CANCELLED`, `SUPERSEDED`), `attempt`, `failure`, `retryable` |
+| `RESULT_IGNORED` | `classification` (`DUPLICATE`, `LATE`), `detail` |
+| `PARTITION_RETRIED` | `failureKind`, `reason`, `countedFailures`, `nextAttempt` |
+| `SCHEDULING_POLICY_CHANGED` | `from`, `to` |
+| `EVENTS_DROPPED` | `firstMissed`, `lastMissed`, `count`: this subscriber was too slow and should re-read the state |
+
+**Ordering and delivery.** Sequence numbers are global and strictly increasing, and subscribers receive events
+in that order. Publishing never blocks the runtime. A subscriber with a full queue (10 000 events) loses events
+and then receives `EVENTS_DROPPED`. The events of a task are in causal order: an attempt is assigned before it
+succeeds, and partitions complete before the task finishes.
 
 ## 4. Task snapshots  *(implemented)*
 
