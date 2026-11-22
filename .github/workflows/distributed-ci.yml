@@ -91,15 +91,20 @@ jobs:
           if-no-files-found: ignore
 
   mpi-demos:
-    name: MPI demonstrations (build and run with 4 processes)
-    runs-on: ubuntu-latest
+    name: MPI demonstrations on ${{ matrix.os }} (build and run with 4 processes)
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ubuntu 24.04 ships Open MPI 4; newer images ship Open MPI 5. The demos must run on both.
+        os: [ubuntu-24.04, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - name: Check out
         uses: actions/checkout@v5
 
       - name: Install Open MPI
-        run: sudo apt-get update && sudo apt-get install -y openmpi-bin libopenmpi-dev
+        run: sudo apt-get update && sudo apt-get install -y openmpi-bin libopenmpi-dev && mpirun --version
 
       - name: Build (warnings are errors)
         run: make -C distributed/mpi

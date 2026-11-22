@@ -30,8 +30,9 @@ cd distributed/mpi && make
 NP=4 ./run-demos.sh
 ```
 
-`run-demos.sh` adds `--oversubscribe` for Open MPI, so more processes than cores still start, and
-`--allow-run-as-root` when run as root (for example in a container). Each program can also be started on its own,
+With Open MPI, `run-demos.sh` declares `NP` slots on the local machine (`--host localhost:NP`), so more processes
+than cores still start; this works with Open MPI 4 and 5. It adds `--allow-run-as-root` when run as root (for
+example in a container). Each program can also be started on its own,
 for example `mpirun -np 4 ./parallel_primes 1000000000`.
 
 ## Run across several machines
@@ -118,5 +119,7 @@ Application.
 
 ## Continuous integration
 
-The `mpi-demos` job in `.github/workflows/distributed-ci.yml` installs Open MPI on the GitHub runner, builds
-with `-Wall -Wextra -Werror`, and runs every demo with 4 processes. The job fails if any check fails.
+The `mpi-demos` job in `.github/workflows/distributed-ci.yml` runs on Ubuntu 24.04 (Open MPI 4) and on the
+latest Ubuntu image (Open MPI 5). It installs Open MPI, builds with `-Wall -Wextra -Werror`, and runs every demo
+with 4 processes. The job fails if any check fails. Its first version used `--oversubscribe`, which Open MPI 5
+on the newer image did not honour, so the demos could not start there. Declaring the slots fixed it.
