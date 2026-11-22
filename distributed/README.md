@@ -35,6 +35,19 @@ builds the runtime, runs the unit and integration tests, and runs Checkstyle and
 java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar version
 ```
 
+## Run a coordinator
+
+```bash
+printf 'replace-with-a-long-random-secret\n' > cluster.secret
+```
+
+```bash
+java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar coordinator --port 7650 --secret-file cluster.secret
+```
+
+Every option can also come from a properties file (`--config coordinator.properties`, same names without the
+dashes). The secret can come from the `DISTRICOMPUTE_SECRET` environment variable instead of a file.
+
 ## Documentation
 
 | Document | Contents |

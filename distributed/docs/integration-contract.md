@@ -29,7 +29,7 @@ Two equivalent ways to integrate:
 
 | Option | When | Status |
 |---|---|---|
-| **Embedded:** the Application starts a `Coordinator` in its own JVM and calls its Java API | One deployment unit; events delivered in-process (for example forwarded to WebSockets or SSE) | Planned (Phase 3–8, 11) |
+| **Embedded:** the Application starts a `Coordinator` in its own JVM and calls its Java API | One deployment unit; events delivered in-process (for example forwarded to WebSockets or SSE) | Partly implemented: start, stop, worker list (Phase 3) |
 | **Standalone:** the coordinator runs as its own process; the Application calls its HTTP API and reads its event stream | The coordinator runs on another machine, or independently of the Application | Planned (Phase 8, 11) |
 
 Both expose the same operations:
@@ -47,6 +47,31 @@ Both expose the same operations:
 
 The exact Java signatures, JSON documents and HTTP routes are added to this document as each phase implements
 them.
+
+### 2.1 Starting a coordinator and listing workers  *(implemented)*
+
+```java
+CoordinatorConfig config = CoordinatorConfig.builder(SharedSecret.fromFile(Path.of("cluster.secret")))
+        .port(7650)                       // worker port
+        .build();
+try (Coordinator coordinator = Coordinator.start(config)) {
+    List<WorkerSnapshot> workers = coordinator.workers();          // connected and recently disconnected
+    Optional<WorkerSnapshot> one = coordinator.worker("lab-pc-07");
+}
+```
+
+A `WorkerSnapshot` serializes to:
+
+| Field | Meaning |
+|---|---|
+| `workerId`, `hostname`, `endpoint` | Identity and the address the coordinator sees |
+| `status`, `statusReason`, `statusSince` | `ACTIVE`, `SUSPECT` (heartbeats late), `DRAINING` (leaving), `QUARANTINED` (repeated invalid results), `DISCONNECTED` |
+| `sessionId`, `registeredAt`, `registrations` | Current registration; how often this id has registered |
+| `lastHeartbeatAt`, `load` | Latest heartbeat: active tasks, free heap, load average, process CPU load, completed and failed totals |
+| `capabilities` | As reported at registration ([network-protocol.md §3.1](network-protocol.md#31-payload-rules)) |
+| `maxConcurrentTasks`, `assignedTasks` | Current limit (may change through heartbeats) and the attempts the coordinator has assigned |
+| `counters` | `assigned`, `succeeded`, `failed`, `rejected`, `timedOut`, `lost`, `invalidResults`, `duplicateResults` |
+| `performance` | Per algorithm: `samples`, `operationsPerSecond`, `transferBytesPerSecond`, `meanKernelMillis` |
 
 ## 3. Events
 

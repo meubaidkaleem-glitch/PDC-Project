@@ -1,10 +1,13 @@
 package org.districompute.distributed;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.districompute.core.CoreVersion;
+import org.districompute.distributed.cli.CoordinatorCommand;
+import org.districompute.distributed.cli.Options;
 
 /**
  * Command-line entry point of the runnable jar ({@code java -jar districompute-distributed-...-all.jar}).
@@ -43,6 +46,7 @@ public final class DistributedCli {
             return 0;
         }
         return switch (args.get(0)) {
+            case "coordinator" -> runCommand(args, out, err, "coordinator");
             case "version" -> {
                 out.println("districompute-distributed " + DistributedVersion.version() + " (core "
                         + CoreVersion.version() + ")");
@@ -56,11 +60,31 @@ public final class DistributedCli {
         };
     }
 
+    private static int runCommand(List<String> args, PrintStream out, PrintStream err, String command) {
+        try {
+            List<String> rest = args.subList(1, args.size());
+            return switch (command) {
+                case "coordinator" -> CoordinatorCommand.run(Options.parse(rest, CoordinatorCommand.FLAGS), out);
+                default -> throw new IllegalStateException(command);
+            };
+        } catch (IllegalArgumentException e) {
+            err.println("Error: " + e.getMessage());
+            return 2;
+        } catch (IOException e) {
+            err.println("Error: " + e.getMessage());
+            return 1;
+        }
+    }
+
     private static void usage(PrintStream out) {
         out.println("Usage: java -jar districompute-distributed-all.jar <command> [options]");
         out.println();
         out.println("Commands:");
-        out.println("  version    print the runtime and Core versions");
-        out.println("  help       print this help");
+        out.println("  coordinator  run a coordinator: --port 7650 --secret-file <file> [--bind 0.0.0.0]");
+        out.println("               [--tls-keystore <p12> --tls-keystore-password <pw>] [--config <file>]");
+        out.println("  version      print the runtime and Core versions");
+        out.println("  help         print this help");
+        out.println();
+        out.println("The shared secret comes from --secret-file or the DISTRICOMPUTE_SECRET environment variable.");
     }
 }
