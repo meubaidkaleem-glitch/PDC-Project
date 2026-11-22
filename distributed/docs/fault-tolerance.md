@@ -88,7 +88,39 @@ final message, so a new attempt sent right after the result is never refused for
 | No capable worker | 30 s | `TaskDefaults.noWorkerTimeout` |
 | Worker reconnection backoff | 0.5 s doubling to 10 s, with jitter | `WorkerConfig.backoff` |
 
-## 6. Not handled (known limitations)
+## 6. Fault simulation (experiments only)
+
+Faults can be injected into **real** workers, so the reactions above can be demonstrated and measured without
+pulling cables. Fault simulation is isolated from ordinary experiments in three ways:
+
+1. A worker injects faults only when it is started with a profile whose `enabled=true`
+   (`worker --fault-profile examples/faults/slow-worker.properties`). It logs a warning banner at startup.
+2. Such a worker reports `faultSimulation: true` at registration. It appears in its capabilities, events and
+   snapshots.
+3. A coordinator refuses such workers (`REGISTRATION_REJECTED`) unless it was started with
+   `--allow-fault-simulation` (`CoordinatorConfig.allowFaultSimulationWorkers`).
+
+Faults only change the worker's own behaviour and its own connection. Nothing is sent to other hosts.
+
+| Profile key | Simulates | Expected reaction (tested in `FaultSimulationTest`) |
+|---|---|---|
+| `slowdown` (≥ 1) | A slower machine: the kernel's time is stretched by the factor, and the stretched time is reported | Dynamic and performance-aware scheduling give it fewer partitions; `loadImbalance` shows it |
+| `response-delay-ms` | A delay before each result is sent (the slot stays busy) | Longer attempts; attempt timeouts if large |
+| `message-latency-ms` | A slow link: every message from the worker leaves later, in order | Counted as `transferNanos`, not as computation |
+| `disconnect-after-tasks` | A network failure after the N-th task: the connection drops, then the worker reconnects | Attempts `LOST` and retried; the worker registers again |
+| `stop-heartbeats-after-ms` | A hung process that keeps its connection | `SUSPECT`, then disconnected at the heartbeat timeout; attempts retried |
+| `hang-probability` | Attempts that never answer, not even to `CANCEL` | `TIMED_OUT` after the attempt timeout, retried elsewhere; the slot stays occupied |
+| `fail-probability` | Kernel failures (retryable) | `FAILED`; retried on other workers; the task fails if every worker keeps failing |
+| `corrupt-probability` | Corruption in transit (checksum mismatch) | `INVALID`; retried; quarantine after the threshold |
+| `duplicate-probability` | Results sent twice | `DUPLICATE`, counted, never aggregated twice |
+| `capacity-schedule` | Capacity changes at run time (`afterMillis:slots,...`) | Reported in the next heartbeat; the scheduler follows |
+| `seed` | — | The same seed gives the same faults for the same attempt ids, so experiments repeat exactly |
+
+Limited worker availability is simulated on the coordinator side with `SubmitOptions.withMaxWorkers(n)` (HTTP
+`maxWorkers`), and task timeouts with `withAttemptTimeout` (HTTP `attemptTimeoutMillis`). Example profiles are
+in [examples/faults](../examples/faults).
+
+## 7. Not handled (known limitations)
 
 * **Coordinator crash.** There is no persistence and no standby coordinator. Running tasks are lost: the
   Application sees them end `CANCELLED` on a clean shutdown, or must time them out itself after a crash.

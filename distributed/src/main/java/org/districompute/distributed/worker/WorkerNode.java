@@ -30,6 +30,8 @@ import org.districompute.distributed.protocol.ShutdownPayload;
 import org.districompute.distributed.protocol.WorkerCapabilities;
 import org.districompute.distributed.resource.CapabilityProbe;
 import org.districompute.distributed.security.RegistrationAuthenticator;
+import org.districompute.distributed.simulation.FaultInjector;
+import org.districompute.distributed.simulation.FaultProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,7 @@ public final class WorkerNode implements AutoCloseable {
     private final RegistrationAuthenticator authenticator;
     private final TaskExecutor executor;
     private final ScheduledExecutorService heartbeats;
+    private final FaultInjector faults;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final CountDownLatch stopped = new CountDownLatch(1);
     private final AtomicLong registrations = new AtomicLong();
@@ -69,14 +72,17 @@ public final class WorkerNode implements AutoCloseable {
     private volatile Link link;
     private volatile String lastError;
     private volatile Thread connector;
+    private final ScheduledExecutorService latencyLine = Executors.newSingleThreadScheduledExecutor(runnable ->
+            Thread.ofPlatform().name("worker-latency").daemon(true).unstarted(runnable));
 
     private WorkerNode(WorkerConfig config) {
         this.config = config;
+        this.faults = new FaultInjector(config.faults());
         this.capabilities = CapabilityProbe.probe(config.registry(), config.allowedAlgorithms(),
                 WorkerConfig.hostName(), config.maxConcurrentTasks(), config.maxTaskMemoryBytes(),
-                config.maxMessageBytes(), config.labels(), false);
+                config.maxMessageBytes(), config.labels(), faults.enabled());
         this.authenticator = new RegistrationAuthenticator(config.secret());
-        this.executor = new TaskExecutor(config);
+        this.executor = new TaskExecutor(config, faults);
         this.heartbeats = Executors.newSingleThreadScheduledExecutor(runnable ->
                 Thread.ofPlatform().name("worker-heartbeat").daemon(true).unstarted(runnable));
     }
@@ -89,6 +95,14 @@ public final class WorkerNode implements AutoCloseable {
      */
     public static WorkerNode start(WorkerConfig config) {
         WorkerNode node = new WorkerNode(config);
+        if (node.faults.enabled()) {
+            LOG.warn("FAULT SIMULATION ENABLED on worker {}: {}. Use only for experiments; coordinators refuse this "
+                    + "worker unless they allow fault simulation.", config.workerId(), config.faults().describe());
+            for (FaultProfile.CapacityChange change : config.faults().capacitySchedule()) {
+                node.heartbeats.schedule(() -> node.setMaxConcurrentTasks(change.capacity()), change.afterMillis(),
+                        TimeUnit.MILLISECONDS);
+            }
+        }
         node.connector = Thread.ofPlatform().name("worker-connector").daemon(true).start(node::connectLoop);
         return node;
     }
@@ -251,6 +265,7 @@ public final class WorkerNode implements AutoCloseable {
         }
         executor.close();
         heartbeats.shutdownNow();
+        latencyLine.shutdownNow();
         state = State.STOPPED;
         stopped.countDown();
     }
@@ -330,6 +345,7 @@ public final class WorkerNode implements AutoCloseable {
         private volatile boolean stopRequested;
         private volatile long heartbeatTimeoutNanos;
         private volatile long heartbeatIntervalMillis = 1000;
+        private volatile long registeredNanos = System.nanoTime();
         private volatile long lastReceivedNanos = System.nanoTime();
         private volatile ScheduledFuture<?> heartbeatTask;
 
@@ -381,6 +397,9 @@ public final class WorkerNode implements AutoCloseable {
             if (!connection.isOpen()) {
                 return;
             }
+            if (faults.heartbeatsStopped((System.nanoTime() - registeredNanos) / 1_000_000)) {
+                return;
+            }
             long silence = System.nanoTime() - lastReceivedNanos;
             if (heartbeatTimeoutNanos > 0 && silence > heartbeatTimeoutNanos) {
                 lastError = "The coordinator has been silent for " + silence / 1_000_000 + " ms";
@@ -408,6 +427,19 @@ public final class WorkerNode implements AutoCloseable {
                         .attempt(message.attemptRef()).payload(new ErrorPayload(ProtocolErrorCode.TASK_FAILED, text,
                                 false, false, null)));
             }
+            long latency = faults.messageLatencyMillis();
+            if (latency > 0) {
+                // Simulated slow link: every message leaves later, in the original order.
+                if (!connection.isOpen()) {
+                    return false;
+                }
+                latencyLine.schedule(() -> sendNow(message, frame), latency, TimeUnit.MILLISECONDS);
+                return true;
+            }
+            return sendNow(message, frame);
+        }
+
+        private boolean sendNow(Envelope message, byte[] frame) {
             try {
                 return connection.send(frame);
             } catch (IllegalArgumentException e) {
@@ -469,6 +501,7 @@ public final class WorkerNode implements AutoCloseable {
                     heartbeatTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(ack.heartbeatTimeoutMillis());
                     connection.setMaxOutboundBytes(ack.maxMessageBytes());
                     registered = true;
+                    registeredNanos = System.nanoTime();
                     LOG.info("Worker {} registered with {} (session {})", config.workerId(), ack.coordinatorId(),
                             ack.sessionId());
                     acknowledged.countDown();
@@ -486,7 +519,15 @@ public final class WorkerNode implements AutoCloseable {
 
         private void registeredMessage(Envelope message, long receivedNanos) {
             switch (message.type()) {
-                case TASK -> executor.submit(message, receivedNanos, this);
+                case TASK -> {
+                    if (faults.disconnectNow()) {
+                        LOG.warn("Fault simulation: worker {} drops its connection after receiving {}",
+                                config.workerId(), message.attemptId());
+                        connection.close(CloseReason.LOCAL);
+                        return;
+                    }
+                    executor.submit(message, receivedNanos, this);
+                }
                 case CANCEL -> {
                     if (!executor.cancel(message.attemptId()) && !executor.recentlyFinished(message.attemptId())) {
                         send(Envelope.builder(MessageType.ERROR).workerId(config.workerId())

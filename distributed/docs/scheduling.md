@@ -35,7 +35,7 @@ decision record with its reason.
 | Estimated memory per attempt ≤ worker's `maxTaskMemoryBytes` | `needs about … MiB per attempt, worker allows … MiB` |
 | Estimated work-unit size ≤ worker's `maxMessageBytes` | `work unit of about … MiB exceeds the worker's … MiB message limit` |
 | A free slot | `no free slot (2 of 2 busy)` |
-| Not a worker that already failed this partition | `already failed this partition` (*soft rule*: used only when no other worker qualifies, because the failure may have been transient) |
+| Not a worker that already failed this partition | `already failed this partition` (*soft rule*: such a worker is used again only when no other capable worker exists, because the failure may have been transient. While another capable worker is merely busy, the partition waits for it.) |
 
 The requirements come from Core's workload profile divided by the number of partitions. They are estimates.
 The worker re-checks the real work unit, and a frame that is really too large fails the attempt, which is then

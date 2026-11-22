@@ -28,6 +28,7 @@ import org.districompute.core.execution.TaskCancelledException;
 import org.districompute.core.partition.PartialResultMessage;
 import org.districompute.core.partition.PartitionWorker;
 import org.districompute.core.partition.WorkUnitMessage;
+import org.districompute.core.serialization.EncodedPayload;
 import org.districompute.core.task.TaskStatus;
 import org.districompute.distributed.protocol.AttemptRef;
 import org.districompute.distributed.protocol.Envelope;
@@ -41,6 +42,7 @@ import org.districompute.distributed.protocol.TaskPayload;
 import org.districompute.distributed.protocol.TaskProgressPayload;
 import org.districompute.distributed.protocol.WorkerTiming;
 import org.districompute.distributed.resource.CapabilityProbe;
+import org.districompute.distributed.simulation.FaultInjector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,8 +108,11 @@ final class TaskExecutor implements AutoCloseable {
     private volatile int capacity;
     private volatile boolean accepting = true;
 
-    TaskExecutor(WorkerConfig config) {
+    private final FaultInjector faults;
+
+    TaskExecutor(WorkerConfig config, FaultInjector faults) {
         this.config = config;
+        this.faults = faults;
         this.partitionWorker = new PartitionWorker(config.registry(), config.workerId());
         this.capacity = config.maxConcurrentTasks();
         AtomicInteger threadNumber = new AtomicInteger();
@@ -335,17 +340,42 @@ final class TaskExecutor implements AutoCloseable {
 
     private void run(Running attempt, WorkUnitMessage unit) {
         long started = System.nanoTime();
+        FaultInjector.Behaviour behaviour = faults.behaviour(attempt.ref.attemptId());
         Envelope last;
+        Envelope duplicate = null;
         try {
             attempt.cancellation.throwIfCancelled();
+            if (behaviour == FaultInjector.Behaviour.HANG) {
+                hang(attempt);
+                return;
+            }
+            if (behaviour == FaultInjector.Behaviour.FAIL) {
+                throw DistriComputeException.forPartition(ErrorCode.PARTITION_FAILED, attempt.partitionIndex,
+                        "Simulated kernel failure on " + config.workerId() + " (fault simulation)", null);
+            }
             PartialResultMessage partial = partitionWorker.execute(unit, attempt.cancellation,
                     new ThrottledProgress(attempt));
+            long extra = faults.extraKernelNanos(partial.computeNanos());
+            if (extra > 0) {
+                // A slower machine: the kernel really takes longer, and reports the longer time.
+                pause(extra, attempt);
+                partial = withComputeNanos(partial, partial.computeNanos() + extra);
+            }
+            if (faults.responseDelayMillis() > 0) {
+                pause(faults.responseDelayMillis() * 1_000_000L, attempt);
+            }
+            if (behaviour == FaultInjector.Behaviour.CORRUPT) {
+                partial = corrupted(partial);
+            }
             long ended = System.nanoTime();
             WorkerTiming timing = new WorkerTiming(started - attempt.admittedNanos, ended - started,
                     ended - attempt.receivedNanos);
             completed.incrementAndGet();
             // A result is useful even if a CANCEL raced with it: the coordinator decides what to do with it.
             last = reply(MessageType.RESULT, attempt.ref, null, new ResultPayload(partial, timing));
+            if (behaviour == FaultInjector.Behaviour.DUPLICATE) {
+                duplicate = reply(MessageType.RESULT, attempt.ref, null, new ResultPayload(partial, timing));
+            }
         } catch (TaskCancelledException e) {
             last = cancelled(attempt, e.reason());
         } catch (DistriComputeException e) {
@@ -380,9 +410,65 @@ final class TaskExecutor implements AutoCloseable {
             if (last != null) {
                 attempt.outbox.send(last);
             }
+            if (duplicate != null) {
+                attempt.outbox.send(duplicate);
+            }
         } finally {
             running.remove(attempt.ref.attemptId());
         }
+    }
+
+    /** Simulated hang: holds the slot and answers nothing, not even CANCEL, until the connection is gone. */
+    private void hang(Running attempt) {
+        LOG.warn("Fault simulation: attempt {} hangs", attempt.ref.attemptId());
+        while (attempt.outbox.isOpen() && accepting) {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        ScheduledFuture<?> timeout = attempt.timeout;
+        if (timeout != null) {
+            timeout.cancel(false);
+        }
+        active.decrementAndGet();
+        running.remove(attempt.ref.attemptId());
+    }
+
+    /** Waits, honouring cancellation, for simulated slowness. */
+    private static void pause(long nanos, Running attempt) {
+        long deadline = System.nanoTime() + nanos;
+        while (true) {
+            attempt.cancellation.throwIfCancelled();
+            long left = deadline - System.nanoTime();
+            if (left <= 0) {
+                return;
+            }
+            try {
+                Thread.sleep(Math.max(1, Math.min(20, left / 1_000_000)));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new TaskCancelledException(CancellationReason.SHUTDOWN);
+            }
+        }
+    }
+
+    private static PartialResultMessage withComputeNanos(PartialResultMessage p, long computeNanos) {
+        return new PartialResultMessage(p.schemaVersion(), p.taskId(), p.partitionId(), p.index(), p.attempt(),
+                p.resultType(), p.payload(), computeNanos, p.workerId());
+    }
+
+    /** Simulated corruption in transit: one base64 character changes, so the checksum no longer matches. */
+    private static PartialResultMessage corrupted(PartialResultMessage p) {
+        EncodedPayload e = p.payload();
+        char[] chars = e.base64().toCharArray();
+        int i = Math.min(12, chars.length - 1);
+        chars[i] = chars[i] == 'A' ? 'B' : 'A';
+        return new PartialResultMessage(p.schemaVersion(), p.taskId(), p.partitionId(), p.index(), p.attempt(),
+                p.resultType(), new EncodedPayload(e.format(), e.sizeBytes(), e.crc32c(), new String(chars)),
+                p.computeNanos(), p.workerId());
     }
 
     private Envelope cancelled(Running attempt, CancellationReason reason) {

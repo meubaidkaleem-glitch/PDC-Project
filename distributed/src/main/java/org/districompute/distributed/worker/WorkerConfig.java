@@ -10,6 +10,7 @@ import org.districompute.distributed.communication.TlsConfig;
 import org.districompute.distributed.protocol.Ids;
 import org.districompute.distributed.protocol.WorkerCapabilities;
 import org.districompute.distributed.security.SharedSecret;
+import org.districompute.distributed.simulation.FaultProfile;
 
 /**
  * Worker settings ({@code docs/worker-lifecycle.md}).
@@ -31,6 +32,7 @@ import org.districompute.distributed.security.SharedSecret;
  * @param labels free-form labels reported to the coordinator
  * @param allowedAlgorithms if not empty, only these algorithm ids are offered
  * @param registry Core algorithms installed on this worker
+ * @param faults fault simulation profile ({@link FaultProfile#NONE} outside experiments)
  */
 public record WorkerConfig(
         String workerId,
@@ -49,7 +51,8 @@ public record WorkerConfig(
         Duration progressInterval,
         Map<String, String> labels,
         Set<String> allowedAlgorithms,
-        AlgorithmRegistry registry) {
+        AlgorithmRegistry registry,
+        FaultProfile faults) {
 
     /** Validates the settings. */
     public WorkerConfig {
@@ -60,6 +63,7 @@ public record WorkerConfig(
         Objects.requireNonNull(secret, "secret (the cluster's shared secret is required)");
         Objects.requireNonNull(tls, "tls");
         Objects.requireNonNull(registry, "registry");
+        Objects.requireNonNull(faults, "faults");
         if (coordinatorPort < 1 || coordinatorPort > 65_535) {
             throw new IllegalArgumentException("coordinatorPort must be between 1 and 65535");
         }
@@ -129,6 +133,7 @@ public record WorkerConfig(
         private final Map<String, String> labels = new LinkedHashMap<>();
         private Set<String> allowedAlgorithms = Set.of();
         private AlgorithmRegistry registry;
+        private FaultProfile faults = FaultProfile.NONE;
 
         private Builder(String coordinatorHost, int coordinatorPort, SharedSecret secret) {
             this.coordinatorHost = coordinatorHost;
@@ -274,6 +279,17 @@ public record WorkerConfig(
         }
 
         /**
+         * Enables fault simulation (experiments only).
+         *
+         * @param value the profile
+         * @return this builder
+         */
+        public Builder faults(FaultProfile value) {
+            this.faults = value;
+            return this;
+        }
+
+        /**
          * Builds the configuration.
          *
          * @return the validated configuration
@@ -284,7 +300,7 @@ public record WorkerConfig(
             return new WorkerConfig(workerId, coordinatorHost, coordinatorPort, secret, tls, maxConcurrentTasks,
                     memory, maxMessageBytes, connectTimeout, registrationTimeout, initialBackoff, maxBackoff,
                     drainTimeout, progressInterval, labels, allowedAlgorithms,
-                    registry != null ? registry : AlgorithmRegistry.loadDefault());
+                    registry != null ? registry : AlgorithmRegistry.loadDefault(), faults);
         }
     }
 }

@@ -64,18 +64,23 @@ public final class Eligibility {
             java.util.function.Function<String, WorkerCapabilities> capabilitiesOf, List<Candidate> eligible) {
         List<Rejection> rejected = new ArrayList<>();
         List<Candidate> excluded = new ArrayList<>();
+        boolean otherCapableWorkerBusy = false;
         for (Candidate candidate : candidates) {
+            boolean isExcluded = request.excludedWorkers().contains(candidate.workerId());
             Optional<String> reason = reason(request, candidate, capabilitiesOf.apply(candidate.workerId()));
             if (reason.isPresent()) {
                 rejected.add(new Rejection(candidate.workerId(), reason.get()));
-            } else if (request.excludedWorkers().contains(candidate.workerId())) {
+                otherCapableWorkerBusy |= !isExcluded && candidate.freeSlots() == 0
+                        && reason.get().startsWith("no free slot");
+            } else if (isExcluded) {
                 excluded.add(candidate);
             } else {
                 eligible.add(candidate);
             }
         }
-        if (eligible.isEmpty()) {
+        if (eligible.isEmpty() && !otherCapableWorkerBusy) {
             // A worker that failed this partition before is better than none: the failure may have been transient.
+            // While another capable worker is merely busy, the partition waits for it instead.
             eligible.addAll(excluded);
         } else {
             excluded.forEach(c -> rejected.add(new Rejection(c.workerId(), "already failed this partition")));

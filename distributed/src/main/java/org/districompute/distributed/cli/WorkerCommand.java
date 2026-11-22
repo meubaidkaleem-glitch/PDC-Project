@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.districompute.distributed.communication.TlsConfig;
+import org.districompute.distributed.simulation.FaultProfile;
 import org.districompute.distributed.worker.WorkerConfig;
 import org.districompute.distributed.worker.WorkerNode;
 
@@ -16,7 +17,8 @@ public final class WorkerCommand {
     /** Options accepted by the command. */
     public static final Set<String> OPTIONS = Set.of("coordinator", "id", "secret-file", "max-concurrent-tasks",
             "max-task-memory-mb", "max-message-bytes", "labels", "algorithms", "tls-truststore",
-            "tls-truststore-password", "tls-no-hostname-verification", "drain-timeout-ms", "connect-timeout-ms");
+            "tls-truststore-password", "tls-no-hostname-verification", "drain-timeout-ms", "connect-timeout-ms",
+            "fault-profile");
     /** Boolean options of the command. */
     public static final Set<String> FLAGS = Set.of("tls-no-hostname-verification");
 
@@ -65,6 +67,14 @@ public final class WorkerCommand {
             builder.label(label.substring(0, eq), label.substring(eq + 1));
         }
         builder.allowedAlgorithms(list(options.get("algorithms", "")));
+        if (options.has("fault-profile")) {
+            Path file = Path.of(options.get("fault-profile", ""));
+            try {
+                builder.faults(FaultProfile.load(file));
+            } catch (java.io.IOException e) {
+                throw new IllegalArgumentException("Cannot read the fault profile " + file + ": " + e.getMessage(), e);
+            }
+        }
         if (options.has("tls-truststore")) {
             builder.tls(new TlsConfig(true, null, null, Path.of(options.get("tls-truststore", "")),
                     options.get("tls-truststore-password", ""),

@@ -133,6 +133,11 @@ class SchedulingPoliciesTest {
         Eligibility.filter(request(PRIMES, Set.of("a", "b"), Set.of()), candidates, capabilities::get, eligible);
         assertEquals(2, eligible.size(), "a failed worker is better than none");
         eligible.clear();
+        List<Candidate> bBusy = List.of(candidates.get(0), new Candidate("b", WorkerStatus.ACTIVE, 1, 1, 4,
+                1L << 30, 16 << 20, -1, 0, 0, 0, 0, 0));
+        Eligibility.filter(request(PRIMES, Set.of("a"), Set.of()), bBusy, capabilities::get, eligible);
+        assertTrue(eligible.isEmpty(), "while a healthy capable worker is only busy, the partition waits for it");
+        eligible.clear();
         rejected = Eligibility.filter(request(PRIMES, Set.of(), Set.of("b")), candidates, capabilities::get, eligible);
         assertEquals(List.of("b"), eligible.stream().map(Candidate::workerId).toList());
         assertEquals("outside the task's worker limit", rejected.get(0).reason());

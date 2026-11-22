@@ -89,6 +89,7 @@ public final class DistributedCli {
         out.println("  worker       run a worker: --coordinator <host:port> --secret-file <file> [--id <id>]");
         out.println("               [--max-concurrent-tasks N] [--labels k=v,...] [--algorithms id,...]");
         out.println("               [--tls-truststore <p12> --tls-truststore-password <pw>] [--config <file>]");
+        out.println("               [--fault-profile <file>]   (experiments only; see docs/fault-tolerance.md)");
         out.println("  version      print the runtime and Core versions");
         out.println("  help         print this help");
         out.println();
