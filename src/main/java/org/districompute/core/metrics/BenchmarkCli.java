@@ -14,7 +14,7 @@ import org.districompute.core.serialization.ContractJson;
  * Command-line entry point for benchmarks.
  *
  * <pre>
- *   ./mvnw -q test-compile exec:java -Dexec.args="benchmarks/suites/matmul-scaling.json target/benchmarks"
+ *   ./mvnw -q test-compile exec:java -Dexec.args="benchmark benchmarks/suites/matmul-scaling.json target/benchmarks"
  * </pre>
  * Writes {@code <suite>.json}, {@code <suite>.csv} and {@code <suite>.md} to the output directory. Close other
  * workloads first, because the numbers describe this machine at this moment.

@@ -1,0 +1,117 @@
+{
+  "schemaVersion" : "0.1",
+  "taskId" : "example-sort-inline",
+  "algorithm" : {
+    "id" : "sort.merge",
+    "version" : "1.0.0"
+  },
+  "status" : "COMPLETED",
+  "mode" : "SEQUENTIAL_CPU",
+  "threads" : 1,
+  "partitions" : 1,
+  "result" : {
+    "type" : "long-array",
+    "digest" : "sha256:5b795ce80c34357f48fbd9772fbb886c534788c33f280a12f453528c7cf254d9",
+    "values" : {
+      "length" : 8,
+      "min" : -100,
+      "max" : 42,
+      "head" : [ -100, -7, 0, 3, 8 ],
+      "tail" : [ 3, 8, 19, 19, 42 ]
+    }
+  },
+  "verification" : {
+    "method" : "sortedness + multiset fingerprint",
+    "kind" : "PROBABILISTIC",
+    "passed" : true,
+    "message" : "Output is sorted and is a permutation of the input",
+    "details" : {
+      "inputLength" : 8,
+      "outputLength" : 8,
+      "permutation" : true
+    }
+  },
+  "profile" : {
+    "algorithm" : {
+      "id" : "sort.merge",
+      "version" : "1.0.0"
+    },
+    "dimensions" : {
+      "size" : 8
+    },
+    "estimatedOperations" : 24.0,
+    "operationUnit" : "comparisons (estimate)",
+    "timeComplexity" : "O(n log n)",
+    "inputBytes" : 64,
+    "outputBytes" : 64,
+    "estimatedPeakMemoryBytes" : 256,
+    "parallelism" : {
+      "partitionable" : true,
+      "strategy" : "CHUNK",
+      "maxUsefulPartitions" : 1,
+      "dataDependency" : "ORDERED_MERGE",
+      "aggregationComplexity" : "O(n log k): k-way merge of k sorted runs"
+    }
+  },
+  "metrics" : {
+    "validationNanos" : 10452627,
+    "inputPreparationNanos" : 42446,
+    "partitioningNanos" : 0,
+    "computeNanos" : 303312,
+    "aggregationNanos" : 262819,
+    "executionNanos" : 566131,
+    "verificationNanos" : 3443257,
+    "busyNanos" : 303312,
+    "schedulingOverheadNanos" : 0,
+    "threads" : 1,
+    "partitions" : 1,
+    "cpuNanos" : 0,
+    "gcCount" : 0,
+    "gcMillis" : 0,
+    "allocatedBytes" : 15696
+  },
+  "environment" : {
+    "coreVersion" : "0.1.0-SNAPSHOT",
+    "javaVersion" : "21.0.13.0.3",
+    "javaVendor" : "Ubuntu",
+    "jvmName" : "OpenJDK 64-Bit Server VM",
+    "jvmVersion" : "21.0.13.0.3+1-1-24.04.1-Ubuntu",
+    "osName" : "Linux",
+    "osVersion" : "6.18.44-fc-v726",
+    "osArch" : "amd64",
+    "availableProcessors" : 4,
+    "maxHeapBytes" : 3586129920,
+    "totalPhysicalMemoryBytes" : 14338744320,
+    "cpuModel" : "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "jvmOptions" : [ "-XX:+UnlockDiagnosticVMOptions", "-XX:DisableIntrinsic=_base64_encodeBlock,_base64_decodeBlock" ],
+    "capturedAt" : "2026-11-22T10:04:53.824495955Z"
+  },
+  "statusHistory" : [ {
+    "status" : "CREATED",
+    "at" : "2026-11-22T10:04:53.834902319Z"
+  }, {
+    "status" : "VALIDATING",
+    "at" : "2026-11-22T10:04:53.835841879Z"
+  }, {
+    "status" : "VALIDATED",
+    "at" : "2026-11-22T10:04:53.846404872Z"
+  }, {
+    "status" : "PLANNED",
+    "at" : "2026-11-22T10:04:53.846677804Z"
+  }, {
+    "status" : "QUEUED",
+    "at" : "2026-11-22T10:04:53.846780511Z"
+  }, {
+    "status" : "RUNNING",
+    "at" : "2026-11-22T10:04:53.846948622Z"
+  }, {
+    "status" : "AGGREGATING",
+    "at" : "2026-11-22T10:04:53.852859350Z"
+  }, {
+    "status" : "VERIFYING",
+    "at" : "2026-11-22T10:04:53.853373066Z"
+  }, {
+    "status" : "COMPLETED",
+    "at" : "2026-11-22T10:04:53.860985299Z"
+  } ]
+}

@@ -157,8 +157,8 @@
           <artifactId>exec-maven-plugin</artifactId>
           <version>${exec-maven-plugin.version}</version>
           <configuration>
-            <!-- Benchmark CLI; test scope adds the slf4j-simple binding for console logging. -->
-            <mainClass>org.districompute.core.metrics.BenchmarkCli</mainClass>
+            <!-- CoreCli (catalog, run, advise, benchmark); test scope adds the slf4j-simple binding. -->
+            <mainClass>org.districompute.core.CoreCli</mainClass>
             <classpathScope>test</classpathScope>
             <cleanupDaemonThreads>false</cleanupDaemonThreads>
           </configuration>

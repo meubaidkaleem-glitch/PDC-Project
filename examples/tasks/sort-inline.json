@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-sort-inline",
+  "algorithm": { "id": "sort.merge" },
+  "parameters": { "input": "INLINE", "values": [42, -7, 19, 0, 19, 3, -100, 8] },
+  "constraints": { "mode": "SEQUENTIAL_CPU" },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

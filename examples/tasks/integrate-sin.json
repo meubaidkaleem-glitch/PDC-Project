@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-integrate",
+  "algorithm": { "id": "numeric.integrate" },
+  "parameters": { "function": "SIN", "lowerLimit": 0.0, "upperLimit": 3.141592653589793, "panels": 1000000 },
+  "constraints": { "mode": "MULTITHREADED_CPU", "maxThreads": 2 },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-matmul-mt",
+  "experimentId": "examples",
+  "algorithm": { "id": "matrix.multiply", "version": "1.0.0" },
+  "parameters": { "rowsA": 512, "colsA": 384, "colsB": 256, "blockSize": 64, "seed": 42 },
+  "constraints": { "mode": "MULTITHREADED_CPU", "maxThreads": 2, "partitioning": { "blockRows": 128, "blockCols": 128 }, "timeoutMillis": 120000 },
+  "priority": "NORMAL",
+  "createdAt": "2026-11-22T10:00:00Z"
+}

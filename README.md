@@ -17,35 +17,54 @@ Core as a library. Core has no dependency on Spring, a database, a UI or the net
 
 ## Status
 
-Development follows a phased plan ([docs/implementation-plan.md](docs/implementation-plan.md)). The table
-lists only what exists on this branch.
+All planned Core phases are implemented on `feature/core-engine` (see the
+[implementation report](docs/implementation-report.md) for exact results and limitations):
 
 | Area | Status |
 |---|---|
-| Architecture review, plan, draft integration contract | Done (Phase 1) |
-| Build, quality checks, CI | Done (Phase 1) |
-| Task model, lifecycle, algorithm SPI, registry, error model, JSON codec | Done (Phase 2), see [docs/task-model.md](docs/task-model.md) |
-| P1 algorithms (`primes.count`, `sort.merge`, `matrix.add`, `matrix.multiply`), sequential, verified | Done (Phase 3), see [docs/algorithms.md](docs/algorithms.md) |
-| Local engine: full lifecycle, validation, memory guard, timeout, cancellation | Done for `SEQUENTIAL_CPU` (Phase 3), see [docs/execution-model.md](docs/execution-model.md) |
-| Bounded worker pool, admission control, progress events | Done (Phase 4) |
-| Partitioning, aggregation, partial-result validation, payload codecs; `MULTITHREADED_CPU`; coordinator and worker facade for `DISTRIBUTED_CPU` | Done (Phase 5) |
-| Numerical (integration, polynomial evaluation, root finding, Monte Carlo) and data operations (statistics, filter and search) | Done (Phase 6) |
-| Benchmark framework (warm-ups, repeated verified runs, statistics, speedup and efficiency, JSON/CSV/Markdown) | Done (Phase 7), see [benchmarks/](benchmarks) |
-| Strategy advisor; GPU backend SPI and detection (**no GPU execution**, see [docs/gpu-backend.md](docs/gpu-backend.md)) | Done (Phase 8) |
+| Task model, lifecycle, validation, registry, error model, JSON contracts | Done |
+| 10 verified algorithms: primes, merge sort, matrix add and multiply, integration, polynomial evaluation, root finding, Monte Carlo, statistics, filter | Done |
+| `SEQUENTIAL_CPU` and `MULTITHREADED_CPU` (bounded worker pool, partitioning, aggregation) | Done |
+| `DISTRIBUTED_CPU` Core side: coordinator and worker facade, payload codecs | Done; tested with a simulated runtime |
+| Benchmark framework, methodology, measured results | Done |
+| Strategy advisor | Done |
+| GPU | Interface and detection only. **No GPU execution** (no hardware to validate on) |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
 
-## Quick example
+## Quick start
+
+```bash
+./mvnw -q test-compile exec:java -Dexec.args="catalog"
+```
+
+```bash
+./mvnw -q test-compile exec:java -Dexec.args="run examples/tasks/matmul-multithreaded.json"
+```
+
+```bash
+./mvnw -q test-compile exec:java -Dexec.args="advise examples/tasks/matmul-multithreaded.json"
+```
+
+As a library:
 
 ```java
 try (LocalExecutionEngine engine = LocalExecutionEngine.withDefaults()) {
     TaskSpec task = TaskSpec.builder("matrix.multiply")
             .parameter("rowsA", 512).parameter("colsA", 512).parameter("colsB", 512)
+            .mode(ExecutionMode.MULTITHREADED_CPU).maxThreads(4)
             .build();
     ExecutionOutcome outcome = engine.execute(task);
     System.out.println(ContractJson.toPrettyJson(outcome.taskResult()));   // status, digest, verification, metrics
 }
 ```
+
+## Integration
+
+* **Application (Contributor 3).** Add this repository as a pinned Git submodule and include it in the Maven
+  aggregator. See [integration-contract §16](docs/integration-contract.md#16-examples-and-how-to-integrate).
+* **Distributed runtime (Contributor 2).** Use `PartitionedTaskSession` and `PartitionWorker`. See
+  [integration-contract §14](docs/integration-contract.md#14-core-facade-for-the-distributed-runtime).
 
 ## Requirements
 
@@ -76,7 +95,7 @@ Performance-scenario tests (different sizes, threads, partitionings and block si
 To run a benchmark suite and write JSON, CSV and Markdown reports:
 
 ```bash
-./mvnw -q test-compile exec:java -Dexec.args="benchmarks/suites/matmul-scaling.json target/benchmarks"
+./mvnw -q test-compile exec:java -Dexec.args="benchmark benchmarks/suites/matmul-scaling.json target/benchmarks"
 ```
 
 ## Documentation
@@ -92,6 +111,10 @@ To run a benchmark suite and write JSON, CSV and Markdown reports:
 | [docs/gpu-backend.md](docs/gpu-backend.md) | GPU status, technology comparison, integration path |
 | [docs/integration-contract.md](docs/integration-contract.md) | Proposed shared contracts (task, status, partitions, results, errors, metrics) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, commits, pull requests, definition of done |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
+| [docs/implementation-report.md](docs/implementation-report.md) | What is done, partial and missing; test results; limitations |
+| [examples/](examples) | Example task and result documents |
+| [benchmarks/](benchmarks) | Benchmark suites and measured results |
 
 ## License
 

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-matmul-distributed",
+  "experimentId": "examples",
+  "algorithm": { "id": "matrix.multiply", "version": "1.0.0" },
+  "parameters": { "rowsA": 256, "colsA": 256, "colsB": 256 },
+  "constraints": { "mode": "DISTRIBUTED_CPU", "partitioning": { "blockRows": 128, "blockCols": 128 } },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

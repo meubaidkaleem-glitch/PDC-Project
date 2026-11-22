@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-primes",
+  "algorithm": { "id": "primes.count", "version": "1.0.0" },
+  "parameters": { "lowerBound": 0, "upperBound": 50000000 },
+  "constraints": { "mode": "MULTITHREADED_CPU", "maxThreads": 2, "partitioning": { "targetPartitions": 8 } },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

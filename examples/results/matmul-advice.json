@@ -1,0 +1,32 @@
+{
+  "algorithm" : {
+    "id" : "matrix.multiply",
+    "version" : "1.0.0"
+  },
+  "recommended" : "MULTITHREADED_CPU",
+  "assessments" : [ {
+    "mode" : "SEQUENTIAL_CPU",
+    "verdict" : "SUITABLE",
+    "threads" : 1,
+    "reasons" : [ "Reference implementation; no partitioning overhead" ]
+  }, {
+    "mode" : "MULTITHREADED_CPU",
+    "verdict" : "RECOMMENDED",
+    "threads" : 4,
+    "reasons" : [ "Independent partitions on 4 threads (NONE aggregation: O(m·n): copy result blocks into C)" ]
+  }, {
+    "mode" : "DISTRIBUTED_CPU",
+    "verdict" : "UNSUITABLE",
+    "reasons" : [ "No workers registered; the distributed runtime must supply them" ]
+  }, {
+    "mode" : "GPU",
+    "verdict" : "UNSUPPORTED",
+    "reasons" : [ "No GPU implementation: No GPU backend is installed (DistriCompute-Core ships none)" ]
+  }, {
+    "mode" : "HYBRID",
+    "verdict" : "UNSUPPORTED",
+    "reasons" : [ "Hybrid CPU/GPU/distributed execution is not implemented" ]
+  } ],
+  "calibrated" : false,
+  "assumptions" : [ "No calibration for matrix.multiply: no time estimates; small-workload threshold 1.00e+07 estimated operations" ]
+}

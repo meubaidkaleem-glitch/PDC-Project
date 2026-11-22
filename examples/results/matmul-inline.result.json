@@ -1,0 +1,119 @@
+{
+  "schemaVersion" : "0.1",
+  "taskId" : "example-matmul-inline",
+  "algorithm" : {
+    "id" : "matrix.multiply",
+    "version" : "1.0.0"
+  },
+  "status" : "COMPLETED",
+  "mode" : "SEQUENTIAL_CPU",
+  "threads" : 1,
+  "partitions" : 1,
+  "result" : {
+    "type" : "matrix",
+    "digest" : "sha256:b8a3d1a9fce443081147fa23d49679be0d242ae5f9c23c92fb431798cf4d159f",
+    "values" : {
+      "rows" : 2,
+      "cols" : 2,
+      "sum" : 415.0,
+      "maxAbs" : 154.0
+    }
+  },
+  "verification" : {
+    "method" : "Freivalds (3 rounds, floating-point error bound)",
+    "kind" : "PROBABILISTIC",
+    "passed" : true,
+    "message" : "C*r agrees with A*(B*r) within the floating-point error bound in every round",
+    "details" : {
+      "rounds" : 3,
+      "seed" : 1592651789,
+      "maxDifferenceToToleranceRatio" : 0.0,
+      "missProbabilityBound" : 0.125
+    }
+  },
+  "profile" : {
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "dimensions" : {
+      "rowsA" : 2,
+      "colsA" : 3,
+      "colsB" : 2
+    },
+    "estimatedOperations" : 24.0,
+    "operationUnit" : "floating-point operations",
+    "timeComplexity" : "O(m·k·n)",
+    "inputBytes" : 96,
+    "outputBytes" : 32,
+    "estimatedPeakMemoryBytes" : 384,
+    "parallelism" : {
+      "partitionable" : true,
+      "strategy" : "BLOCK_2D",
+      "maxUsefulPartitions" : 4,
+      "dataDependency" : "NONE",
+      "aggregationComplexity" : "O(m·n): copy result blocks into C"
+    }
+  },
+  "metrics" : {
+    "validationNanos" : 12508910,
+    "inputPreparationNanos" : 335190,
+    "partitioningNanos" : 0,
+    "computeNanos" : 443693,
+    "aggregationNanos" : 248272,
+    "executionNanos" : 691965,
+    "verificationNanos" : 2664971,
+    "busyNanos" : 443693,
+    "schedulingOverheadNanos" : 0,
+    "threads" : 1,
+    "partitions" : 1,
+    "cpuNanos" : 10000000,
+    "gcCount" : 0,
+    "gcMillis" : 0,
+    "allocatedBytes" : 26000
+  },
+  "environment" : {
+    "coreVersion" : "0.1.0-SNAPSHOT",
+    "javaVersion" : "21.0.13.0.3",
+    "javaVendor" : "Ubuntu",
+    "jvmName" : "OpenJDK 64-Bit Server VM",
+    "jvmVersion" : "21.0.13.0.3+1-1-24.04.1-Ubuntu",
+    "osName" : "Linux",
+    "osVersion" : "6.18.44-fc-v726",
+    "osArch" : "amd64",
+    "availableProcessors" : 4,
+    "maxHeapBytes" : 3586129920,
+    "totalPhysicalMemoryBytes" : 14338744320,
+    "cpuModel" : "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "jvmOptions" : [ "-XX:+UnlockDiagnosticVMOptions", "-XX:DisableIntrinsic=_base64_encodeBlock,_base64_decodeBlock" ],
+    "capturedAt" : "2026-11-22T10:04:51.170575763Z"
+  },
+  "statusHistory" : [ {
+    "status" : "CREATED",
+    "at" : "2026-11-22T10:04:51.176683654Z"
+  }, {
+    "status" : "VALIDATING",
+    "at" : "2026-11-22T10:04:51.177505996Z"
+  }, {
+    "status" : "VALIDATED",
+    "at" : "2026-11-22T10:04:51.190120164Z"
+  }, {
+    "status" : "PLANNED",
+    "at" : "2026-11-22T10:04:51.190435116Z"
+  }, {
+    "status" : "QUEUED",
+    "at" : "2026-11-22T10:04:51.190526478Z"
+  }, {
+    "status" : "RUNNING",
+    "at" : "2026-11-22T10:04:51.190682905Z"
+  }, {
+    "status" : "AGGREGATING",
+    "at" : "2026-11-22T10:04:51.196495767Z"
+  }, {
+    "status" : "VERIFYING",
+    "at" : "2026-11-22T10:04:51.196970329Z"
+  }, {
+    "status" : "COMPLETED",
+    "at" : "2026-11-22T10:04:51.202487934Z"
+  } ]
+}

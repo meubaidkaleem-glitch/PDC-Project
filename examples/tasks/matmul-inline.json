@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-matmul-inline",
+  "algorithm": { "id": "matrix.multiply" },
+  "parameters": {
+    "input": "INLINE", "rowsA": 2, "colsA": 3, "rowsB": 3, "colsB": 2,
+    "matrixA": [1, 2, 3, 4, 5, 6],
+    "matrixB": [7, 8, 9, 10, 11, 12]
+  },
+  "constraints": { "mode": "SEQUENTIAL_CPU" },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

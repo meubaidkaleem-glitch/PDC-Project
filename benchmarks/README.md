@@ -5,7 +5,7 @@ Benchmark suites are JSON files in [`suites/`](suites). The `BenchmarkCli` runs 
 The method is described in [docs/performance-methodology.md](../docs/performance-methodology.md).
 
 ```bash
-./mvnw -q test-compile exec:java -Dexec.args="benchmarks/suites/matmul-scaling.json target/benchmarks"
+./mvnw -q test-compile exec:java -Dexec.args="benchmark benchmarks/suites/matmul-scaling.json target/benchmarks"
 ```
 
 | Suite | Investigates |

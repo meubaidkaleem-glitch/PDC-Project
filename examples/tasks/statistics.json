@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "example-statistics",
+  "algorithm": { "id": "data.statistics" },
+  "parameters": { "size": 2000000, "distribution": "NORMAL", "seed": 7 },
+  "constraints": { "mode": "MULTITHREADED_CPU", "maxThreads": 2 },
+  "createdAt": "2026-11-22T10:00:00Z"
+}

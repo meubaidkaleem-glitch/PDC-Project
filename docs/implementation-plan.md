@@ -36,7 +36,7 @@ contract, and that contract is versioned.
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1 | Done | `./mvnw verify` passes locally (enforcer, `-Werror` compile, tests, JaCoCo, Checkstyle, SpotBugs). The CI workflow is committed; its first GitHub run is reported in the implementation report. |
+| 1 | Done | `./mvnw verify` passes locally (enforcer, `-Werror` compile, tests, JaCoCo, Checkstyle, SpotBugs). GitHub CI passed on every phase commit (see the implementation report). |
 | 2 | Done | Task model, lifecycle state machine, parameter schema and validator, algorithm SPI, registry with derived capabilities, error model, JSON codec. 54 unit and 2 concurrency tests pass. |
 | 3 | Done | Prime counting, merge sort, matrix addition, cache-blocked matrix multiplication with independent verifiers; deterministic generators; workload profiles; memory guard; `LocalExecutionEngine` (sequential) driving the full lifecycle. **Milestone M1 reached.** 101 unit and 2 concurrency tests pass. |
 | 4 | Done | Bounded `WorkerPool` (fixed threads, bounded queue, controlled submission, completion queue, fail-fast, structured completion, shutdown), engine admission control, throttled monotonic progress events, shutdown cancellation. Concurrency suite: 15 tests, stable over 5 consecutive runs. |
@@ -44,7 +44,8 @@ contract, and that contract is versioned.
 | 6 | Done | Numerical integration, polynomial evaluation, root finding, Monte Carlo π; descriptive statistics, filter and search. All partitionable and verified, with documented limitations. 162 tests pass. |
 | 7 | Done | `SampleStatistics`, JSON `BenchmarkSuite`s (sizes, threads, partitionings, block sizes), `BenchmarkRunner` (warm-ups, repeated verified runs, speedup and efficiency against the sequential baseline), JSON, CSV and Markdown reports, `BenchmarkCli`; methodology doc; real results from the development container committed with their caveats. |
 | 8 | Done | `GpuBackend` SPI and `GpuStatus` detection (no backend ships; GPU reported as unavailable with reasons); technology review and integration path in [gpu-backend.md](gpu-backend.md); `StrategyAdvisor` with explicit verdicts, a measured small-workload threshold, memory and communication rules, and calibration from benchmark reports. |
-| 9–10 | Not started | — |
+| 9 | Core side done; joint work pending | Facade, codecs, contract §14–15 and examples are ready and tested with a simulated runtime. The joint integration tests with DistriCompute-Distributed and the agreement on contract `1.0` need Contributors 2 and 3. |
+| 10 | Done | `CoreCli`; example tasks and real outputs; `ExamplesTest` (end-to-end, JSON in and JSON out, including the distributed path); release notes; implementation report. |
 
 ## 4. Postponed features
 

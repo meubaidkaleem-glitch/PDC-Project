@@ -138,7 +138,7 @@ modes are derived from the interfaces the implementation actually provides. They
 
 ---
 
-## 5. Resource requirement model — `WorkloadProfile`  *(Core: implemented for P1 algorithms; plan-dependent communication fields in Phase 5)*
+## 5. Resource requirement model — `WorkloadProfile`  *(Core: implemented for all 10 algorithms)*
 
 Produced from parameters alone, without allocating the input.
 
@@ -162,9 +162,9 @@ Produced from parameters alone, without allocating the input.
 }
 ```
 
-The fields Contributor 2's scheduler needs that depend on a concrete partition plan (bytes sent to workers,
-bytes returned, partition-count limits) are defined in Phase 5. They'll be calculated exactly from the plan,
-not guessed.
+Exact per-partition traffic is available from a concrete plan: the size of each encoded `WorkUnitMessage` and
+`PartialResultMessage`. The profile itself reports input and output bytes, which are a lower bound on
+distributed traffic. `parallelism.maxUsefulPartitions` bounds the partition count.
 
 ---
 
@@ -417,7 +417,21 @@ The result (`StrategyRecommendation`) holds one assessment per mode, each with `
 `estimatedSeconds` and `reasons`. It also gives the `recommended` mode (or `null` if none is suitable), whether
 measured `calibrated` throughput was used, and the `assumptions`.
 
-## 16. Open questions for Contributors 2 and 3
+## 16. Examples and how to integrate
+
+* Example documents: [examples/tasks](../examples/tasks) (`TaskSpec`) and [examples/results](../examples/results)
+  (`TaskResult`, catalog, strategy assessment). All of them were produced by real runs, and CI runs every
+  example task.
+* **Contributor 3 (Application).** Add this repository as a Git submodule pinned to a reviewed commit. Include it
+  as a module of the Application's Maven aggregator, and depend on `org.districompute:districompute-core`. Use
+  `AlgorithmRegistry.loadDefault().catalog()` to build input forms, `ContractJson` for request and response
+  bodies, `LocalExecutionEngine` for local runs, `StrategyAdvisor` for recommendations, and benchmark reports for
+  stored experiments.
+* **Contributor 2 (Distributed).** Build Core from the pinned tag (`./mvnw install`), then use
+  `PartitionedTaskSession` on the coordinator and `PartitionWorker` on workers (§14). Supply a
+  `ResourceSnapshot` (§15) for strategy assessment. Report communication metrics separately.
+
+## 17. Open questions for Contributors 2 and 3
 
 1. Build integration for Distributed: a CI `mvn install` of a pinned Core tag (proposed), JitPack, or GitHub
    Packages?

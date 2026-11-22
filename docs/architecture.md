@@ -4,7 +4,7 @@
 |---|---|
 | Component | DistriCompute-Core (Contributor 1: computational algorithms and execution primitives) |
 | Repository | `meubaidkaleem-glitch/PDC-Project` (acts as DistriCompute-Core, see [§2.1](#21-repository-naming)) |
-| Document status | Draft — Phase 1 architecture review, updated as phases complete |
+| Document status | Phase 1 review, updated through Phase 10 |
 | Related | [implementation-plan.md](implementation-plan.md), [integration-contract.md](integration-contract.md) |
 
 ---
@@ -156,10 +156,12 @@ dependency.
 | `…core.execution` | Execution modes, context, cancellation, progress, bounded worker pool, local engine |
 | `…core.partition` | Partition model and strategies (range, chunk, block) |
 | `…core.result` | Partial and final results, `PartialResultCollector`, result digests |
-| `…core.metrics` | Execution metrics, environment capture, statistics, benchmark framework |
-| `…core.resource` | Local resource probe, resource snapshot model, GPU backend abstraction |
-| `…core.scheduling` | Strategy assessment (`StrategyAdvisor`) |
-| `…core.serialization` | JSON contract codec (Jackson) and binary payload codecs |
+| `…core.metrics` | Execution metrics, environment capture, `SampleStatistics`, benchmark suite, runner, reports and CLI |
+| `…core.resource` | Workload profile, resource snapshot, GPU backend SPI and detection |
+| `…core.scheduling` | Strategy assessment (`StrategyAdvisor`, `Calibration`) |
+| `…core.serialization` | JSON contract codec (Jackson), binary payload framing, `EncodedPayload` |
+| `…core.partition` (facade) | `PartitionedTaskSession` (coordinator) and `PartitionWorker` (worker) for the distributed runtime |
+| `org.districompute.core.CoreCli` | Command-line interface: `catalog`, `run`, `advise`, `benchmark` |
 
 ### 6.2 Key abstractions
 
@@ -254,7 +256,13 @@ the versioning policy.
 
 ---
 
-## 9. Postponed features
+## 9. Implementation outcome
+
+Phases 1–8 and 10 are implemented on `feature/core-engine`. Phase 9, joint integration, needs the other two
+repositories. The Core side (facade, codecs, contract and examples) is complete and tested with a simulated
+runtime. Details, test results and limitations are in [implementation-report.md](implementation-report.md).
+
+## 10. Postponed features
 
 See [implementation-plan.md §4](implementation-plan.md#4-postponed-features). In short: a real GPU backend,
 hybrid execution, dataset upload and references, Strassen and other numerically different matrix
