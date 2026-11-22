@@ -1,0 +1,9 @@
+label,parameterSet,algorithm,version,mode,threads,partitions,runs,median_ms,min_ms,max_ms,mean_ms,stddev_ms,compute_median_ms,partitioning_median_ms,aggregation_median_ms,scheduling_overhead_median_ms,cpu_utilization_median,allocated_bytes_median,gc_count,throughput_ops_per_s,speedup,efficiency,distinct_digests
+"set 0 sequential",0,primes.count,1.0.0,SEQUENTIAL_CPU,1,1,5,100.192,95.428,142.375,108.169,19.599,100.180,0.000,0.041,0.000,0.2620,2.890e+05,0,9.890e+08,,,1
+"set 0 threads=1 default partitions",0,primes.count,1.0.0,MULTITHREADED_CPU,1,4,5,98.882,88.925,109.014,97.317,8.044,98.819,0.016,0.040,1.780,0.2530,1.124e+06,1,1.002e+09,1.013,1.013,1
+"set 0 threads=2 default partitions",0,primes.count,1.0.0,MULTITHREADED_CPU,2,8,5,56.306,53.672,68.753,58.425,5.946,56.245,0.017,0.029,5.073,0.4884,2.232e+06,0,1.760e+09,1.779,0.8897,1
+"set 0 threads=4 default partitions",0,primes.count,1.0.0,MULTITHREADED_CPU,4,16,5,35.236,32.700,42.928,37.095,4.373,35.185,0.019,0.034,5.388,0.9174,4.448e+06,0,2.812e+09,2.843,0.7109,1
+"set 1 sequential",1,primes.count,1.0.0,SEQUENTIAL_CPU,1,1,5,477.231,388.393,616.257,499.123,103.578,477.149,0.000,0.030,0.000,0.2515,3.067e+05,1,8.610e+08,,,1
+"set 1 threads=1 default partitions",1,primes.count,1.0.0,MULTITHREADED_CPU,1,4,5,435.211,424.498,445.972,436.131,8.465,435.150,0.017,0.041,1.840,0.2486,1.179e+06,0,9.441e+08,1.097,1.097,1
+"set 1 threads=2 default partitions",1,primes.count,1.0.0,MULTITHREADED_CPU,2,8,5,264.688,233.298,289.556,263.572,20.327,264.544,0.020,0.044,23.747,0.4438,2.335e+06,1,1.552e+09,1.803,0.9015,1
+"set 1 threads=4 default partitions",1,primes.count,1.0.0,MULTITHREADED_CPU,4,16,5,138.783,134.860,147.658,139.687,4.935,138.707,0.037,0.044,13.438,0.9143,4.647e+06,0,2.961e+09,3.439,0.8597,1

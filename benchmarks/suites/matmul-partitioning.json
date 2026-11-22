@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "0.1",
+  "name": "matmul-partitioning",
+  "description": "Partition granularity and shape for 1024x1024 matrix multiplication with 4 threads: too few partitions limit balance, too many add scheduling overhead; row bands versus 2-D blocks.",
+  "warmupRuns": 2,
+  "measuredRuns": 5,
+  "algorithm": "matrix.multiply",
+  "parameterSets": [ { "rowsA": 1024, "colsA": 1024, "colsB": 1024 } ],
+  "threads": [ 4 ],
+  "partitionings": [
+    { "targetPartitions": 4 },
+    { "targetPartitions": 16 },
+    { "targetPartitions": 256 },
+    { "blockRows": 256, "blockCols": 256 },
+    { "blockRows": 64, "blockCols": 1024 }
+  ],
+  "includeSequentialBaseline": true
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1",
+  "name": "primes-scaling",
+  "description": "Segmented-sieve prime counting: compute-bound and embarrassingly parallel (tiny partial results).",
+  "warmupRuns": 2,
+  "measuredRuns": 5,
+  "algorithm": "primes.count",
+  "parameterSets": [ { "upperBound": 100000000 }, { "upperBound": 400000000 } ],
+  "threads": [ 1, 2, 4 ],
+  "partitionings": [ {} ],
+  "includeSequentialBaseline": true
+}

@@ -1,0 +1,653 @@
+{
+  "schemaVersion" : "0.1",
+  "suite" : "primes-scaling",
+  "description" : "Segmented-sieve prime counting: compute-bound and embarrassingly parallel (tiny partial results).",
+  "startedAt" : "2026-11-22T09:55:59.561609100Z",
+  "finishedAt" : "2026-11-22T09:56:11.781003001Z",
+  "environment" : {
+    "coreVersion" : "0.1.0-SNAPSHOT",
+    "javaVersion" : "21.0.13.0.3",
+    "javaVendor" : "Ubuntu",
+    "jvmName" : "OpenJDK 64-Bit Server VM",
+    "jvmVersion" : "21.0.13.0.3+1-1-24.04.1-Ubuntu",
+    "osName" : "Linux",
+    "osVersion" : "6.18.44-fc-v726",
+    "osArch" : "amd64",
+    "availableProcessors" : 4,
+    "maxHeapBytes" : 3586129920,
+    "totalPhysicalMemoryBytes" : 14338744320,
+    "cpuModel" : "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "jvmOptions" : [ "-XX:+UnlockDiagnosticVMOptions", "-XX:DisableIntrinsic=_base64_encodeBlock,_base64_decodeBlock" ],
+    "capturedAt" : "2026-11-22T09:55:59.551983892Z"
+  },
+  "engineThreads" : 4,
+  "warmupRuns" : 2,
+  "measuredRuns" : 5,
+  "cases" : [ {
+    "label" : "set 0 sequential",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 100000000
+    },
+    "mode" : "SEQUENTIAL_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 1,
+    "estimatedOperations" : 9.909134130930571E7,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 142374558, 106398032, 100192416, 95428194, 96450923 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 9.5428194E7,
+      "max" : 1.42374558E8,
+      "mean" : 1.081688246E8,
+      "median" : 1.00192416E8,
+      "standardDeviation" : 1.9598621660790224E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 9.5384753E7,
+      "max" : 1.42333594E8,
+      "mean" : 1.081337702E8,
+      "median" : 1.0017996E8,
+      "standardDeviation" : 1.9597305794506375E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 12456.0,
+      "max" : 50861.0,
+      "mean" : 35054.4,
+      "median" : 40964.0,
+      "standardDeviation" : 15183.138157179495
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.24951988382034823,
+      "max" : 0.3511863404696224,
+      "mean" : 0.2807685178365391,
+      "median" : 0.2619770840470899,
+      "standardDeviation" : 0.0410941636140859
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 288952.0,
+      "max" : 289040.0,
+      "mean" : 289004.8,
+      "median" : 289040.0,
+      "standardDeviation" : 48.199585060454616
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 9.890103988440174E8,
+    "resultDigests" : [ "sha256:4cf65303badb12942caa9d2a8a5df77c7e390d7a6ca957567716dae9ed82d322" ]
+  }, {
+    "label" : "set 0 threads=1 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 100000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 4,
+    "estimatedOperations" : 9.909134130930571E7,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 109014077, 98881919, 88924523, 90564223, 99201035 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 8.8924523E7,
+      "max" : 1.09014077E8,
+      "mean" : 9.73171554E7,
+      "median" : 9.8881919E7,
+      "standardDeviation" : 8044467.61737884
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 8.8773919E7,
+      "max" : 1.08964968E8,
+      "mean" : 9.7242886E7,
+      "median" : 9.8819337E7,
+      "standardDeviation" : 8071968.8408814175
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 15866.0,
+      "max" : 26395.0,
+      "mean" : 19458.6,
+      "median" : 16483.0,
+      "standardDeviation" : 4805.04716938346
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 33182.0,
+      "max" : 124209.0,
+      "mean" : 54810.8,
+      "median" : 39960.0,
+      "standardDeviation" : 38947.92208449637
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1573379.0,
+      "max" : 2108928.0,
+      "mean" : 1844648.0,
+      "median" : 1780423.0,
+      "standardDeviation" : 243894.9103015477
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.24844247821791615,
+      "max" : 0.30241619958904664,
+      "mean" : 0.2663805741359483,
+      "median" : 0.25302356696363726,
+      "standardDeviation" : 0.02269432223636983
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1123504.0,
+      "max" : 1123504.0,
+      "mean" : 1123504.0,
+      "median" : 1123504.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 1.0021179029636927E9,
+    "speedup" : 1.0132531509628167,
+    "efficiency" : 1.0132531509628167,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:4cf65303badb12942caa9d2a8a5df77c7e390d7a6ca957567716dae9ed82d322" ]
+  }, {
+    "label" : "set 0 threads=2 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 100000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 2,
+    "partitioning" : { },
+    "partitions" : 8,
+    "estimatedOperations" : 9.909134130930571E7,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 57629295, 68752596, 56306285, 55766871, 53671651 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 5.3671651E7,
+      "max" : 6.8752596E7,
+      "mean" : 5.84253396E7,
+      "median" : 5.6306285E7,
+      "standardDeviation" : 5946455.136408312
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 5.362579E7,
+      "max" : 6.8706608E7,
+      "mean" : 5.8373977E7,
+      "median" : 5.6244773E7,
+      "standardDeviation" : 5948641.621884319
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 16106.0,
+      "max" : 34240.0,
+      "mean" : 20557.6,
+      "median" : 17452.0,
+      "standardDeviation" : 7704.229507225236
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 27272.0,
+      "max" : 35524.0,
+      "mean" : 30805.0,
+      "median" : 29491.0,
+      "standardDeviation" : 3905.1197164747714
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 3029769.0,
+      "max" : 6916120.0,
+      "mean" : 5015202.6,
+      "median" : 5072795.0,
+      "standardDeviation" : 1464289.6601435454
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.472709423219452,
+      "max" : 0.5123747730435942,
+      "mean" : 0.4887593111523252,
+      "median" : 0.4884001848106299,
+      "standardDeviation" : 0.015559318969021414
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 2231856.0,
+      "max" : 2231856.0,
+      "mean" : 2231856.0,
+      "median" : 2231856.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 1.7598628875853863E9,
+    "speedup" : 1.7794179814917641,
+    "efficiency" : 0.8897089907458821,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:4cf65303badb12942caa9d2a8a5df77c7e390d7a6ca957567716dae9ed82d322" ]
+  }, {
+    "label" : "set 0 threads=4 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 100000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 4,
+    "partitioning" : { },
+    "partitions" : 16,
+    "estimatedOperations" : 9.909134130930571E7,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 40436372, 35235831, 42927959, 32700251, 34173270 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 3.2700251E7,
+      "max" : 4.2927959E7,
+      "mean" : 3.70947366E7,
+      "median" : 3.5235831E7,
+      "standardDeviation" : 4373071.332817165
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 3.2642579E7,
+      "max" : 4.2877082E7,
+      "mean" : 3.7028102E7,
+      "median" : 3.5185418E7,
+      "standardDeviation" : 4359512.316991259
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 16466.0,
+      "max" : 61593.0,
+      "mean" : 26804.4,
+      "median" : 18614.0,
+      "standardDeviation" : 19501.30960474193
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 29596.0,
+      "max" : 65897.0,
+      "mean" : 39830.2,
+      "median" : 33947.0,
+      "standardDeviation" : 14847.27539651636
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 3239643.0,
+      "max" : 6220384.0,
+      "mean" : 4864239.4,
+      "median" : 5388296.0,
+      "standardDeviation" : 1266198.8843630766
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.804722521432687,
+      "max" : 0.9273829017103711,
+      "mean" : 0.8774411178645058,
+      "median" : 0.9174241506586601,
+      "standardDeviation" : 0.06176025748230109
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 4448064.0,
+      "max" : 4448160.0,
+      "mean" : 4448121.6,
+      "median" : 4448128.0,
+      "standardDeviation" : 35.054243680330636
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 2.812232278821683E9,
+    "speedup" : 2.8434810009163685,
+    "efficiency" : 0.7108702502290921,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:4cf65303badb12942caa9d2a8a5df77c7e390d7a6ca957567716dae9ed82d322" ]
+  }, {
+    "label" : "set 1 sequential",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 400000000
+    },
+    "mode" : "SEQUENTIAL_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 1,
+    "estimatedOperations" : 4.108773956550252E8,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 416498692, 388392816, 477231273, 616257188, 597233603 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 3.88392816E8,
+      "max" : 6.16257188E8,
+      "mean" : 4.991227144E8,
+      "median" : 4.77231273E8,
+      "standardDeviation" : 1.035776351960576E8
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 3.88368863E8,
+      "max" : 6.1622765E8,
+      "mean" : 4.990807208E8,
+      "median" : 4.77149179E8,
+      "standardDeviation" : 1.0357356440017152E8
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 23953.0,
+      "max" : 82094.0,
+      "mean" : 41993.6,
+      "median" : 29538.0,
+      "standardDeviation" : 24521.004430895566
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.25103450935096594,
+      "max" : 0.25557511225329516,
+      "mean" : 0.25226393395754787,
+      "median" : 0.2514504115492029,
+      "standardDeviation" : 0.0018964853655337069
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 306616.0,
+      "max" : 306880.0,
+      "mean" : 306739.2,
+      "median" : 306704.0,
+      "standardDeviation" : 100.33543740872415
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 8.60960751947673E8,
+    "resultDigests" : [ "sha256:88b8b67e2726cf01b9e0698947a456f6b9e7fbef06ba0a75b9d82b6539cdc70a" ]
+  }, {
+    "label" : "set 1 threads=1 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 400000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 4,
+    "estimatedOperations" : 4.108773956550252E8,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 424497890, 442481735, 432491857, 435210700, 445972291 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 4.2449789E8,
+      "max" : 4.45972291E8,
+      "mean" : 4.361308946E8,
+      "median" : 4.352107E8,
+      "standardDeviation" : 8464667.826735867
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 4.2443927E8,
+      "max" : 4.45913757E8,
+      "mean" : 4.360728404E8,
+      "median" : 4.35150275E8,
+      "standardDeviation" : 8463298.970903445
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 16798.0,
+      "max" : 20337.0,
+      "mean" : 18336.4,
+      "median" : 17487.0,
+      "standardDeviation" : 1649.322224430387
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 34037.0,
+      "max" : 43258.0,
+      "mean" : 39717.8,
+      "median" : 41133.0,
+      "standardDeviation" : 3679.86218491943
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1601607.0,
+      "max" : 1946965.0,
+      "mean" : 1812313.4,
+      "median" : 1840375.0,
+      "standardDeviation" : 146451.53597965438
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.23699868180408307,
+      "max" : 0.25275113870132326,
+      "mean" : 0.24641344383240185,
+      "median" : 0.24859783195344776,
+      "standardDeviation" : 0.006932744952323834
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1178568.0,
+      "max" : 1178864.0,
+      "mean" : 1178769.6,
+      "median" : 1178776.0,
+      "standardDeviation" : 120.98264338325559
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 9.440884510767432E8,
+    "speedup" : 1.0965522515875643,
+    "efficiency" : 1.0965522515875643,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:88b8b67e2726cf01b9e0698947a456f6b9e7fbef06ba0a75b9d82b6539cdc70a" ]
+  }, {
+    "label" : "set 1 threads=2 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 400000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 2,
+    "partitioning" : { },
+    "partitions" : 8,
+    "estimatedOperations" : 4.108773956550252E8,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 289556059, 264687511, 233297505, 259931074, 270387939 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 2.33297505E8,
+      "max" : 2.89556059E8,
+      "mean" : 2.635720176E8,
+      "median" : 2.64687511E8,
+      "standardDeviation" : 2.0326547302722584E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 2.33240381E8,
+      "max" : 2.89491911E8,
+      "mean" : 2.634890412E8,
+      "median" : 2.64543811E8,
+      "standardDeviation" : 2.0319571801481478E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 15498.0,
+      "max" : 47600.0,
+      "mean" : 23821.8,
+      "median" : 19791.0,
+      "standardDeviation" : 13452.109321589682
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 37053.0,
+      "max" : 96100.0,
+      "mean" : 59154.6,
+      "median" : 44357.0,
+      "standardDeviation" : 27599.330341513723
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 9526667.0,
+      "max" : 3.7250222E7,
+      "mean" : 2.326243E7,
+      "median" : 2.3747018E7,
+      "standardDeviation" : 1.3041669133297758E7
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.4344745982367109,
+      "max" : 0.49293283269360294,
+      "mean" : 0.4604116203533094,
+      "median" : 0.4438067779347214,
+      "standardDeviation" : 0.028790508506666774
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 2334864.0,
+      "max" : 2334992.0,
+      "mean" : 2334940.8,
+      "median" : 2334992.0,
+      "standardDeviation" : 70.10848736066126
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 1.5523112295805495E9,
+    "speedup" : 1.8029988313275573,
+    "efficiency" : 0.9014994156637787,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:88b8b67e2726cf01b9e0698947a456f6b9e7fbef06ba0a75b9d82b6539cdc70a" ]
+  }, {
+    "label" : "set 1 threads=4 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "primes.count",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "upperBound" : 400000000
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 4,
+    "partitioning" : { },
+    "partitions" : 16,
+    "estimatedOperations" : 4.108773956550252E8,
+    "operationUnit" : "composite marks (estimate)",
+    "executionNanosSamples" : [ 140468888, 134859680, 138783141, 136664612, 147658299 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.3485968E8,
+      "max" : 1.47658299E8,
+      "mean" : 1.39686924E8,
+      "median" : 1.38783141E8,
+      "standardDeviation" : 4934768.6181798335
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.34726185E8,
+      "max" : 1.47523649E8,
+      "mean" : 1.395913182E8,
+      "median" : 1.3870687E8,
+      "standardDeviation" : 4924844.790167676
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 18925.0,
+      "max" : 90949.0,
+      "mean" : 50280.8,
+      "median" : 36769.0,
+      "standardDeviation" : 31478.915581703255
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 35061.0,
+      "max" : 57290.0,
+      "mean" : 45325.0,
+      "median" : 43701.0,
+      "standardDeviation" : 8917.288573327656
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1.1572675E7,
+      "max" : 1.7507675E7,
+      "mean" : 1.38371188E7,
+      "median" : 1.3438087E7,
+      "standardDeviation" : 2201170.33763614
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.8780619814001301,
+      "max" : 0.9268893415734043,
+      "mean" : 0.9091196273627441,
+      "median" : 0.9142730270785525,
+      "standardDeviation" : 0.01871336592507505
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 4646656.0,
+      "max" : 4646752.0,
+      "mean" : 4646688.0,
+      "median" : 4646688.0,
+      "standardDeviation" : 39.191835884530846
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 2.9605713827663345E9,
+    "speedup" : 3.438683326817052,
+    "efficiency" : 0.859670831704263,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:88b8b67e2726cf01b9e0698947a456f6b9e7fbef06ba0a75b9d82b6539cdc70a" ]
+  } ]
+}

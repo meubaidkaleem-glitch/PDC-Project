@@ -42,7 +42,8 @@ contract, and that contract is versioned.
 | 4 | Done | Bounded `WorkerPool` (fixed threads, bounded queue, controlled submission, completion queue, fail-fast, structured completion, shutdown), engine admission control, throttled monotonic progress events, shutdown cancellation. Concurrency suite: 15 tests, stable over 5 consecutive runs. |
 | 5 | Done | Partition model and deterministic planners; `PartitionedAlgorithm` for all P1 algorithms; `PartialResultCollector` (accepted, duplicate, conflicting, invalid, unknown, late, missing, failed); versioned CRC-32C binary codecs; `MULTITHREADED_CPU` through partitions, bitwise identical to sequential; coordinator and worker facade (`PartitionedTaskSession`, `PartitionWorker`) tested with a simulated JSON-exchanging runtime including retry after a lost worker. 122 unit and 28 concurrency tests pass. |
 | 6 | Done | Numerical integration, polynomial evaluation, root finding, Monte Carlo π; descriptive statistics, filter and search. All partitionable and verified, with documented limitations. 162 tests pass. |
-| 7–10 | Not started | — |
+| 7 | Done | `SampleStatistics`, JSON `BenchmarkSuite`s (sizes, threads, partitionings, block sizes), `BenchmarkRunner` (warm-ups, repeated verified runs, speedup and efficiency against the sequential baseline), JSON, CSV and Markdown reports, `BenchmarkCli`; methodology doc; real results from the development container committed with their caveats. |
+| 8–10 | Not started | — |
 
 ## 4. Postponed features
 

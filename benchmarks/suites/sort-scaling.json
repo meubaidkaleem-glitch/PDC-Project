@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1",
+  "name": "sort-scaling",
+  "description": "Merge sort of uniform 64-bit integers: parallel chunk sorts followed by a sequential k-way merge, so speedup is bounded by the merge (Amdahl).",
+  "warmupRuns": 2,
+  "measuredRuns": 5,
+  "algorithm": "sort.merge",
+  "parameterSets": [ { "size": 1000000 }, { "size": 4000000 } ],
+  "threads": [ 2, 4 ],
+  "partitionings": [ {} ],
+  "includeSequentialBaseline": true
+}

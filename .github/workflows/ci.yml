@@ -38,6 +38,9 @@ jobs:
       - name: Concurrency tests
         run: ./mvnw -B -ntp test -Dtest.groups=concurrency -Dtest.excludedGroups=performance
 
+      - name: Performance-scenario tests (correctness only, no timing assertions)
+        run: ./mvnw -B -ntp test -Dtest.groups=performance -Dtest.excludedGroups=
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v5

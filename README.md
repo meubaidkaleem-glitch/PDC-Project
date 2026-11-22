@@ -30,6 +30,7 @@ lists only what exists on this branch.
 | Bounded worker pool, admission control, progress events | Done (Phase 4) |
 | Partitioning, aggregation, partial-result validation, payload codecs; `MULTITHREADED_CPU`; coordinator and worker facade for `DISTRIBUTED_CPU` | Done (Phase 5) |
 | Numerical (integration, polynomial evaluation, root finding, Monte Carlo) and data operations (statistics, filter and search) | Done (Phase 6) |
+| Benchmark framework (warm-ups, repeated verified runs, statistics, speedup and efficiency, JSON/CSV/Markdown) | Done (Phase 7), see [benchmarks/](benchmarks) |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
 
@@ -65,6 +66,18 @@ To run the concurrency test suite on its own (CI runs it as a separate step):
 ./mvnw test -Dtest.groups=concurrency -Dtest.excludedGroups=performance
 ```
 
+Performance-scenario tests (different sizes, threads, partitionings and block sizes; correctness assertions only):
+
+```bash
+./mvnw test -Dtest.groups=performance -Dtest.excludedGroups=
+```
+
+To run a benchmark suite and write JSON, CSV and Markdown reports:
+
+```bash
+./mvnw -q test-compile exec:java -Dexec.args="benchmarks/suites/matmul-scaling.json target/benchmarks"
+```
+
 ## Documentation
 
 | Document | Contents |
@@ -74,6 +87,7 @@ To run the concurrency test suite on its own (CI runs it as a separate step):
 | [docs/task-model.md](docs/task-model.md) | Task specification, lifecycle, parameter validation, algorithm SPI and registry |
 | [docs/algorithms.md](docs/algorithms.md) | Algorithms, parameters, input generation, verification, limitations |
 | [docs/execution-model.md](docs/execution-model.md) | Execution modes, engine lifecycle, failure handling, memory guard, cancellation |
+| [docs/performance-methodology.md](docs/performance-methodology.md) | Metric definitions, repeated trials, speedup and efficiency, environment, rules |
 | [docs/integration-contract.md](docs/integration-contract.md) | Proposed shared contracts (task, status, partitions, results, errors, metrics) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branches, commits, pull requests, definition of done |
 

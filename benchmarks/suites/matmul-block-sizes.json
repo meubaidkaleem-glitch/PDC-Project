@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "0.1",
+  "name": "matmul-block-sizes",
+  "description": "Effect of the cache tile edge (blockSize) on 768x768 matrix multiplication, sequential and with 4 threads. Results are bitwise identical for every tile size.",
+  "warmupRuns": 2,
+  "measuredRuns": 5,
+  "algorithm": "matrix.multiply",
+  "parameterSets": [
+    { "rowsA": 768, "colsA": 768, "colsB": 768, "blockSize": 8 },
+    { "rowsA": 768, "colsA": 768, "colsB": 768, "blockSize": 32 },
+    { "rowsA": 768, "colsA": 768, "colsB": 768, "blockSize": 64 },
+    { "rowsA": 768, "colsA": 768, "colsB": 768, "blockSize": 128 },
+    { "rowsA": 768, "colsA": 768, "colsB": 768, "blockSize": 768 }
+  ],
+  "threads": [ 4 ],
+  "partitionings": [ {} ],
+  "includeSequentialBaseline": true
+}

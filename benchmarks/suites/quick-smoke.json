@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "0.1",
+  "name": "quick-smoke",
+  "description": "Fast sanity run of the benchmark pipeline (small matrix multiplication). Not meaningful for performance conclusions.",
+  "warmupRuns": 1,
+  "measuredRuns": 3,
+  "algorithm": "matrix.multiply",
+  "parameterSets": [ { "rowsA": 128, "colsA": 128, "colsB": 128 } ],
+  "threads": [ 2 ],
+  "partitionings": [ { "targetPartitions": 8 } ],
+  "includeSequentialBaseline": true
+}

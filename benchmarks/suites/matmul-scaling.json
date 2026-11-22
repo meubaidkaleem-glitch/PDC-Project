@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "0.1",
+  "name": "matmul-scaling",
+  "description": "Strong scaling of cache-blocked matrix multiplication: sequential baseline versus 1, 2 and 4 threads for three problem sizes (row-band partitions, 4 per thread by default).",
+  "warmupRuns": 2,
+  "measuredRuns": 5,
+  "algorithm": "matrix.multiply",
+  "parameterSets": [
+    { "rowsA": 256, "colsA": 256, "colsB": 256 },
+    { "rowsA": 512, "colsA": 512, "colsB": 512 },
+    { "rowsA": 1024, "colsA": 1024, "colsB": 1024 }
+  ],
+  "threads": [ 1, 2, 4 ],
+  "partitionings": [ {} ],
+  "includeSequentialBaseline": true
+}

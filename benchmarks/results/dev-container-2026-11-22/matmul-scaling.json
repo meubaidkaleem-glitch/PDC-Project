@@ -1,0 +1,990 @@
+{
+  "schemaVersion" : "0.1",
+  "suite" : "matmul-scaling",
+  "description" : "Strong scaling of cache-blocked matrix multiplication: sequential baseline versus 1, 2 and 4 threads for three problem sizes (row-band partitions, 4 per thread by default).",
+  "startedAt" : "2026-11-22T09:55:18.505405754Z",
+  "finishedAt" : "2026-11-22T09:55:41.554653292Z",
+  "environment" : {
+    "coreVersion" : "0.1.0-SNAPSHOT",
+    "javaVersion" : "21.0.13.0.3",
+    "javaVendor" : "Ubuntu",
+    "jvmName" : "OpenJDK 64-Bit Server VM",
+    "jvmVersion" : "21.0.13.0.3+1-1-24.04.1-Ubuntu",
+    "osName" : "Linux",
+    "osVersion" : "6.18.44-fc-v726",
+    "osArch" : "amd64",
+    "availableProcessors" : 4,
+    "maxHeapBytes" : 3586129920,
+    "totalPhysicalMemoryBytes" : 14338744320,
+    "cpuModel" : "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "jvmOptions" : [ "-XX:+UnlockDiagnosticVMOptions", "-XX:DisableIntrinsic=_base64_encodeBlock,_base64_decodeBlock" ],
+    "capturedAt" : "2026-11-22T09:55:18.495503388Z"
+  },
+  "engineThreads" : 4,
+  "warmupRuns" : 2,
+  "measuredRuns" : 5,
+  "cases" : [ {
+    "label" : "set 0 sequential",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 256,
+      "colsA" : 256,
+      "colsB" : 256
+    },
+    "mode" : "SEQUENTIAL_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 1,
+    "estimatedOperations" : 3.3554432E7,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 15752862, 14258768, 14847350, 11413550, 38346083 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.141355E7,
+      "max" : 3.8346083E7,
+      "mean" : 1.89237226E7,
+      "median" : 1.484735E7,
+      "standardDeviation" : 1.0977975085688654E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.139638E7,
+      "max" : 3.8306506E7,
+      "mean" : 1.88919498E7,
+      "median" : 1.4812055E7,
+      "standardDeviation" : 1.0972811057740638E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 17170.0,
+      "max" : 39577.0,
+      "mean" : 31772.8,
+      "median" : 35295.0,
+      "standardDeviation" : 9192.657379669929
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.43807579587420215,
+      "max" : 0.8419010799907054,
+      "mean" : 0.6144949942639324,
+      "median" : 0.6348052817322973,
+      "standardDeviation" : 0.17014139521565227
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 531312.0,
+      "max" : 531312.0,
+      "mean" : 531312.0,
+      "median" : 531312.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 2.259961003141975E9,
+    "resultDigests" : [ "sha256:14b7cd7ddf0f1018d563ab9dfd9220db1734ce37dd0db513f1a3b18edc090920" ]
+  }, {
+    "label" : "set 0 threads=1 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 256,
+      "colsA" : 256,
+      "colsB" : 256
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 4,
+    "estimatedOperations" : 3.3554432E7,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 18928513, 16412191, 17642869, 15270847, 18400244 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.5270847E7,
+      "max" : 1.8928513E7,
+      "mean" : 1.73309328E7,
+      "median" : 1.7642869E7,
+      "standardDeviation" : 1490053.1139171517
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.4947492E7,
+      "max" : 1.8630538E7,
+      "mean" : 1.70412482E7,
+      "median" : 1.7411037E7,
+      "standardDeviation" : 1510048.156767757
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 38323.0,
+      "max" : 117913.0,
+      "mean" : 66542.4,
+      "median" : 61155.0,
+      "standardDeviation" : 30193.113930166262
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 177666.0,
+      "max" : 262200.0,
+      "mean" : 223142.2,
+      "median" : 214256.0,
+      "standardDeviation" : 36929.61907737474
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1363747.0,
+      "max" : 4371166.0,
+      "mean" : 2085818.6,
+      "median" : 1522501.0,
+      "standardDeviation" : 1283951.0646992354
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.3046515849102658,
+      "max" : 0.5668012385060502,
+      "mean" : 0.48687185765637464,
+      "median" : 0.5283035175557637,
+      "standardDeviation" : 0.1055120053502848
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1061368.0,
+      "max" : 1061368.0,
+      "mean" : 1061368.0,
+      "median" : 1061368.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 1.9018693614967046E9,
+    "speedup" : 0.8415496368532805,
+    "efficiency" : 0.8415496368532805,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:14b7cd7ddf0f1018d563ab9dfd9220db1734ce37dd0db513f1a3b18edc090920" ]
+  }, {
+    "label" : "set 0 threads=2 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 256,
+      "colsA" : 256,
+      "colsB" : 256
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 2,
+    "partitioning" : { },
+    "partitions" : 8,
+    "estimatedOperations" : 3.3554432E7,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 11568195, 13028186, 10892292, 11127270, 11400179 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.0892292E7,
+      "max" : 1.3028186E7,
+      "mean" : 1.16032244E7,
+      "median" : 1.1400179E7,
+      "standardDeviation" : 837395.8924918965
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.0603681E7,
+      "max" : 1.2801789E7,
+      "mean" : 1.13564204E7,
+      "median" : 1.1107957E7,
+      "standardDeviation" : 856990.6570767269
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 44428.0,
+      "max" : 131872.0,
+      "mean" : 74675.8,
+      "median" : 67500.0,
+      "standardDeviation" : 36154.362602596106
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 142803.0,
+      "max" : 207492.0,
+      "mean" : 172128.2,
+      "median" : 172059.0,
+      "standardDeviation" : 24678.58688620562
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 2150846.0,
+      "max" : 5316813.0,
+      "mean" : 3349492.0,
+      "median" : 2789394.0,
+      "standardDeviation" : 1320681.7118384354
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.4385896046018225,
+      "max" : 0.8644390935664553,
+      "mean" : 0.6023527211368196,
+      "median" : 0.5756749251200436,
+      "standardDeviation" : 0.1745665862315329
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1066264.0,
+      "max" : 1066328.0,
+      "mean" : 1066296.0,
+      "median" : 1066296.0,
+      "standardDeviation" : 22.627416997969522
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 2.9433250127037477E9,
+    "speedup" : 1.3023786731769738,
+    "efficiency" : 0.6511893365884869,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:14b7cd7ddf0f1018d563ab9dfd9220db1734ce37dd0db513f1a3b18edc090920" ]
+  }, {
+    "label" : "set 0 threads=4 default partitions",
+    "parameterSet" : 0,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 256,
+      "colsA" : 256,
+      "colsB" : 256
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 4,
+    "partitioning" : { },
+    "partitions" : 16,
+    "estimatedOperations" : 3.3554432E7,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 7638734, 11146197, 9499639, 6801817, 7862153 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 6801817.0,
+      "max" : 1.1146197E7,
+      "mean" : 8589708.0,
+      "median" : 7862153.0,
+      "standardDeviation" : 1731607.0921591884
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 6323311.0,
+      "max" : 1.0467702E7,
+      "mean" : 8015909.0,
+      "median" : 7224347.0,
+      "standardDeviation" : 1711844.4171479195
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 47890.0,
+      "max" : 187365.0,
+      "mean" : 80545.8,
+      "median" : 52652.0,
+      "standardDeviation" : 60028.90154084114
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 350299.0,
+      "max" : 627741.0,
+      "mean" : 493253.2,
+      "median" : 472456.0,
+      "standardDeviation" : 114936.66107774316
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1630483.0,
+      "max" : 5345713.0,
+      "mean" : 3340896.0,
+      "median" : 2962652.0,
+      "standardDeviation" : 1532194.126966456
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.4485834944420954,
+      "max" : 0.7350976952187923,
+      "mean" : 0.6001067642583691,
+      "median" : 0.6359581147810275,
+      "standardDeviation" : 0.11277670956900018
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1075928.0,
+      "max" : 1076088.0,
+      "mean" : 1076043.2,
+      "median" : 1076088.0,
+      "standardDeviation" : 70.10848736066126
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 4.2678426634536366E9,
+    "speedup" : 1.8884585430988179,
+    "efficiency" : 0.47211463577470447,
+    "baselineLabel" : "set 0 sequential",
+    "resultDigests" : [ "sha256:14b7cd7ddf0f1018d563ab9dfd9220db1734ce37dd0db513f1a3b18edc090920" ]
+  }, {
+    "label" : "set 1 sequential",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 512,
+      "colsA" : 512,
+      "colsB" : 512
+    },
+    "mode" : "SEQUENTIAL_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 1,
+    "estimatedOperations" : 2.68435456E8,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 118768546, 122375737, 101613394, 108831345, 127513357 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.01613394E8,
+      "max" : 1.27513357E8,
+      "mean" : 1.158204758E8,
+      "median" : 1.18768546E8,
+      "standardDeviation" : 1.0477060187298091E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.01589962E8,
+      "max" : 1.27474374E8,
+      "mean" : 1.157852418E8,
+      "median" : 1.18726746E8,
+      "standardDeviation" : 1.0470285403381905E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 23432.0,
+      "max" : 41800.0,
+      "mean" : 35234.0,
+      "median" : 38983.0,
+      "standardDeviation" : 7560.535000910981
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.24514663392793296,
+      "max" : 0.25487525985218945,
+      "mean" : 0.2502658273201258,
+      "median" : 0.252592129906179,
+      "standardDeviation" : 0.004377569125170341
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 2104264.0,
+      "max" : 2104264.0,
+      "mean" : 2104264.0,
+      "median" : 2104264.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 1,
+    "throughputPerSecond" : 2.260156119112547E9,
+    "resultDigests" : [ "sha256:56c4d06247e059d1da610b900b78bc27c6586bf07b54a3f9215f95ea7fa85ee0" ]
+  }, {
+    "label" : "set 1 threads=1 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 512,
+      "colsA" : 512,
+      "colsB" : 512
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 4,
+    "estimatedOperations" : 2.68435456E8,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 134130477, 109799297, 116042249, 117508414, 130763890 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 1.09799297E8,
+      "max" : 1.34130477E8,
+      "mean" : 1.216488654E8,
+      "median" : 1.17508414E8,
+      "standardDeviation" : 1.0342437552514508E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 1.05276196E8,
+      "max" : 1.29836432E8,
+      "mean" : 1.187434872E8,
+      "median" : 1.16612281E8,
+      "standardDeviation" : 9832425.271193914
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 75624.0,
+      "max" : 135489.0,
+      "mean" : 99395.2,
+      "median" : 90673.0,
+      "standardDeviation" : 24140.47323894045
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 748068.0,
+      "max" : 7185251.0,
+      "mean" : 2805983.0,
+      "median" : 836785.0,
+      "standardDeviation" : 2911210.2761003883
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 2147574.0,
+      "max" : 2598701.0,
+      "mean" : 2395900.6,
+      "median" : 2385512.0,
+      "standardDeviation" : 170609.02379211952
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.24853956241283431,
+      "max" : 0.2609399502843787,
+      "mean" : 0.2547527774338552,
+      "median" : 0.25530086722130385,
+      "standardDeviation" : 0.005241198893790886
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 4207224.0,
+      "max" : 4207224.0,
+      "mean" : 4207224.0,
+      "median" : 4207224.0,
+      "standardDeviation" : 0.0
+    },
+    "gcCount" : 2,
+    "throughputPerSecond" : 2.2843934903248715E9,
+    "speedup" : 1.0107237597471106,
+    "efficiency" : 1.0107237597471106,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:56c4d06247e059d1da610b900b78bc27c6586bf07b54a3f9215f95ea7fa85ee0" ]
+  }, {
+    "label" : "set 1 threads=2 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 512,
+      "colsA" : 512,
+      "colsB" : 512
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 2,
+    "partitioning" : { },
+    "partitions" : 8,
+    "estimatedOperations" : 2.68435456E8,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 79488843, 74588381, 63910472, 67967664, 72325915 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 6.3910472E7,
+      "max" : 7.9488843E7,
+      "mean" : 7.1656255E7,
+      "median" : 7.2325915E7,
+      "standardDeviation" : 5999960.416985891
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 6.2942417E7,
+      "max" : 7.875343E7,
+      "mean" : 7.07402742E7,
+      "median" : 7.1383658E7,
+      "standardDeviation" : 6065311.174287656
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 71320.0,
+      "max" : 257491.0,
+      "mean" : 153124.6,
+      "median" : 177018.0,
+      "standardDeviation" : 78311.1400076643
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 656976.0,
+      "max" : 870937.0,
+      "mean" : 762856.2,
+      "median" : 752531.0,
+      "standardDeviation" : 77159.16607701252
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 4303474.0,
+      "max" : 1.1340353E7,
+      "mean" : 6942791.4,
+      "median" : 6202952.0,
+      "standardDeviation" : 2738083.3322357633
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.4403133657386358,
+      "max" : 0.6913151392554108,
+      "mean" : 0.5242160392471616,
+      "median" : 0.5027592702407631,
+      "standardDeviation" : 0.09719667638854794
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 4212024.0,
+      "max" : 4212176.0,
+      "mean" : 4212073.6,
+      "median" : 4212056.0,
+      "standardDeviation" : 58.896519421779075
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 3.711469892914593E9,
+    "speedup" : 1.6421298783430531,
+    "efficiency" : 0.8210649391715266,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:56c4d06247e059d1da610b900b78bc27c6586bf07b54a3f9215f95ea7fa85ee0" ]
+  }, {
+    "label" : "set 1 threads=4 default partitions",
+    "parameterSet" : 1,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 512,
+      "colsA" : 512,
+      "colsB" : 512
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 4,
+    "partitioning" : { },
+    "partitions" : 16,
+    "estimatedOperations" : 2.68435456E8,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 46661002, 44191183, 36981282, 32288177, 34644489 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 3.2288177E7,
+      "max" : 4.6661002E7,
+      "mean" : 3.89532266E7,
+      "median" : 3.6981282E7,
+      "standardDeviation" : 6199247.1366838
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 3.099692E7,
+      "max" : 4.5277386E7,
+      "mean" : 3.79216324E7,
+      "median" : 3.6338301E7,
+      "standardDeviation" : 6086662.182903311
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 77697.0,
+      "max" : 264753.0,
+      "mean" : 140065.2,
+      "median" : 103729.0,
+      "standardDeviation" : 75525.97636045495
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 545250.0,
+      "max" : 1279887.0,
+      "mean" : 891529.0,
+      "median" : 793987.0,
+      "standardDeviation" : 337271.3993781566
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 3324273.0,
+      "max" : 1.0571884E7,
+      "mean" : 7551527.2,
+      "median" : 8028368.0,
+      "standardDeviation" : 2727355.9007985555
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.792013194125172,
+      "max" : 0.9108248468389084,
+      "mean" : 0.8454285990524237,
+      "median" : 0.8517049445064675,
+      "standardDeviation" : 0.052326700712647035
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 4221912.0,
+      "max" : 4221944.0,
+      "mean" : 4221924.8,
+      "median" : 4221912.0,
+      "standardDeviation" : 17.527121840165314
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 7.258684433925249E9,
+    "speedup" : 3.211585417725648,
+    "efficiency" : 0.802896354431412,
+    "baselineLabel" : "set 1 sequential",
+    "resultDigests" : [ "sha256:56c4d06247e059d1da610b900b78bc27c6586bf07b54a3f9215f95ea7fa85ee0" ]
+  }, {
+    "label" : "set 2 sequential",
+    "parameterSet" : 2,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 1024,
+      "colsA" : 1024,
+      "colsB" : 1024
+    },
+    "mode" : "SEQUENTIAL_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 1,
+    "estimatedOperations" : 2.147483648E9,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 756549900, 959417797, 1170986793, 1036603743, 1032242380 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 7.565499E8,
+      "max" : 1.170986793E9,
+      "mean" : 9.911601226E8,
+      "median" : 1.03224238E9,
+      "standardDeviation" : 1.5177288763001066E8
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 7.56501994E8,
+      "max" : 1.170959005E9,
+      "mean" : 9.911291696E8,
+      "median" : 1.032217298E9,
+      "standardDeviation" : 1.517808897158491E8
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 25082.0,
+      "max" : 47906.0,
+      "mean" : 30953.0,
+      "median" : 27202.0,
+      "standardDeviation" : 9530.420137643461
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 0.0,
+      "max" : 0.0,
+      "mean" : 0.0,
+      "median" : 0.0,
+      "standardDeviation" : 0.0
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.24453112742464178,
+      "max" : 0.2518788271413541,
+      "mean" : 0.249434013834377,
+      "median" : 0.25015170736925574,
+      "standardDeviation" : 0.0028537323295270253
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 8396072.0,
+      "max" : 8396608.0,
+      "mean" : 8396337.6,
+      "median" : 8396336.0,
+      "standardDeviation" : 189.51728153390127
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 2.08040639447491E9,
+    "resultDigests" : [ "sha256:6fabd10cb0de76c68f1a731bb19d4ebe89df8fd00608eada7571a2305cf90c11" ]
+  }, {
+    "label" : "set 2 threads=1 default partitions",
+    "parameterSet" : 2,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 1024,
+      "colsA" : 1024,
+      "colsB" : 1024
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 1,
+    "partitioning" : { },
+    "partitions" : 4,
+    "estimatedOperations" : 2.147483648E9,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 934931211, 931686451, 898985749, 916369578, 917602567 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 8.98985749E8,
+      "max" : 9.34931211E8,
+      "mean" : 9.199151112E8,
+      "median" : 9.17602567E8,
+      "standardDeviation" : 1.4317860894165274E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 8.94160643E8,
+      "max" : 9.3026591E8,
+      "mean" : 9.150317516E8,
+      "median" : 9.14913347E8,
+      "standardDeviation" : 1.3951076699873878E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 82016.0,
+      "max" : 109835.0,
+      "mean" : 100945.6,
+      "median" : 101704.0,
+      "standardDeviation" : 11349.085703262619
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 2579498.0,
+      "max" : 6829464.0,
+      "mean" : 4782414.0,
+      "median" : 4723655.0,
+      "standardDeviation" : 1524237.2957212075
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 3255864.0,
+      "max" : 3436961.0,
+      "mean" : 3343779.8,
+      "median" : 3365588.0,
+      "standardDeviation" : 75202.273018839
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.23975521419830553,
+      "max" : 0.25135539089410075,
+      "mean" : 0.24784048241563167,
+      "median" : 0.2495474735630775,
+      "standardDeviation" : 0.004657766311678803
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1.679188E7,
+      "max" : 1.6792032E7,
+      "mean" : 1.67919888E7,
+      "median" : 1.6792032E7,
+      "standardDeviation" : 66.83711543745736
+    },
+    "gcCount" : 4,
+    "throughputPerSecond" : 2.340320009152721E9,
+    "speedup" : 1.1249340587339487,
+    "efficiency" : 1.1249340587339487,
+    "baselineLabel" : "set 2 sequential",
+    "resultDigests" : [ "sha256:6fabd10cb0de76c68f1a731bb19d4ebe89df8fd00608eada7571a2305cf90c11" ]
+  }, {
+    "label" : "set 2 threads=2 default partitions",
+    "parameterSet" : 2,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 1024,
+      "colsA" : 1024,
+      "colsB" : 1024
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 2,
+    "partitioning" : { },
+    "partitions" : 8,
+    "estimatedOperations" : 2.147483648E9,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 518664754, 464965150, 464043326, 488285230, 476129729 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 4.64043326E8,
+      "max" : 5.18664754E8,
+      "mean" : 4.824176378E8,
+      "median" : 4.76129729E8,
+      "standardDeviation" : 2.2527896776284337E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 4.61057342E8,
+      "max" : 5.15239963E8,
+      "mean" : 4.793788438E8,
+      "median" : 4.73377163E8,
+      "standardDeviation" : 2.236648942325837E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 88672.0,
+      "max" : 193512.0,
+      "mean" : 135591.6,
+      "median" : 114259.0,
+      "standardDeviation" : 47951.207422754225
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 2651385.0,
+      "max" : 3231279.0,
+      "mean" : 2903202.4,
+      "median" : 2805650.0,
+      "standardDeviation" : 227936.32849394588
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 2.5217544E7,
+      "max" : 4.2233153E7,
+      "mean" : 3.41727746E7,
+      "median" : 3.2818407E7,
+      "standardDeviation" : 7010091.551531072
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.4556762857643677,
+      "max" : 0.46331880657195357,
+      "mean" : 0.45814668787654933,
+      "median" : 0.4570234995031348,
+      "standardDeviation" : 0.002998510286477985
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1.6795664E7,
+      "max" : 1.6795752E7,
+      "mean" : 1.67956992E7,
+      "median" : 1.6795688E7,
+      "standardDeviation" : 39.43602414037196
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 4.510291034568018E9,
+    "speedup" : 2.1679855659674634,
+    "efficiency" : 1.0839927829837317,
+    "baselineLabel" : "set 2 sequential",
+    "resultDigests" : [ "sha256:6fabd10cb0de76c68f1a731bb19d4ebe89df8fd00608eada7571a2305cf90c11" ]
+  }, {
+    "label" : "set 2 threads=4 default partitions",
+    "parameterSet" : 2,
+    "algorithm" : {
+      "id" : "matrix.multiply",
+      "version" : "1.0.0"
+    },
+    "parameters" : {
+      "rowsA" : 1024,
+      "colsA" : 1024,
+      "colsB" : 1024
+    },
+    "mode" : "MULTITHREADED_CPU",
+    "threads" : 4,
+    "partitioning" : { },
+    "partitions" : 16,
+    "estimatedOperations" : 2.147483648E9,
+    "operationUnit" : "floating-point operations",
+    "executionNanosSamples" : [ 299380118, 292626630, 332855282, 281356694, 263689872 ],
+    "execution" : {
+      "count" : 5,
+      "min" : 2.63689872E8,
+      "max" : 3.32855282E8,
+      "mean" : 2.939817192E8,
+      "median" : 2.9262663E8,
+      "standardDeviation" : 2.5588669998644542E7
+    },
+    "compute" : {
+      "count" : 5,
+      "min" : 2.60609162E8,
+      "max" : 3.29674146E8,
+      "mean" : 2.909339246E8,
+      "median" : 2.89813685E8,
+      "standardDeviation" : 2.5589085305267405E7
+    },
+    "partitioningTime" : {
+      "count" : 5,
+      "min" : 69930.0,
+      "max" : 107999.0,
+      "mean" : 87290.6,
+      "median" : 85547.0,
+      "standardDeviation" : 14258.71352191354
+    },
+    "aggregation" : {
+      "count" : 5,
+      "min" : 2727398.0,
+      "max" : 3207490.0,
+      "mean" : 2960504.0,
+      "median" : 3010780.0,
+      "standardDeviation" : 206817.26776190617
+    },
+    "schedulingOverhead" : {
+      "count" : 5,
+      "min" : 1.8184197E7,
+      "max" : 3.5606621E7,
+      "mean" : 2.70741246E7,
+      "median" : 2.8560566E7,
+      "standardDeviation" : 7332557.599846748
+    },
+    "cpuUtilization" : {
+      "count" : 5,
+      "min" : 0.8707807748124876,
+      "max" : 0.9313356787890781,
+      "mean" : 0.9007934504864901,
+      "median" : 0.8970475448526335,
+      "standardDeviation" : 0.024734490344891807
+    },
+    "allocatedBytes" : {
+      "count" : 5,
+      "min" : 1.680508E7,
+      "max" : 1.6805176E7,
+      "mean" : 1.68051312E7,
+      "median" : 1.6805112E7,
+      "standardDeviation" : 42.93250516799596
+    },
+    "gcCount" : 0,
+    "throughputPerSecond" : 7.338647367807913E9,
+    "speedup" : 3.5275066387498635,
+    "efficiency" : 0.8818766596874659,
+    "baselineLabel" : "set 2 sequential",
+    "resultDigests" : [ "sha256:6fabd10cb0de76c68f1a731bb19d4ebe89df8fd00608eada7571a2305cf90c11" ]
+  } ]
+}
