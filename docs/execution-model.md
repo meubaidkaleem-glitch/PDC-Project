@@ -68,7 +68,36 @@ conservative.
   every 2^16 merged elements, and every 2^20 generated or added elements. Latency is bounded by that work.
 * A cancellation that arrives after verification has finished does not change the outcome (`COMPLETED`).
 
-## 6. Measurements
+## 6. Bounded worker pool (`WorkerPool`)
+
+The engine owns one pool, created at construction and closed with the engine.
+
+| Requirement | How it is met |
+|---|---|
+| Bounded threads, no unbounded creation | `ThreadPoolExecutor` with `core = max = EngineConfig.maxThreads`, started up front, bounded `ArrayBlockingQueue`, `AbortPolicy` (never caller-runs, never grows). Tests assert `largestPoolSize == threads`. |
+| Configurable thread count | `EngineConfig.maxThreads`, plus a per-task `constraints.maxThreads` (clamped to the pool size) |
+| Controlled submission | `runAll` keeps at most `parallelism` items of a batch in flight. The next item is submitted only when one completes. |
+| Thread-safe result collection | Completions arrive through an `ExecutorCompletionService` (a blocking queue). The caller's callback runs on the calling thread, one item at a time. |
+| Exception propagation | The first failure is rethrown unwrapped. The batch scope is cancelled with `FAILURE`, so running siblings stop at their next check and unsubmitted items are abandoned. |
+| Cancellation and timeouts | The coordinating thread polls the completion queue every 20 ms and checks the scope. Items check the scope before starting. |
+| Structured completion | `runAll` returns or throws only after every submitted item has finished. Tests assert that nothing is still running. |
+| Orderly shutdown | `close()` stops accepting work, waits up to 30 s, then interrupts. `LocalExecutionEngine.close()` first cancels active tasks with `SHUTDOWN`. |
+| Measurement | Each item records submission, start and finish times and its allocated bytes (`TaskRun`), from which busy time, queueing and scheduling overhead are derived. |
+
+## 7. Concurrent task submissions (admission control)
+
+At most `EngineConfig.maxConcurrentTasks` tasks (default 1) run at the same time. Others wait in `QUEUED` on a
+fair semaphore while staying responsive to cancellation and deadlines. Running one task at a time is the right
+default for measurements, because concurrent tasks compete for the same cores and memory bandwidth.
+
+## 8. Progress events
+
+`execute(spec, cancellation, listener)` reports `ProgressEvent`s. Every status change is reported. Kernel progress
+is throttled to `EngineConfig.progressIntervalMillis` (default 100 ms). Events are monotonic, and the final event
+of a completed task reports 100%. A task's listener is never called concurrently. A failing listener is logged
+once and never affects the task.
+
+## 9. Measurements
 
 `ExecutionMetrics` separates validation, input preparation, compute, aggregation and verification time.
 `executionNanos` (partitioning + compute + aggregation) is the speedup basis. Process CPU time, GC activity and

@@ -2,6 +2,9 @@ package org.districompute.core.execution;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -41,7 +44,9 @@ import org.slf4j.LoggerFactory;
  * timeouts and verification failures, is returned as a {@link TaskResult} with a terminal status and an
  * {@link ErrorInfo}. A task is {@code COMPLETED} only after its result passed verification.
  *
- * <p>The engine is thread-safe. It owns a timer thread for deadlines, so close it when done.
+ * <p>The engine is thread-safe. At most {@link EngineConfig#maxConcurrentTasks()} tasks run at once. Further tasks
+ * wait in {@code QUEUED} (fair, first come first served) until a slot frees or they are cancelled. The engine owns
+ * a bounded {@link WorkerPool} and a timer thread for deadlines, so close it when done.
  */
 public final class LocalExecutionEngine implements AutoCloseable {
 
@@ -52,6 +57,9 @@ public final class LocalExecutionEngine implements AutoCloseable {
     private final EngineConfig config;
     private final EnvironmentInfo environment;
     private final ScheduledExecutorService deadlines;
+    private final WorkerPool pool;
+    private final Semaphore admission;
+    private final Set<CancellationSource> active = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean closed = new AtomicBoolean();
 
     /**
@@ -71,6 +79,8 @@ public final class LocalExecutionEngine implements AutoCloseable {
         });
         timer.setRemoveOnCancelPolicy(true);
         this.deadlines = timer;
+        this.pool = new WorkerPool(config.maxThreads(), config.maxConcurrentTasks(), "districompute-worker");
+        this.admission = new Semaphore(config.maxConcurrentTasks(), true);
     }
 
     /**
@@ -89,6 +99,20 @@ public final class LocalExecutionEngine implements AutoCloseable {
      */
     public AlgorithmRegistry registry() {
         return registry;
+    }
+
+    /**
+     * Returns the engine configuration.
+     *
+     * @return the configuration
+     */
+    public EngineConfig config() {
+        return config;
+    }
+
+    /** Returns the worker pool (for boundedness checks in tests). */
+    WorkerPool workerPool() {
+        return pool;
     }
 
     /**
@@ -119,18 +143,45 @@ public final class LocalExecutionEngine implements AutoCloseable {
      * @throws IllegalStateException if the engine is closed
      */
     public ExecutionOutcome execute(TaskSpec spec, CancellationSource cancellation) {
+        return execute(spec, cancellation, ProgressListener.NONE);
+    }
+
+    /**
+     * Executes a task and reports its progress.
+     *
+     * @param spec task specification
+     * @param cancellation cancel this source to cancel the task; use one source per task
+     * @param listener receives throttled, monotonic progress events, including every status change
+     * @return the outcome; never {@code null}
+     * @throws IllegalStateException if the engine is closed
+     */
+    public ExecutionOutcome execute(TaskSpec spec, CancellationSource cancellation, ProgressListener listener) {
         Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(cancellation, "cancellation");
+        Objects.requireNonNull(listener, "listener");
         if (closed.get()) {
             throw new IllegalStateException("The engine is closed");
         }
-        return new Run(spec, cancellation.newChild()).execute();
+        CancellationSource scope = cancellation.newChild();
+        active.add(scope);
+        try {
+            return new Run(spec, scope, listener).execute();
+        } finally {
+            active.remove(scope);
+        }
     }
 
-    /** Stops the deadline timer. Running executions finish normally. */
+    /**
+     * Shuts the engine down. Running and queued tasks are cancelled with {@link CancellationReason#SHUTDOWN} and end
+     * {@code CANCELLED}. The worker pool and the deadline timer are then stopped. Further {@code execute} calls throw.
+     */
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
+            for (CancellationSource scope : active) {
+                scope.cancel(CancellationReason.SHUTDOWN);
+            }
+            pool.close();
             deadlines.shutdownNow();
         }
     }
@@ -140,6 +191,7 @@ public final class LocalExecutionEngine implements AutoCloseable {
         private final TaskSpec spec;
         private final CancellationSource scope;
         private final TaskLifecycle lifecycle;
+        private final TaskProgress progress;
         private AlgorithmRef resolved;
         private WorkloadProfile profile;
         private VerificationReport verification;
@@ -156,16 +208,24 @@ public final class LocalExecutionEngine implements AutoCloseable {
         private int partitions;
         private ResourceUsage usage;
 
-        Run(TaskSpec spec, CancellationSource scope) {
+        Run(TaskSpec spec, CancellationSource scope, ProgressListener listener) {
             this.spec = spec;
             this.scope = scope;
             this.lifecycle = new TaskLifecycle(config.clock());
+            this.progress = new TaskProgress(spec.taskId(), listener, config.progressIntervalMillis(), config.clock());
+        }
+
+        private void transition(TaskStatus status) {
+            lifecycle.transitionTo(status);
+            progress.status(status);
         }
 
         ExecutionOutcome execute() {
             ScheduledFuture<?> deadline = scheduleDeadline();
+            boolean admitted = false;
             try {
-                lifecycle.transitionTo(TaskStatus.VALIDATING);
+                progress.status(TaskStatus.CREATED);
+                transition(TaskStatus.VALIDATING);
                 long validationStart = System.nanoTime();
                 ComputeAlgorithm<?, ?> algorithm = registry.resolve(spec.algorithm());
                 resolved = algorithm.descriptor().ref();
@@ -179,15 +239,15 @@ public final class LocalExecutionEngine implements AutoCloseable {
                 profile = algorithm.analyze(parameters);
                 checkMemory(profile);
                 validationNanos = System.nanoTime() - validationStart;
-                lifecycle.transitionTo(TaskStatus.VALIDATED);
+                transition(TaskStatus.VALIDATED);
                 threads = 1;
                 partitions = 1;
-                lifecycle.transitionTo(TaskStatus.PLANNED);
-                lifecycle.transitionTo(TaskStatus.QUEUED);
-                scope.throwIfCancelled();
-                lifecycle.transitionTo(TaskStatus.RUNNING);
+                transition(TaskStatus.PLANNED);
+                transition(TaskStatus.QUEUED);
+                admitted = awaitAdmission();
+                transition(TaskStatus.RUNNING);
                 runSequential(algorithm, parameters);
-                lifecycle.transitionTo(TaskStatus.COMPLETED);
+                transition(TaskStatus.COMPLETED);
                 return outcome(null);
             } catch (TaskCancelledException e) {
                 return terminate(e.reason() == CancellationReason.TIMEOUT ? TaskStatus.FAILED : TaskStatus.CANCELLED,
@@ -202,14 +262,35 @@ public final class LocalExecutionEngine implements AutoCloseable {
                 return terminate(TaskStatus.FAILED, new DistriComputeException(ErrorCode.EXECUTION_FAILED,
                         e.getClass().getSimpleName() + ": " + e.getMessage(), e));
             } finally {
+                if (admitted) {
+                    admission.release();
+                }
                 if (deadline != null) {
                     deadline.cancel(false);
                 }
             }
         }
 
+        /** Waits for an execution slot while staying responsive to cancellation. */
+        private boolean awaitAdmission() {
+            try {
+                while (!admission.tryAcquire(20, TimeUnit.MILLISECONDS)) {
+                    scope.throwIfCancelled();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                scope.cancel(CancellationReason.USER_REQUESTED);
+                scope.throwIfCancelled();
+            }
+            if (scope.isCancelled()) {
+                admission.release();
+                scope.throwIfCancelled();
+            }
+            return true;
+        }
+
         private <I, R> void runSequential(ComputeAlgorithm<I, R> algorithm, Parameters parameters) {
-            ExecutionContext context = ExecutionContext.of(scope, ProgressReporter.NONE);
+            ExecutionContext context = ExecutionContext.of(scope, progress);
             long preparationStart = System.nanoTime();
             I input = algorithm.prepareInput(parameters, context);
             preparationNanos = System.nanoTime() - preparationStart;
@@ -218,7 +299,7 @@ public final class LocalExecutionEngine implements AutoCloseable {
             long executionStart = System.nanoTime();
             R result = algorithm.computeSequential(input, context);
             long computeEnd = System.nanoTime();
-            lifecycle.transitionTo(TaskStatus.AGGREGATING);
+            transition(TaskStatus.AGGREGATING);
             long executionEnd = System.nanoTime();
             usage = ResourceUsage.capture().minus(before);
             computeNanos = computeEnd - executionStart;
@@ -226,7 +307,7 @@ public final class LocalExecutionEngine implements AutoCloseable {
             aggregationNanos = executionEnd - computeEnd;
             executionNanos = executionEnd - executionStart;
 
-            lifecycle.transitionTo(TaskStatus.VERIFYING);
+            transition(TaskStatus.VERIFYING);
             long verificationStart = System.nanoTime();
             verification = algorithm.verify(input, result, context);
             verificationNanos = System.nanoTime() - verificationStart;
@@ -289,7 +370,9 @@ public final class LocalExecutionEngine implements AutoCloseable {
 
         private ExecutionOutcome terminate(TaskStatus status, DistriComputeException failure) {
             ErrorInfo error = failure.toErrorInfo(lifecycle.current());
-            if (!lifecycle.tryTransitionTo(status)) {
+            if (lifecycle.tryTransitionTo(status)) {
+                progress.status(status);
+            } else {
                 LOG.warn("Task {} could not move from {} to {}", spec.taskId(), lifecycle.current(), status);
             }
             LOG.debug("Task {} ended {}: {}", spec.taskId(), status, error.message());

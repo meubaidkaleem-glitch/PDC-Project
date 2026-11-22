@@ -27,7 +27,8 @@ lists only what exists on this branch.
 | Task model, lifecycle, algorithm SPI, registry, error model, JSON codec | Done (Phase 2), see [docs/task-model.md](docs/task-model.md) |
 | P1 algorithms (`primes.count`, `sort.merge`, `matrix.add`, `matrix.multiply`), sequential, verified | Done (Phase 3), see [docs/algorithms.md](docs/algorithms.md) |
 | Local engine: full lifecycle, validation, memory guard, timeout, cancellation | Done for `SEQUENTIAL_CPU` (Phase 3), see [docs/execution-model.md](docs/execution-model.md) |
-| Multithreaded and distributed-compatible execution (partitioning, aggregation) | Not started (Phases 4–5) |
+| Bounded worker pool, admission control, progress events | Done (Phase 4) |
+| Multithreaded and distributed-compatible execution (partitioning, aggregation) | Not started (Phase 5) |
 
 The integration contract is a **draft (`0.1`)** until Contributors 2 and 3 agree on it.
 

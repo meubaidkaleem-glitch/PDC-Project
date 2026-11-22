@@ -326,7 +326,7 @@ Distributed adds communication metrics (`serializationNanos`, `transferNanos`, `
 
 ---
 
-## 11. Progress events  *(Core: planned, Phase 4)*
+## 11. Progress events  *(Core: implemented — `ProgressEvent`, `ProgressListener`)*
 
 ```json
 { "taskId": "…", "sequence": 17, "timestamp": "…", "status": "RUNNING",
@@ -338,7 +338,7 @@ Events are throttled (100 ms minimum interval by default, except for status chan
 task (`sequence` strictly increasing, `completedUnits` non-decreasing) and delivered on a Core thread.
 Listeners must not block. A listener that throws is isolated and logged, and never fails the task.
 
-## 12. Cancellation semantics  *(Core: planned, Phase 4)*
+## 12. Cancellation semantics  *(Core: implemented — `CancellationSource`, engine, `WorkerPool`)*
 
 * **Cooperative.** Kernels poll a cancellation token at bounded intervals (per segment, row block or chunk).
   Partitions that haven't started are never started.
