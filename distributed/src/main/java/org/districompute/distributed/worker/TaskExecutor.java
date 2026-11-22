@@ -233,14 +233,15 @@ final class TaskExecutor implements AutoCloseable {
     }
 
     /**
-     * Waits until no attempt is running.
+     * Waits until no attempt is running and every final message has been queued on its connection. (The slot
+     * counter alone is not enough: it is released just before the final message is sent.)
      *
      * @param timeout how long to wait
      * @return {@code true} if idle in time
      */
     boolean awaitIdle(Duration timeout) {
         long deadline = System.nanoTime() + timeout.toNanos();
-        while (active.get() > 0) {
+        while (active.get() > 0 || !running.isEmpty()) {
             if (System.nanoTime() > deadline) {
                 return false;
             }
