@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Reactor of the whole platform (docs/integration.md). Core and Distributed are built from their pinned
+    submodule sources, so the application never depends on unpublished local binaries:
+
+      components/core                     DistriCompute-Core (Contributor 1), submodule
+      components/distributed/distributed  DistriCompute-Distributed (Contributor 2), submodule
+      backend                             Spring Boot application (Contributor 3)
+
+    The component POMs are used unchanged; this file only lists them as modules.
+  -->
+  <groupId>org.districompute</groupId>
+  <artifactId>districompute-platform</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>DistriCompute Platform</name>
+  <description>Build of DistriCompute-Core, DistriCompute-Distributed and the DistriCompute application</description>
+
+  <modules>
+    <module>components/core</module>
+    <module>components/distributed/distributed</module>
+    <module>backend</module>
+  </modules>
+</project>

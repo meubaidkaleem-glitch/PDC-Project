@@ -1,0 +1,31 @@
+# Build output
+target/
+*.class
+
+# Maven wrapper downloads
+.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+
+# Local runtime data (results, uploads, secrets created by scripts)
+data/
+.env
+*.secret
+*.token
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db

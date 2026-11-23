@@ -29,7 +29,7 @@ only completed work. The status table records what has actually been done. It is
 | Phase | Status | Notes |
 |---|---|---|
 | 1 | Done | Components inspected (Core: 10 algorithms in 5 categories; Distributed: embeddable coordinator, worker processes, advice, events). Decisions D1-D10 recorded in [architecture.md](architecture.md). Two gaps found in Distributed: full result values and worker deactivation. |
-| 2 | Not started | |
+| 2 | Done | Submodules pinned (Core `f269bf6`, Distributed `d2563ad`); root reactor builds Core, Distributed (their own quality gates, unchanged) and the backend; Jackson aligned on 3.2.4; bootstrap and build scripts; CI workflow. |
 | 3 | Not started | |
 | 4 | Not started | |
 | 5 | Not started | |

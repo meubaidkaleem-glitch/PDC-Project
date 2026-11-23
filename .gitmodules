@@ -1,0 +1,8 @@
+[submodule "components/core"]
+	path = components/core
+	url = https://github.com/meubaidkaleem-glitch/PDC-Project.git
+	branch = feature/core-engine
+[submodule "components/distributed"]
+	path = components/distributed
+	url = https://github.com/meubaidkaleem-glitch/PDC-Project.git
+	branch = feature/distributed-engine
