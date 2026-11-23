@@ -62,7 +62,10 @@ earlier decisions.
 * No policy is optimal everywhere. Performance-aware estimates are only as good as recent history and ignore
   load changes since then. Dynamic scheduling relies on having enough partitions.
 * All policies choose among workers that have a free slot *now*. None of them holds an attempt back to wait for
-  a faster busy worker.
+  a faster busy worker. The benchmarks measured the cost: with one worker 4× slower than two others, every policy
+  let it take the last partition, and the task took 6.6–7.0 s instead of the 5.0 s of the two fast workers alone
+  ([benchmarks.md §3.5](benchmarks.md#35-load-imbalance-and-scheduling-policies)). Holding back, or speculative
+  backup attempts for stragglers, would fix this; neither is implemented.
 * Core plans equal-sized partitions, so no policy can give a slow worker a smaller piece.
 
 ## 4. Decision records

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "primes-distributed",
+  "experimentId": "examples",
+  "algorithm": { "id": "primes.count" },
+  "parameters": { "lowerBound": 0, "upperBound": 2000000000 },
+  "constraints": { "mode": "DISTRIBUTED_CPU" },
+  "createdAt": "2026-11-23T10:00:00Z"
+}

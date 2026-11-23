@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "sort-distributed",
+  "experimentId": "examples",
+  "algorithm": { "id": "sort.merge" },
+  "parameters": { "size": 2000000, "distribution": "UNIFORM", "seed": 11 },
+  "constraints": { "mode": "DISTRIBUTED_CPU" },
+  "createdAt": "2026-11-23T10:00:00Z"
+}

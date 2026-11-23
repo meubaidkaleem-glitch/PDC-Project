@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.1",
+  "taskId": "monte-carlo-distributed",
+  "experimentId": "examples",
+  "algorithm": { "id": "numeric.monte-carlo" },
+  "parameters": { "samples": 50000000, "seed": 3 },
+  "constraints": { "mode": "DISTRIBUTED_CPU" },
+  "createdAt": "2026-11-23T10:00:00Z"
+}
