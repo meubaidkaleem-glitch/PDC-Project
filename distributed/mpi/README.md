@@ -31,7 +31,7 @@ NP=4 ./run-demos.sh
 ```
 
 With Open MPI, `run-demos.sh` declares `NP` slots on the local machine (`--host localhost:NP`), so more processes
-than cores still start. It adds `--allow-run-as-root` when run as root (for
+than cores still start, and it turns process binding off (`--bind-to none`). It adds `--allow-run-as-root` when run as root (for
 example in a container). Each program can also be started on its own,
 for example `mpirun -np 4 ./parallel_primes 1000000000`.
 
@@ -56,8 +56,8 @@ Firewalls must allow the TCP ports Open MPI chooses, or a fixed range set with
 ## Output from a real run
 
 Measured in the development container (4 vCPUs, Open MPI 4.1.6, all processes on one machine, so messages use
-shared memory, not a network) on 2026-11-22. The numbers will differ on other machines and on a real network,
-where latency is much higher.
+shared memory, not a network) on 2026-11-22, before the script turned process binding off. The numbers will
+differ on other machines and on a real network, where latency is much higher.
 
 ```
 === point_to_point (np=4) ===
@@ -100,7 +100,8 @@ All MPI demonstrations completed and verified.
   different order rounds differently. That is why the check uses a tolerance there and exact equality everywhere
   else.
 * The speedup of π(10⁸) is measured against rank 0 counting alone while the other processes wait. On busy
-  hardware it varies between runs.
+  hardware it varies between runs: later runs on the same machine (2026-11-23, one of them with `--bind-to none`)
+  printed 3.48 and 3.45.
 
 ## MPI and the Java runtime compared
 
@@ -123,9 +124,15 @@ The `mpi-demos` job in `.github/workflows/distributed-ci.yml` runs on Ubuntu 24.
 latest Ubuntu image (Open MPI 5). It installs Open MPI, builds with `-Wall -Wextra -Werror`, and runs every demo
 with 4 processes. The job fails if any check fails.
 
-The job failed twice on the latest image before it passed, and the first diagnosis was wrong. Ubuntu's Open MPI
-5.0.10 package lacks the help files from which `mpirun --version` prints its text, so the output did not contain
-"Open MPI". The script therefore did not recognise Open MPI and never passed its slot options. The first fix
-(declaring slots with `--host localhost:NP` instead of `--oversubscribe`) was correct but never took effect.
-The script now also recognises Open MPI by the installed path of `mpirun` or by `ompi_info`, and `MPI_IMPL=openmpi`
-or `MPI_IMPL=other` skips the detection.
+On the latest image (Open MPI 5.0.10), the job failed several times, and the first diagnosis was wrong:
+
+1. Ubuntu's Open MPI 5.0.10 package lacks the help files from which `mpirun --version` prints its text, so the
+   output did not contain "Open MPI". The script did not recognise Open MPI and never passed its options. The
+   first fix (declaring slots with `--host localhost:NP` instead of `--oversubscribe`) was therefore correct but
+   had no effect. The script now also recognises Open MPI by the installed path of `mpirun` or by `ompi_info`,
+   and `MPI_IMPL=openmpi` or `MPI_IMPL=other` skips the detection.
+2. With the options in place, Open MPI 5 refused to bind 4 processes to the runner's cores
+   (`allocation-overload`). Process binding is not needed for these demonstrations, so the script passes
+   `--bind-to none`.
+
+Open MPI 5 was never available on the author's machine, so CI is the only place where it is exercised.

@@ -30,6 +30,10 @@ if is_open_mpi; then
   if [ -z "${HOSTFILE:-}" ]; then
     ARGS+=(--host "localhost:$NP")
   fi
+  # Open MPI 5 binds each process to a core by default and refuses to start more processes than cores
+  # ("allocation-overload"), which happens on machines with fewer physical cores than NP (CI runners with
+  # hyper-threads). The demonstrations do not need binding.
+  ARGS+=(--bind-to none)
   # Open MPI refuses to run as root unless told otherwise (for example inside a container).
   if [ "$(id -u)" = "0" ]; then
     ARGS+=(--allow-run-as-root)
