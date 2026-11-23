@@ -35,6 +35,7 @@ import org.districompute.distributed.scheduler.Scheduler;
 import org.districompute.distributed.security.RegistrationAuthenticator;
 import org.districompute.distributed.strategy.ExecutionAdvice;
 import org.districompute.distributed.strategy.StrategyOverride;
+import org.districompute.distributed.task.ResultSink;
 import org.districompute.distributed.task.SubmitOptions;
 import org.districompute.distributed.task.TaskOutcome;
 import org.districompute.distributed.task.TaskSnapshot;
@@ -158,6 +159,57 @@ public final class Coordinator implements AutoCloseable {
     }
 
     /**
+     * Stops scheduling on a worker: it stays connected, its running attempts finish, and it receives no new
+     * attempts (status {@code DEACTIVATED}) until {@link #activateWorker}, even if it reconnects.
+     *
+     * @param workerId the worker
+     * @param reason shown in the worker's status
+     * @return {@code false} if the coordinator does not know the worker
+     */
+    public boolean deactivateWorker(String workerId, String reason) {
+        Objects.requireNonNull(workerId, "workerId");
+        String why = reason == null || reason.isBlank() ? "no reason given" : reason;
+        return loop.call(() -> workers.deactivate(workerId, why), QUERY_TIMEOUT);
+    }
+
+    /**
+     * Lets a deactivated worker receive attempts again.
+     *
+     * @param workerId the worker
+     * @return {@code false} if the coordinator does not know the worker
+     */
+    public boolean activateWorker(String workerId) {
+        Objects.requireNonNull(workerId, "workerId");
+        return loop.call(() -> workers.activate(workerId), QUERY_TIMEOUT);
+    }
+
+    /**
+     * Disconnects a worker: sends it {@code SHUTDOWN} and closes the connection. Its running attempts are retried
+     * elsewhere, as for any lost worker.
+     *
+     * @param workerId the worker
+     * @param reason sent to the worker and recorded in its status
+     * @param stop {@code true} to make the worker process stop; {@code false} to let it reconnect with backoff
+     * @return {@code false} if the worker is not connected
+     */
+    public boolean disconnectWorker(String workerId, String reason, boolean stop) {
+        Objects.requireNonNull(workerId, "workerId");
+        String why = reason == null || reason.isBlank() ? "no reason given" : reason;
+        return loop.call(() -> workers.disconnectWorker(workerId, why, stop), QUERY_TIMEOUT);
+    }
+
+    /**
+     * Forgets a disconnected worker's record, counters and performance history.
+     *
+     * @param workerId the worker
+     * @return {@code false} if the worker is unknown or still connected
+     */
+    public boolean forgetWorker(String workerId) {
+        Objects.requireNonNull(workerId, "workerId");
+        return loop.call(() -> workers.forget(workerId), QUERY_TIMEOUT);
+    }
+
+    /**
      * Submits a task with the coordinator's default options.
      *
      * @param spec Core task specification (mode {@code DISTRIBUTED_CPU})
@@ -188,8 +240,24 @@ public final class Coordinator implements AutoCloseable {
      * @throws IllegalArgumentException if the task id is already in use or an option is invalid
      */
     public TaskHandle submit(TaskSpec spec, SubmitOptions options) {
+        return submit(spec, options, ResultSink.NONE);
+    }
+
+    /**
+     * Submits a task like {@link #submit(TaskSpec, SubmitOptions)}, and delivers its full result value to
+     * {@code sink} once, if it completes, before the returned handle's future completes ({@link ResultSink}).
+     *
+     * @param spec Core task specification
+     * @param options runtime options
+     * @param sink receiver of the verified value
+     * @return a handle to wait for, inspect or cancel the task
+     * @throws DistriComputeException if the task is refused (unknown algorithm, unsupported mode, too many tasks)
+     * @throws IllegalArgumentException if the task id is already in use or an option is invalid
+     */
+    public TaskHandle submit(TaskSpec spec, SubmitOptions options, ResultSink sink) {
         Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(options, "options");
+        Objects.requireNonNull(sink, "sink");
         CompletableFuture<TaskOutcome> completion = loop.call(() -> {
             if (tasks.task(spec.taskId()).isPresent() || local.contains(spec.taskId())) {
                 throw new IllegalArgumentException("Task id " + spec.taskId() + " is already in use");
@@ -208,9 +276,9 @@ public final class Coordinator implements AutoCloseable {
             StrategyOverride override = strategy.overrideFor(spec, options.overrideReason(),
                     tasks.pendingPartitions()).orElse(null);
             if (LocalTaskRunner.handles(mode)) {
-                return local.submit(spec, override);
+                return local.submit(spec, override, sink);
             }
-            return tasks.submit(spec, options, override).completion();
+            return tasks.submit(spec, options, override, sink).completion();
         }, QUERY_TIMEOUT);
         return new TaskHandle(spec.taskId(), completion, this);
     }

@@ -32,7 +32,17 @@ All notable changes to DistriCompute-Distributed. The project is pre-release (`0
 * **Release preparation** (`055cb18`): `bench` command and measured benchmark results, deployment guide, start
   scripts, local multi-worker demonstration, example configurations and tasks; implementation report.
 
+* **Requested by the Application** (Contributor 3, integration): `Coordinator.submit(spec, options, ResultSink)`
+  delivers the full, verified result value of a completed task once, before its future completes; worker
+  administration with `deactivateWorker`, `activateWorker`, `disconnectWorker` (reconnect or stop) and
+  `forgetWorker`, and a new worker status `DEACTIVATED` that survives reconnection.
+
 ### Fixed
+
+* Finished tasks kept their Core session, and with it the input, every partial result and the full value, for as
+  long as they were retained (up to 1000 tasks). They now release it when they finish. Results that arrive later
+  are classified `LATE` without it, exactly as Core would. Found while adding result delivery for the
+  Application.
 
 * `309ea1d`: a heartbeat built before an acknowledgement could be sent after it, so a running attempt looked lost
   (a CI failure on `a62b8be`). Heartbeats are now built atomically with acknowledgements, and the coordinator

@@ -37,6 +37,7 @@ public final class WorkerRecord {
     private long idleSinceNanos;
     private long lastAssignedNanos;
     private int invalidThisRegistration;
+    private String deactivationReason;
 
     WorkerRecord(String workerId) {
         this.workerId = Objects.requireNonNull(workerId, "workerId");
@@ -57,7 +58,34 @@ public final class WorkerRecord {
         this.idleSinceNanos = nowNanos;
         this.assigned.clear();
         this.invalidThisRegistration = 0;
-        setStatus(WorkerStatus.ACTIVE, registrations == 1 ? "registered" : "re-registered", now);
+        if (deactivationReason != null) {
+            setStatus(WorkerStatus.DEACTIVATED, "re-registered while deactivated: " + deactivationReason, now);
+        } else {
+            setStatus(WorkerStatus.ACTIVE, registrations == 1 ? "registered" : "re-registered", now);
+        }
+    }
+
+    /**
+     * Records an operator's deactivation; it survives reconnection until {@link #clearDeactivation()}.
+     *
+     * @param reason why (shown in the status)
+     */
+    public void markDeactivated(String reason) {
+        this.deactivationReason = reason;
+    }
+
+    /** Clears an operator's deactivation. */
+    public void clearDeactivation() {
+        this.deactivationReason = null;
+    }
+
+    /**
+     * Whether an operator deactivated the worker.
+     *
+     * @return {@code true} until it is activated again
+     */
+    public boolean deactivated() {
+        return deactivationReason != null;
     }
 
     /**

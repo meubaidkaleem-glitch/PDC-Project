@@ -63,7 +63,7 @@ CONNECTING ───────────▶ REGISTERING ──────�
   or the coordinator's proof is wrong, the worker hangs up and tries again later. It never executes work for a
   coordinator that cannot prove the secret.
 
-The coordinator's view of a worker (`ACTIVE`, `SUSPECT`, `DRAINING`, `QUARANTINED`, `DISCONNECTED`) is described in
+The coordinator's view of a worker (`ACTIVE`, `SUSPECT`, `DRAINING`, `QUARANTINED`, `DEACTIVATED`, `DISCONNECTED`) is described in
 [integration-contract.md §2.1](integration-contract.md#21-starting-a-coordinator-and-listing-workers--implemented).
 
 ## 4. Heartbeats
@@ -121,6 +121,7 @@ registers again with the same id. The coordinator keeps the worker's history.
 | SIGTERM or Ctrl+C (`close()`) | The worker stops accepting attempts and sends `SHUTDOWN` with `drain: true` (the coordinator marks it `DRAINING` and sends nothing new). It lets running attempts finish and send their results for up to the drain timeout, then disconnects. |
 | SIGKILL, crash, power loss (`abort()`) | Nothing is sent. The coordinator detects the closed connection, or the missing heartbeats if the network is cut, and treats the running attempts as lost. |
 | `SHUTDOWN` from the coordinator | `reconnect: true` (a coordinator stop or restart): the worker cancels its attempts and keeps trying to reconnect. `reconnect: false`: the worker stops. |
+| An operator (`Coordinator.disconnectWorker`, `deactivateWorker`) | `disconnectWorker(id, reason, false)` sends `SHUTDOWN` with `reconnect: true`; `disconnectWorker(id, reason, true)` with `reconnect: false`, which stops the worker. `deactivateWorker` keeps the connection: running attempts finish and no new ones arrive until `activateWorker`. |
 
 ## 8. Changing capacity at run time
 

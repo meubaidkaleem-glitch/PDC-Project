@@ -58,15 +58,26 @@ CoordinatorConfig config = CoordinatorConfig.builder(SharedSecret.fromFile(Path.
 try (Coordinator coordinator = Coordinator.start(config)) {
     List<WorkerSnapshot> workers = coordinator.workers();          // connected and recently disconnected
     Optional<WorkerSnapshot> one = coordinator.worker("lab-pc-07");
+
+    // Administration (added for the Application)
+    coordinator.deactivateWorker("lab-pc-07", "maintenance");  // DEACTIVATED: no new attempts, running ones finish;
+                                                                // survives reconnection
+    coordinator.activateWorker("lab-pc-07");                    // ACTIVE again
+    coordinator.disconnectWorker("lab-pc-07", "moved", false);  // SHUTDOWN(reconnect) + close; attempts retried
+    coordinator.disconnectWorker("lab-pc-07", "retired", true); // SHUTDOWN(no reconnect): the worker process stops
+    coordinator.forgetWorker("lab-pc-07");                      // drop a DISCONNECTED record and its history
 }
 ```
+
+Each returns `false` when the worker is unknown (or, for `disconnectWorker`, not connected; for `forgetWorker`,
+still connected). Status changes are published as `WORKER_STATUS_CHANGED`, disconnections as `WORKER_DISCONNECTED`.
 
 A `WorkerSnapshot` serializes to:
 
 | Field | Meaning |
 |---|---|
 | `workerId`, `hostname`, `endpoint` | Identity and the address the coordinator sees |
-| `status`, `statusReason`, `statusSince` | `ACTIVE`, `SUSPECT` (heartbeats late), `DRAINING` (leaving), `QUARANTINED` (repeated invalid results), `DISCONNECTED` |
+| `status`, `statusReason`, `statusSince` | `ACTIVE`, `SUSPECT` (heartbeats late), `DRAINING` (leaving), `QUARANTINED` (repeated invalid results), `DEACTIVATED` (by an operator), `DISCONNECTED` |
 | `sessionId`, `registeredAt`, `registrations` | Current registration; how often this id has registered |
 | `lastHeartbeatAt`, `load` | Latest heartbeat: active tasks, free heap, load average, process CPU load, completed and failed totals |
 | `capabilities` | As reported at registration ([network-protocol.md §3.1](network-protocol.md#31-payload-rules)) |
@@ -101,6 +112,12 @@ coordinator.cancel(spec.taskId());                     // or handle.cancel()
   the task still runs. The snapshot's `override` records `recommended`, `chosen`, Core's `chosenVerdict` and
   `chosenReasons`, and the user's `reason` (`SubmitOptions.withOverrideReason`, HTTP `overrideReason`). A
   `STRATEGY_OVERRIDE` event is published.
+* **Full result values.** Core's `TaskResult` carries a summary and a digest. To receive the value itself (for
+  example the product matrix), pass a `ResultSink`: `coordinator.submit(spec, options, (result, value) -> ...)`.
+  The sink is called once, only for a `COMPLETED` task (so Core has verified the value), on a runtime thread, and
+  before the task's future completes. The coordinator does not keep the value. An exception from the sink is logged
+  and does not change the task's outcome. The value's type is the algorithm's result type (`Matrix`, `long[]`,
+  `double[]`, …), and Core's `summarize(value).digest()` equals `result.result().digest()`.
 * `submit` throws only when a task is refused outright: an unknown algorithm (`UNKNOWN_ALGORITHM`), a mode the
   runtime does not run here (`UNSUPPORTED_EXECUTION_MODE`), too many running tasks (`RESOURCE_EXHAUSTED`), or a
   task id already in use (`IllegalArgumentException`).

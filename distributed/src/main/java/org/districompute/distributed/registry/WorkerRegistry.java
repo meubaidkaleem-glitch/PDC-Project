@@ -103,6 +103,21 @@ public final class WorkerRegistry {
     }
 
     /**
+     * Forgets a disconnected worker: its record, counters and performance history.
+     *
+     * @param workerId worker id
+     * @return {@code true} if a disconnected record was removed; {@code false} if unknown or still connected
+     */
+    public boolean remove(String workerId) {
+        WorkerRecord record = records.get(workerId);
+        if (record == null || record.status().isConnected()) {
+            return false;
+        }
+        records.remove(workerId);
+        return true;
+    }
+
+    /**
      * Looks up a worker.
      *
      * @param workerId worker id

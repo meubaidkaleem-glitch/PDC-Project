@@ -10,6 +10,11 @@ public enum WorkerStatus {
     DRAINING,
     /** Excluded after repeated invalid results; connected, but receives no attempts. */
     QUARANTINED,
+    /**
+     * Deactivated by an operator ({@code Coordinator.deactivateWorker}); connected, its running attempts finish,
+     * but it receives no new ones. The deactivation survives reconnection until the worker is activated again.
+     */
+    DEACTIVATED,
     /** The connection is closed or the heartbeat timeout expired. The record is kept for history. */
     DISCONNECTED;
 

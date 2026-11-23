@@ -261,6 +261,75 @@ final class WorkerManager implements WorkerSession.Inbound {
     }
 
     /**
+     * Stops scheduling on a worker until {@link #activate} (control loop). Its running attempts finish.
+     *
+     * @param workerId the worker
+     * @param reason shown in the worker's status
+     * @return {@code false} if the worker is unknown
+     */
+    boolean deactivate(String workerId, String reason) {
+        WorkerRecord worker = registry.get(workerId).orElse(null);
+        if (worker == null) {
+            return false;
+        }
+        worker.markDeactivated(reason);
+        WorkerStatus status = worker.status();
+        if (status == WorkerStatus.ACTIVE || status == WorkerStatus.SUSPECT) {
+            changeStatus(worker, WorkerStatus.DEACTIVATED, "deactivated: " + reason, config.clock().instant());
+        }
+        return true;
+    }
+
+    /**
+     * Lets a deactivated worker receive attempts again (control loop).
+     *
+     * @param workerId the worker
+     * @return {@code false} if the worker is unknown
+     */
+    boolean activate(String workerId) {
+        WorkerRecord worker = registry.get(workerId).orElse(null);
+        if (worker == null) {
+            return false;
+        }
+        worker.clearDeactivation();
+        if (worker.status() == WorkerStatus.DEACTIVATED) {
+            changeStatus(worker, WorkerStatus.ACTIVE, "activated by an operator", config.clock().instant());
+        }
+        return true;
+    }
+
+    /**
+     * Sends {@code SHUTDOWN} to a connected worker and closes its connection (control loop). Its running attempts
+     * are recovered like those of any lost worker.
+     *
+     * @param workerId the worker
+     * @param reason sent to the worker
+     * @param stop {@code true}: the worker process stops; {@code false}: it reconnects with backoff
+     * @return {@code false} if the worker is not connected
+     */
+    boolean disconnectWorker(String workerId, String reason, boolean stop) {
+        WorkerSession session = byWorker.get(workerId);
+        if (session == null || session.state() != WorkerSession.State.REGISTERED) {
+            return false;
+        }
+        session.send(session.message(MessageType.SHUTDOWN, null, null, new ShutdownPayload(reason, false, !stop)));
+        disconnect(session, (stop ? "stopped" : "disconnected") + " by an operator: " + reason);
+        session.closeAfterFlush();
+        sessions.remove(session);
+        return true;
+    }
+
+    /**
+     * Forgets a disconnected worker's record (control loop).
+     *
+     * @param workerId the worker
+     * @return {@code false} if the worker is unknown or still connected
+     */
+    boolean forget(String workerId) {
+        return registry.remove(workerId);
+    }
+
+    /**
      * Announces shutdown to every worker and closes the connections (control loop).
      *
      * @param reason reason sent to the workers
@@ -286,7 +355,8 @@ final class WorkerManager implements WorkerSession.Inbound {
             return;
         }
         if (worker.status() == WorkerStatus.SUSPECT) {
-            changeStatus(worker, WorkerStatus.ACTIVE, "heartbeat resumed", config.clock().instant());
+            changeStatus(worker, worker.deactivated() ? WorkerStatus.DEACTIVATED : WorkerStatus.ACTIVE,
+                    "heartbeat resumed", config.clock().instant());
         }
         session.send(session.message(MessageType.HEARTBEAT_ACK, null, message.messageId(),
                 new HeartbeatAckPayload(heartbeat.sequence(), worker.status().name())));

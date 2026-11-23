@@ -65,6 +65,7 @@ import org.districompute.distributed.task.AttemptStatus;
 import org.districompute.distributed.task.DistributedTask;
 import org.districompute.distributed.task.PartitionState;
 import org.districompute.distributed.strategy.StrategyOverride;
+import org.districompute.distributed.task.ResultSink;
 import org.districompute.distributed.task.SubmitOptions;
 import org.districompute.distributed.task.TaskSnapshot;
 import org.slf4j.Logger;
@@ -149,7 +150,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     // ---------------------------------------------------------------- submission and planning (control loop)
 
-    DistributedTask submit(TaskSpec spec, SubmitOptions options, StrategyOverride override) {
+    DistributedTask submit(TaskSpec spec, SubmitOptions options, StrategyOverride override, ResultSink sink) {
         if (active.containsKey(spec.taskId()) || finished.containsKey(spec.taskId())) {
             throw new IllegalArgumentException("Task id " + spec.taskId() + " is already in use");
         }
@@ -171,6 +172,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 config.clock());
         active.put(spec.taskId(), task);
         task.setOverride(override);
+        task.setResultSink(sink);
         task.validating();
         int perSlot = options.partitionsPerSlot() != null ? options.partitionsPerSlot()
                 : defaults.partitionsPerSlot();
@@ -440,7 +442,11 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 payload.partialResult().computeNanos());
         counters[Counter.BYTES_RECEIVED.ordinal()] += frameBytes + 1L;
         long start = System.nanoTime();
-        PartialResultCollector.Offer offer = task.session().accept(payload.partialResult());
+        // A finished task has released Core's session; Core would classify the offer LATE as well.
+        PartialResultCollector.Offer offer = task.session() == null
+                ? new PartialResultCollector.Offer(PartialResultCollector.Classification.LATE,
+                        "task is already " + task.status())
+                : task.session().accept(payload.partialResult());
         attempt.resultProcessed(System.nanoTime() - start);
         releaseSlot(attempt);
         PartitionState partition = partitionOf(task, attempt);
@@ -757,6 +763,9 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             TaskResult result;
             try {
                 result = task.session().complete();
+                if (result.status() == TaskStatus.COMPLETED) {
+                    deliverValue(task, result);
+                }
             } catch (DistriComputeException e) {
                 result = task.session().fail(e.toErrorInfo(TaskStatus.AGGREGATING));
             } catch (RuntimeException e) {
@@ -771,6 +780,22 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 finish(task, done);
             });
         });
+    }
+
+    private static void deliverValue(DistributedTask task, TaskResult result) {
+        if (task.resultSink() == ResultSink.NONE) {
+            return;
+        }
+        Object value = task.session().value().orElse(null);
+        if (value == null) {
+            LOG.warn("Task {} completed without a value to deliver", task.taskId());
+            return;
+        }
+        try {
+            task.resultSink().accept(result, value);
+        } catch (Exception e) {
+            LOG.warn("The result sink of task {} failed; the task is still COMPLETED", task.taskId(), e);
+        }
     }
 
     private void failTask(DistributedTask task, ErrorInfo error) {

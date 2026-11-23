@@ -46,6 +46,7 @@ public final class DistributedTask {
     private final Map<String, Attempt> attemptsById = new LinkedHashMap<>();
     private final Set<String> workersUsed = new LinkedHashSet<>();
     private PartitionedTaskSession session;
+    private ResultSink resultSink = ResultSink.NONE;
     private TaskRequirements requirements;
     private List<PartitionState> partitions = List.of();
     private long planningNanos;
@@ -186,7 +187,11 @@ public final class DistributedTask {
         partitions.stream().filter(p -> p.status() != PartitionStatus.COMPLETED)
                 .forEach(p -> p.setStatus(taskResult.status() == TaskStatus.CANCELLED ? PartitionStatus.CANCELLED
                         : PartitionStatus.FAILED));
-        completion.complete(new TaskOutcome(taskResult, snapshot(metricsCalculator)));
+        TaskOutcome outcome = new TaskOutcome(taskResult, snapshot(metricsCalculator));
+        // Release Core's session: it holds the input, every partial result and the full value, which a retained
+        // finished task must not keep in memory. Results that still arrive are classified LATE without it.
+        session = null;
+        completion.complete(outcome);
     }
 
     /**
@@ -265,6 +270,24 @@ public final class DistributedTask {
      */
     public PartitionedTaskSession session() {
         return session;
+    }
+
+    /**
+     * Sets the receiver of the full result value.
+     *
+     * @param sink the sink ({@link ResultSink#NONE} for none)
+     */
+    public void setResultSink(ResultSink sink) {
+        this.resultSink = Objects.requireNonNull(sink, "sink");
+    }
+
+    /**
+     * Receiver of the full result value.
+     *
+     * @return the sink
+     */
+    public ResultSink resultSink() {
+        return resultSink;
     }
 
     /**

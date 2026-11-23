@@ -19,6 +19,7 @@ import org.districompute.core.result.TaskResult;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.core.task.TaskStatus;
 import org.districompute.distributed.strategy.StrategyOverride;
+import org.districompute.distributed.task.ResultSink;
 import org.districompute.distributed.task.TaskOutcome;
 import org.districompute.distributed.task.TaskSnapshot;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ final class LocalTaskRunner implements AutoCloseable {
     private static final class LocalTask {
         private final TaskSpec spec;
         private final StrategyOverride override;
+        private final ResultSink sink;
         private final Instant submittedAt;
         private final CancellationSource cancellation = new CancellationSource();
         private final CompletableFuture<TaskOutcome> completion = new CompletableFuture<>();
@@ -46,9 +48,10 @@ final class LocalTaskRunner implements AutoCloseable {
         private TaskResult result;
         private Instant finishedAt;
 
-        LocalTask(TaskSpec spec, StrategyOverride override, Instant submittedAt) {
+        LocalTask(TaskSpec spec, StrategyOverride override, ResultSink sink, Instant submittedAt) {
             this.spec = spec;
             this.override = override;
+            this.sink = sink;
             this.submittedAt = submittedAt;
         }
 
@@ -82,8 +85,8 @@ final class LocalTaskRunner implements AutoCloseable {
         return tasks.containsKey(taskId);
     }
 
-    CompletableFuture<TaskOutcome> submit(TaskSpec spec, StrategyOverride override) {
-        LocalTask task = new LocalTask(spec, override, config.clock().instant());
+    CompletableFuture<TaskOutcome> submit(TaskSpec spec, StrategyOverride override, ResultSink sink) {
+        LocalTask task = new LocalTask(spec, override, sink, config.clock().instant());
         tasks.put(spec.taskId(), task);
         trim();
         events.localTaskSubmitted(spec, override);
@@ -122,6 +125,15 @@ final class LocalTaskRunner implements AutoCloseable {
             outcome = null;
         }
         TaskResult result = outcome == null ? null : outcome.taskResult();
+        if (result != null && result.status() == TaskStatus.COMPLETED && task.sink != ResultSink.NONE
+                && outcome.value() != null) {
+            // On this executor thread, before the completion future completes; the value is not kept.
+            try {
+                task.sink.accept(result, outcome.value());
+            } catch (Exception e) {
+                LOG.warn("The result sink of task {} failed; the task is still COMPLETED", task.spec.taskId(), e);
+            }
+        }
         loop.execute(() -> finish(task, result));
     }
 

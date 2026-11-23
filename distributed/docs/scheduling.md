@@ -27,7 +27,7 @@ decision record with its reason.
 
 | Rule | Rejection reason recorded |
 |---|---|
-| Worker status is `ACTIVE` | `status SUSPECT`, `status DRAINING`, `status QUARANTINED` |
+| Worker status is `ACTIVE` | `status SUSPECT`, `status DRAINING`, `status QUARANTINED`, `status DEACTIVATED` |
 | Worker is inside the task's worker limit (`maxWorkers`) | `outside the task's worker limit` |
 | Worker offers the algorithm | `does not offer primes.count` |
 | …in `DISTRIBUTED_CPU` mode | `does not run … partitions` |
