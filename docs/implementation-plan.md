@@ -1,0 +1,46 @@
+# Implementation Plan
+
+Each phase ends the same way: build, run the tests, review, fix defects, update the documentation, and commit
+only completed work. The status table records what has actually been done. It is never filled in ahead of time.
+
+## 1. Phases
+
+| Phase | Deliverables | Acceptance criteria |
+|---|---|---|
+| **1. Inspect and agree on architecture** | Component inspection; [architecture](architecture.md); this plan; integration strategy | Decisions recorded with reasons; gaps in the components identified |
+| **2. Component submodules and build** | Pinned submodules; root Maven reactor; Maven wrapper; bootstrap and build scripts; CI workflow | A clean clone builds Core, Distributed and the backend with one command, locally and in CI |
+| **3. Backend models and API contracts** | DTOs, error format, pagination, OpenAPI; [api.md](api.md) | Every endpoint documented; no JPA entity or component object exposed directly |
+| **4. Database and migrations** | Flyway migrations, entities, repositories; [database.md](database.md) | Migrations run on MySQL 8.4; constraints and indexes tested against a real MySQL |
+| **5. Task submission and experiment management** | Experiment creation, runs, repetitions, cancellation, history queries | REST tests: create, validate, list, filter, page, cancel |
+| **6. Initial React interface** | App shell, navigation, theme, API client, overview, task workspace, history | Builds and type-checks; component tests for navigation, forms and states |
+| **7. Core integration** | Catalog, categories, parameter forms, validation, workload analysis, input files, polynomial parser | Every Core algorithm listed with its real schema; invalid inputs rejected with Core's violations |
+| **8. Distributed integration** | Embedded coordinator, execution of all modes, result storage, metrics, worker processes | A matrix multiplication runs sequentially, multithreaded and on independent worker processes with equal digests |
+| **9. Execution strategy advisor** | Advisor API and page; estimate basis; history; override recording | Recommendation, alternatives, reasons, confidence and assumptions shown; unavailable modes not offered |
+| **10. Live monitoring** | Event persistence, SSE streams, live monitor page | Progress comes from runtime events; reconnection resumes without losing events |
+| **11. Worker management** | Worker list and detail, approval, deactivation, removal, connection test, history, topology | Works against real worker processes |
+| **12. Benchmarking and comparison** | Repetitions, comparison API and page, compatibility checks, statistics | Differences between configurations are shown; single runs are flagged |
+| **13. Reports** | PDF, CSV and JSON exports | Reports contain only stored experiment data; tested |
+| **14. Fault simulation and advanced workflows** | Isolated fault lab; batch submission; templates | Each scenario shows detection and recovery and is marked as simulated |
+| **15. End-to-end testing** | Playwright journey against the real backend, MySQL and worker processes | Task creation to report download passes locally and in CI |
+| **16. Deployment and release** | Docker Compose, deployment guide, user guide, release notes, implementation report | `docker compose up` starts a working platform; documentation matches the code |
+
+## 2. Status
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1 | Done | Components inspected (Core: 10 algorithms in 5 categories; Distributed: embeddable coordinator, worker processes, advice, events). Decisions D1-D10 recorded in [architecture.md](architecture.md). Two gaps found in Distributed: full result values and worker deactivation. |
+| 2 | Not started | |
+| 3 | Not started | |
+| 4 | Not started | |
+| 5 | Not started | |
+| 6 | Not started | |
+| 7 | Not started | |
+| 8 | Not started | |
+| 9 | Not started | |
+| 10 | Not started | |
+| 11 | Not started | |
+| 12 | Not started | |
+| 13 | Not started | |
+| 14 | Not started | |
+| 15 | Not started | |
+| 16 | Not started | |
