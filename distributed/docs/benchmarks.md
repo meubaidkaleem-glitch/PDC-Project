@@ -95,8 +95,9 @@ The same task on 2 workers with 2 slots each, with 1 to 32 partitions per slot.
 
 * From 4 to 64 partitions, the wall time stays within 2.54–2.75 s. More partitions cost little here: scheduling
   grows from 0.4 to 9.5 ms in total, and transfer sums stay around 0.1 s or less.
-* At 128 partitions the task is 10 % slower than the best setting. The kernel sum rises from about 10.0 to
-  11.1 s, because every segment of the sieve repeats some fixed work, and scheduling reaches 25 ms.
+* At 128 partitions the task is 17 % slower than the best setting (16 partitions) and 9 % slower than the
+  typical 2.7 s. The kernel sum rises from about 10.0 to 11.1 s, because every segment of the sieve repeats some
+  fixed work, and scheduling reaches 25 ms.
 * Over-decomposition shows its benefit only when workers differ ([§3.5](#35-load-imbalance-and-scheduling-policies)).
   With identical workers, 1 partition per slot was already balanced (imbalance 1.02).
 
@@ -190,7 +191,7 @@ Prime counting up to 10¹⁰ with 12 partitions (4 per slot) on two normal worke
 | Does a compute-bound task scale with workers? | Yes: efficiency 0.91–0.97 up to 4 workers |
 | What does the runtime cost? | About 5–20 ms per task on loopback, plus 0.1–0.4 ms of coordinator scheduling time per partition |
 | When does distribution pay? | Prime counting: from about 10⁸ (≈ 0.1 s of sequential work). Matrix multiplication: only from about n = 1536, because of data volume |
-| Is partition size critical? | Not between 1 and 16 partitions per slot; 32 per slot cost 10 % |
+| Is partition size critical? | Hardly: 1 to 16 partitions per slot were within 8 % of the best; 32 per slot cost 17 % |
 | Do the policies handle a 4× slower worker? | No. All of them let it delay the end of the task (§3.5) |
 | Should base64 JSON be replaced for data-heavy work? | The measurements say yes: encoding took half as long as computing for n = 1536 |
 

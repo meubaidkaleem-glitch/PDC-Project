@@ -10,8 +10,10 @@ aggregates and verifies results through Core, and reports progress and metrics t
 
 ## Status
 
-Development follows the phases in [docs/implementation-plan.md](docs/implementation-plan.md). The status table
-there records only completed work.
+All twelve phases of [docs/implementation-plan.md](docs/implementation-plan.md) are complete; what works, what
+does not, the test results and the known limitations are in
+[docs/implementation-report.md](docs/implementation-report.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+Pre-release: the protocol and the Java API may still change after review by the other contributors.
 
 ## Build
 
@@ -54,6 +56,15 @@ java -jar districompute-distributed-0.1.0-SNAPSHOT-all.jar worker --coordinator 
 Every option can also come from a properties file (`--config coordinator.properties`, same names without the
 dashes). The secret can come from the `DISTRICOMPUTE_SECRET` environment variable instead of a file.
 
+## Try it on one machine
+
+```bash
+distributed/scripts/local-demo.sh 3
+```
+
+starts a coordinator and three worker processes, runs the example tasks, prints the results and stops everything.
+For several machines, follow [docs/deployment.md](docs/deployment.md).
+
 ## Submit a task
 
 Start the coordinator with its HTTP API (`--http-port 8650 --http-token-file api.token`), then:
@@ -82,3 +93,7 @@ embeds the coordinator through its Java API, or uses the same HTTP API; see
 | [mpi/README.md](mpi/README.md) | MPI demonstrations in C (separate from the Java runtime): build, run, real output, comparison |
 | [docs/network-protocol.md](docs/network-protocol.md) | Wire protocol: framing, envelope, message types, errors, authentication, examples |
 | [docs/integration-contract.md](docs/integration-contract.md) | What the runtime takes from Core and offers the Application |
+| [docs/deployment.md](docs/deployment.md) | LAN deployment: secrets, configuration, start scripts, firewall, TLS, HTTP API, troubleshooting |
+| [docs/benchmarks.md](docs/benchmarks.md) | Measured scaling, granularity, problem size, communication cost and load imbalance, with caveats |
+| [docs/implementation-report.md](docs/implementation-report.md) | Completed, partial and missing features, test results, CI history, known bugs, integration commit |
+| [CHANGELOG.md](CHANGELOG.md) | Changes per commit |

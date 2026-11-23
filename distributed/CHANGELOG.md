@@ -29,8 +29,8 @@ All notable changes to DistriCompute-Distributed. The project is pre-release (`0
 * **Application integration** (`0c6e724`): execution advice from Core's strategy advisor with runtime resources,
   local sequential and multithreaded modes through Core, recorded manual overrides, calibrations, `submit`,
   `advise` and `status` clients.
-* **Release preparation** (Phase 12): `bench` command and benchmark results, deployment guide, start scripts,
-  local multi-worker demonstration, example configurations and tasks, implementation report.
+* **Release preparation** (`055cb18`): `bench` command and measured benchmark results, deployment guide, start
+  scripts, local multi-worker demonstration, example configurations and tasks; implementation report.
 
 ### Fixed
 
@@ -39,6 +39,15 @@ All notable changes to DistriCompute-Distributed. The project is pre-release (`0
   requires two consecutive omissions.
 * `6256429`: a draining worker could close its connection before its last result was sent (seen in CI on
   `148cf87` and `c4bc7b3`).
-* `a0a6b4a`, `3bf1a14` and Phase 12: the MPI demonstrations did not start with Open MPI 5 on the latest Ubuntu
+* `a0a6b4a`, `3bf1a14`, `5cd6ef0`: the MPI demonstrations did not start with Open MPI 5 on the latest Ubuntu
   image. The causes, found one after another in CI, were a missing slot declaration, a version check that failed
-  because the distribution package lacks Open MPI's help files, and Open MPI 5's default process binding.
+  because the distribution package lacks Open MPI's help files, and Open MPI 5's default process binding. CI run
+  45206004346 verified every demonstration with Open MPI 5.0.10.
+* `055cb18`: the first version of the local demonstration left the coordinator and workers running after it
+  ended (it stopped the shell around each JVM, not the JVM). Fixed before the commit.
+
+### Known limitations
+
+See [docs/implementation-report.md](docs/implementation-report.md) §2, §3 and §6. The most important: one
+coordinator without persistence, no protection of messages after registration without TLS, and no defence
+against a much slower worker delaying the end of a task.
