@@ -31,7 +31,7 @@ NP=4 ./run-demos.sh
 ```
 
 With Open MPI, `run-demos.sh` declares `NP` slots on the local machine (`--host localhost:NP`), so more processes
-than cores still start; this works with Open MPI 4 and 5. It adds `--allow-run-as-root` when run as root (for
+than cores still start. It adds `--allow-run-as-root` when run as root (for
 example in a container). Each program can also be started on its own,
 for example `mpirun -np 4 ./parallel_primes 1000000000`.
 
@@ -121,5 +121,11 @@ Application.
 
 The `mpi-demos` job in `.github/workflows/distributed-ci.yml` runs on Ubuntu 24.04 (Open MPI 4) and on the
 latest Ubuntu image (Open MPI 5). It installs Open MPI, builds with `-Wall -Wextra -Werror`, and runs every demo
-with 4 processes. The job fails if any check fails. Its first version used `--oversubscribe`, which Open MPI 5
-on the newer image did not honour, so the demos could not start there. Declaring the slots fixed it.
+with 4 processes. The job fails if any check fails.
+
+The job failed twice on the latest image before it passed, and the first diagnosis was wrong. Ubuntu's Open MPI
+5.0.10 package lacks the help files from which `mpirun --version` prints its text, so the output did not contain
+"Open MPI". The script therefore did not recognise Open MPI and never passed its slot options. The first fix
+(declaring slots with `--host localhost:NP` instead of `--oversubscribe`) was correct but never took effect.
+The script now also recognises Open MPI by the installed path of `mpirun` or by `ompi_info`, and `MPI_IMPL=openmpi`
+or `MPI_IMPL=other` skips the detection.
