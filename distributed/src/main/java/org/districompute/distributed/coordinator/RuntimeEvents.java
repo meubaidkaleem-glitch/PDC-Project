@@ -3,6 +3,7 @@ package org.districompute.distributed.coordinator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.districompute.core.result.TaskResult;
+import org.districompute.core.task.TaskSpec;
 import org.districompute.core.task.TaskStatus;
 import org.districompute.distributed.metrics.DistributedMetrics;
 import org.districompute.distributed.monitoring.EventBus;
@@ -15,6 +16,7 @@ import org.districompute.distributed.registry.WorkerRecord;
 import org.districompute.distributed.registry.WorkerStatus;
 import org.districompute.distributed.scheduler.AssignmentRecord;
 import org.districompute.distributed.scheduler.PolicyName;
+import org.districompute.distributed.strategy.StrategyOverride;
 import org.districompute.distributed.task.Attempt;
 import org.districompute.distributed.task.DistributedTask;
 import org.districompute.distributed.task.PartitionState;
@@ -147,6 +149,54 @@ final class RuntimeEvents implements WorkerManager.Listener {
                 partition.descriptor().partitionId(), null), partition.descriptor().partitionId() + " queued again "
                 + "after " + kind + ": " + reason, details(null, "failureKind", kind.name(), "reason", reason,
                 "countedFailures", partition.countedFailures(), "nextAttempt", partition.nextAttemptNumber()));
+    }
+
+    void strategyOverride(TaskSpec spec, StrategyOverride override) {
+        bus.publish(EventType.STRATEGY_OVERRIDE, ids(spec), "task " + spec.taskId() + " runs " + override.chosen()
+                + " although " + (override.recommended() == null ? "no mode" : override.recommended().name())
+                + " was recommended", details(null, "recommended", override.recommended() == null ? null
+                        : override.recommended().name(), "chosen", override.chosen().name(), "chosenVerdict",
+                        override.chosenVerdict().name(), "chosenReasons", override.chosenReasons(), "reason",
+                        override.reason()));
+    }
+
+    void localTaskSubmitted(TaskSpec spec, StrategyOverride override) {
+        bus.publish(EventType.TASK_SUBMITTED, ids(spec), "task " + spec.taskId() + " (" + spec.algorithm()
+                + ") submitted for " + spec.constraints().mode() + " on the coordinator", details(null, "algorithm",
+                spec.algorithm().toString(), "mode", spec.constraints().mode().name(), "priority",
+                spec.priority().name()));
+        if (override != null) {
+            strategyOverride(spec, override);
+        }
+    }
+
+    void localTaskStatus(TaskSpec spec, TaskStatus from, TaskStatus to) {
+        bus.publish(EventType.TASK_STATUS_CHANGED, ids(spec), "task " + spec.taskId() + ": " + from + " -> " + to,
+                details(null, "from", from == null ? null : from.name(), "to", to.name()));
+    }
+
+    void localTaskProgress(TaskSpec spec, int completed, int total) {
+        bus.publish(EventType.TASK_PROGRESS, ids(spec), "task " + spec.taskId() + ": " + completed + " of " + total
+                + " partitions", details(null, "completedPartitions", completed, "totalPartitions", total,
+                "percent", total == 0 ? 0.0 : 100.0 * completed / total));
+    }
+
+    void localTaskFinished(TaskSpec spec, TaskResult result) {
+        Map<String, Object> values = details(null, "status", result.status().name(), "mode", result.mode().name(),
+                "coreMetrics", result.metrics());
+        if (result.result() != null) {
+            values.put("digest", result.result().digest());
+            values.put("verificationPassed", result.verification() != null && result.verification().passed());
+        }
+        if (result.error() != null) {
+            values.put("errorCode", result.error().code().name());
+            values.put("error", result.error().message());
+        }
+        bus.publish(EventType.TASK_FINISHED, ids(spec), "task " + spec.taskId() + " " + result.status(), values);
+    }
+
+    private static EventIds ids(TaskSpec spec) {
+        return new EventIds(null, spec.experimentId(), spec.taskId(), null, null);
     }
 
     void policyChanged(PolicyName from, PolicyName to) {

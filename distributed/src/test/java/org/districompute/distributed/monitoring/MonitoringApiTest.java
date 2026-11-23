@@ -181,6 +181,63 @@ class MonitoringApiTest {
         assertTrue(recent.get(0).path("sequence").asLong() > before);
     }
 
+    @Test
+    void adviceAndCalibrationsAreAvailableOverHttp() throws Exception {
+        String task = "{\"schemaVersion\":\"0.1\",\"taskId\":\"advice-1\",\"algorithm\":{\"id\":\"matrix.multiply\"},"
+                + "\"parameters\":{\"rowsA\":512,\"colsA\":512,\"colsB\":512},\"constraints\":{\"mode\":"
+                + "\"DISTRIBUTED_CPU\"},\"createdAt\":\"2026-11-22T10:00:00Z\"}";
+        HttpResponse<String> advice = send("POST", "/advice", "{\"task\":" + task + "}");
+        assertEquals(200, advice.statusCode(), advice.body());
+        JsonNode body = Json.readTree(bytes(advice));
+        assertEquals(2, body.path("runtime").path("eligibleWorkers").size());
+        assertEquals(5, body.path("assessment").path("assessments").size());
+        assertTrue(body.path("explanation").stringValue().startsWith("Recommended:"));
+        assertEquals(400, send("POST", "/advice", "{\"task\":{\"schemaVersion\":\"0.1\"}}").statusCode());
+
+        HttpResponse<String> added = send("POST", "/calibrations", "[{\"algorithm\":\"matrix.multiply\","
+                + "\"mode\":\"SEQUENTIAL_CPU\",\"threads\":1,\"operationsPerSecond\":1.0E9,"
+                + "\"problemOperations\":2.7E8}]");
+        assertEquals(200, added.statusCode(), added.body());
+        assertTrue(get("/calibrations", 200).size() >= 1);
+        for (String invalid : new String[] {"null", "[null]", "[{\"algorithm\":\"matrix.multiply\"}]", "{}"}) {
+            assertEquals(400, send("POST", "/calibrations", invalid).statusCode(), invalid);
+        }
+        JsonNode calibrated = Json.readTree(bytes(send("POST", "/advice", task)));
+        assertTrue(calibrated.path("assessment").path("calibrated").asBoolean(), "the supplied history is used");
+    }
+
+    @Test
+    void theCommandLineClientsTalkToTheApi(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        java.nio.file.Path tokenFile = dir.resolve("token");
+        java.nio.file.Files.writeString(tokenFile, TOKEN + "\n", StandardCharsets.UTF_8);
+        java.nio.file.Path taskFile = dir.resolve("task.json");
+        java.nio.file.Files.writeString(taskFile, "{\"schemaVersion\":\"0.1\",\"taskId\":\"cli-task\","
+                + "\"algorithm\":{\"id\":\"sort.merge\"},\"parameters\":{\"size\":200000},\"constraints\":"
+                + "{\"mode\":\"DISTRIBUTED_CPU\"},\"createdAt\":\"2026-11-22T10:00:00Z\"}", StandardCharsets.UTF_8);
+        String apiUrl = "http://127.0.0.1:" + api.port();
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream print = new java.io.PrintStream(out, true, StandardCharsets.UTF_8);
+        java.io.PrintStream printErr = new java.io.PrintStream(err, true, StandardCharsets.UTF_8);
+        assertEquals(0, org.districompute.distributed.DistributedCli.run(List.of("submit", taskFile.toString(),
+                "--api", apiUrl, "--token-file", tokenFile.toString(), "--policy", "least-loaded", "--wait"), print,
+                printErr), err.toString(StandardCharsets.UTF_8));
+        String text = out.toString(StandardCharsets.UTF_8);
+        assertTrue(text.contains("Submitted task cli-task") && text.contains("Status: COMPLETED")
+                && text.contains("-> passed"), text);
+        out.reset();
+        assertEquals(0, org.districompute.distributed.DistributedCli.run(List.of("status", "--api", apiUrl,
+                "--token-file", tokenFile.toString()), print, printErr));
+        assertTrue(out.toString(StandardCharsets.UTF_8).contains("api-w1"), out.toString(StandardCharsets.UTF_8));
+        out.reset();
+        assertEquals(0, org.districompute.distributed.DistributedCli.run(List.of("advise", taskFile.toString(),
+                "--api", apiUrl, "--token-file", tokenFile.toString()), print, printErr));
+        assertTrue(out.toString(StandardCharsets.UTF_8).contains("DISTRIBUTED_CPU"));
+        assertEquals(1, org.districompute.distributed.DistributedCli.run(List.of("status", "--api", apiUrl), print,
+                printErr), "no token: the API refuses");
+    }
+
     private static List<String> readUntilFinished(InputStream in) {
         List<String> lines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {

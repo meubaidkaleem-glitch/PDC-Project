@@ -27,6 +27,7 @@ import org.districompute.core.CoreVersion;
 import org.districompute.core.DistriComputeException;
 import org.districompute.core.ErrorCode;
 import org.districompute.core.registry.AlgorithmInfo;
+import org.districompute.core.scheduling.Calibration;
 import org.districompute.core.serialization.ContractJson;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.core.validation.ValidationException;
@@ -93,9 +94,10 @@ public final class MonitoringServer implements AutoCloseable {
      * @param attemptTimeoutMillis attempt timeout, or {@code null}
      * @param maxAttempts attempts per partition, or {@code null}
      * @param maxWorkers distinct worker limit, or {@code null}
+     * @param overrideReason why the requested mode differs from the recommendation, or {@code null}
      */
     public record SubmitRequest(JsonNode task, PolicyName policy, Integer partitionsPerSlot, Long attemptTimeoutMillis,
-            Integer maxAttempts, Integer maxWorkers) {
+            Integer maxAttempts, Integer maxWorkers, String overrideReason) {
     }
 
     private final Coordinator coordinator;
@@ -181,6 +183,8 @@ public final class MonitoringServer implements AutoCloseable {
             case "scheduling" -> scheduling(exchange, method);
             case "catalog" -> requireMethod(exchange, method, "GET", () -> json(exchange, 200, catalog()));
             case "events" -> events(exchange, method, parts);
+            case "advice" -> requireMethod(exchange, method, "POST", () -> advice(exchange));
+            case "calibrations" -> calibrations(exchange, method);
             default -> error(exchange, 404, "NOT_FOUND", "No resource " + path);
         }
     }
@@ -259,7 +263,7 @@ public final class MonitoringServer implements AutoCloseable {
         try {
             SubmitOptions options = new SubmitOptions(request.policy(), request.partitionsPerSlot(),
                     request.attemptTimeoutMillis() == null ? null : Duration.ofMillis(request.attemptTimeoutMillis()),
-                    request.maxAttempts(), request.maxWorkers());
+                    request.maxAttempts(), request.maxWorkers(), request.overrideReason());
             coordinator.submit(spec, options);
             Map<String, Object> accepted = new LinkedHashMap<>();
             accepted.put("taskId", spec.taskId());
@@ -274,6 +278,43 @@ public final class MonitoringServer implements AutoCloseable {
             error(exchange, status, e.code().name(), e.getMessage());
         } catch (IllegalArgumentException e) {
             error(exchange, 409, "CONFLICT", e.getMessage());
+        }
+    }
+
+    private void advice(HttpExchange exchange) throws IOException {
+        TaskSpec spec;
+        try {
+            JsonNode body = Json.readTree(readBody(exchange));
+            JsonNode task = body.has("task") ? body.get("task") : body;
+            spec = ContractJson.fromJson(Json.toJson(task), TaskSpec.class);
+            json(exchange, 200, coordinator.advise(spec));
+        } catch (ValidationException e) {
+            json(exchange, 400, Map.of("error", Map.of("code", "VALIDATION_FAILED", "message", e.getMessage(),
+                    "violations", e.violations())));
+        } catch (DistriComputeException e) {
+            error(exchange, 400, e.code().name(), e.getMessage());
+        } catch (JacksonException | IllegalArgumentException e) {
+            error(exchange, 400, "VALIDATION_FAILED", "Invalid request: " + e.getMessage());
+        }
+    }
+
+    private void calibrations(HttpExchange exchange, String method) throws IOException {
+        if ("GET".equals(method)) {
+            json(exchange, 200, coordinator.calibrations());
+        } else if ("POST".equals(method)) {
+            try {
+                Calibration[] supplied = Json.fromJson(readBody(exchange), Calibration[].class);
+                if (supplied == null || java.util.Arrays.asList(supplied).contains(null)) {
+                    throw new IllegalArgumentException("null is not a calibration");
+                }
+                coordinator.addCalibrations(List.of(supplied));
+                json(exchange, 200, Map.of("added", supplied.length));
+            } catch (JacksonException | IllegalArgumentException e) {
+                error(exchange, 400, "VALIDATION_FAILED", "Body must be a JSON array of Core Calibration objects: "
+                        + e.getMessage());
+            }
+        } else {
+            methodNotAllowed(exchange);
         }
     }
 

@@ -26,6 +26,7 @@ import org.districompute.core.task.TaskStatus;
 import org.districompute.distributed.metrics.MetricsCalculator;
 import org.districompute.distributed.scheduler.PolicyName;
 import org.districompute.distributed.scheduler.TaskRequirements;
+import org.districompute.distributed.strategy.StrategyOverride;
 
 /**
  * Mutable state of one task in the runtime. Owned by the coordinator's control loop. The task status is Core's:
@@ -57,6 +58,7 @@ public final class DistributedTask {
     private TaskResult result;
     private boolean completing;
     private TaskStatus publishedStatus;
+    private StrategyOverride override;
 
     /**
      * Creates a submitted task.
@@ -235,7 +237,7 @@ public final class DistributedTask {
         return new TaskSnapshot(spec.taskId(), spec.experimentId(), spec.algorithm(), spec.constraints().mode(),
                 status(), policy, submittedAt, finishedAt, partitions.size(), completed, attemptsById.size(),
                 retries, result == null ? null : result.error(), metricsCalculator.compute(this),
-                partitions.stream().map(PartitionState::snapshot).toList(), result);
+                partitions.stream().map(PartitionState::snapshot).toList(), result, override);
     }
 
     /**
@@ -351,6 +353,15 @@ public final class DistributedTask {
      */
     public void startCompleting() {
         this.completing = true;
+    }
+
+    /**
+     * Records a manual override of the recommended mode.
+     *
+     * @param value the override, or {@code null}
+     */
+    public void setOverride(StrategyOverride value) {
+        this.override = value;
     }
 
     /**

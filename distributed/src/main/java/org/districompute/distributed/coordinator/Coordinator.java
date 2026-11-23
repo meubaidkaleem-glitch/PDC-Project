@@ -6,8 +6,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -15,6 +17,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.districompute.core.DistriComputeException;
+import org.districompute.core.ErrorCode;
+import org.districompute.core.execution.ExecutionMode;
+import org.districompute.core.scheduling.Calibration;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.distributed.communication.Connection;
 import org.districompute.distributed.communication.Sockets;
@@ -28,8 +33,10 @@ import org.districompute.distributed.scheduler.Policies;
 import org.districompute.distributed.scheduler.PolicyName;
 import org.districompute.distributed.scheduler.Scheduler;
 import org.districompute.distributed.security.RegistrationAuthenticator;
-import org.districompute.distributed.task.DistributedTask;
+import org.districompute.distributed.strategy.ExecutionAdvice;
+import org.districompute.distributed.strategy.StrategyOverride;
 import org.districompute.distributed.task.SubmitOptions;
+import org.districompute.distributed.task.TaskOutcome;
 import org.districompute.distributed.task.TaskSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +60,8 @@ public final class Coordinator implements AutoCloseable {
     private final ScheduledExecutorService ticker;
     private final Scheduler scheduler;
     private final TaskManager tasks;
+    private final StrategyService strategy;
+    private final LocalTaskRunner local;
     private final EventBus eventBus;
     private final RuntimeEvents events;
     private final Instant startedAt;
@@ -68,7 +77,9 @@ public final class Coordinator implements AutoCloseable {
         this.workers = new WorkerManager(config, authenticator);
         workers.setEvents(events);
         this.scheduler = new Scheduler(config.tasks().policy(), Policies.builtIn());
-        this.tasks = new TaskManager(config, loop, workers, scheduler, events);
+        this.strategy = new StrategyService(config, workers);
+        this.tasks = new TaskManager(config, loop, workers, scheduler, events, strategy);
+        this.local = new LocalTaskRunner(config, loop, events, strategy);
         workers.addListener(tasks);
         workers.setAttemptMessages(tasks);
         try {
@@ -159,10 +170,18 @@ public final class Coordinator implements AutoCloseable {
     }
 
     /**
-     * Submits a task. Validation, planning and dispatch happen asynchronously; problems found then end the task
-     * with a {@code FAILED} result instead of an exception.
+     * Submits a task in the mode its {@code TaskSpec} requests:
+     * <ul>
+     *   <li>{@code DISTRIBUTED_CPU}: partitions are executed by workers;</li>
+     *   <li>{@code SEQUENTIAL_CPU}, {@code MULTITHREADED_CPU}: Core's local engine on the coordinator's machine;</li>
+     *   <li>{@code GPU}, {@code HYBRID}: refused with an explanation (no GPU backend exists; hybrid is not
+     *       implemented).</li>
+     * </ul>
+     * If the mode differs from the current recommendation ({@link #advise}), the task still runs, and the override
+     * is recorded in its snapshot and published as an event. Validation, planning and execution happen
+     * asynchronously; problems found then end the task with a {@code FAILED} result instead of an exception.
      *
-     * @param spec Core task specification (mode {@code DISTRIBUTED_CPU})
+     * @param spec Core task specification
      * @param options runtime options
      * @return a handle to wait for, inspect or cancel the task
      * @throws DistriComputeException if the task is refused (unknown algorithm, unsupported mode, too many tasks)
@@ -171,8 +190,65 @@ public final class Coordinator implements AutoCloseable {
     public TaskHandle submit(TaskSpec spec, SubmitOptions options) {
         Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(options, "options");
-        DistributedTask task = loop.call(() -> tasks.submit(spec, options), QUERY_TIMEOUT);
-        return new TaskHandle(spec.taskId(), task.completion(), this);
+        CompletableFuture<TaskOutcome> completion = loop.call(() -> {
+            if (tasks.task(spec.taskId()).isPresent() || local.contains(spec.taskId())) {
+                throw new IllegalArgumentException("Task id " + spec.taskId() + " is already in use");
+            }
+            ExecutionMode mode = spec.constraints().mode();
+            if (mode == ExecutionMode.GPU) {
+                throw new DistriComputeException(ErrorCode.UNSUPPORTED_EXECUTION_MODE, "GPU execution is not "
+                        + "available: " + config.registry().gpuStatus().summary()
+                        + "; no worker reports a working GPU backend");
+            }
+            if (mode == ExecutionMode.HYBRID) {
+                throw new DistriComputeException(ErrorCode.UNSUPPORTED_EXECUTION_MODE,
+                        "Hybrid CPU/GPU/distributed execution is not implemented");
+            }
+            config.registry().resolve(spec.algorithm());
+            StrategyOverride override = strategy.overrideFor(spec, options.overrideReason(),
+                    tasks.pendingPartitions()).orElse(null);
+            if (LocalTaskRunner.handles(mode)) {
+                return local.submit(spec, override);
+            }
+            return tasks.submit(spec, options, override).completion();
+        }, QUERY_TIMEOUT);
+        return new TaskHandle(spec.taskId(), completion, this);
+    }
+
+    /**
+     * Assesses every execution mode for a task with the cluster's current resources: Core's cost model, fed with
+     * the runtime's workers, load, measured network and history. Nothing is executed.
+     *
+     * @param spec the task (its requested mode is ignored)
+     * @return the advice, with Core's verdicts, estimates, reasons and assumptions
+     * @throws DistriComputeException for unknown algorithms or invalid parameters
+     */
+    public ExecutionAdvice advise(TaskSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+        return loop.call(() -> strategy.advise(spec, tasks.pendingPartitions()), QUERY_TIMEOUT);
+    }
+
+    /**
+     * Adds measured throughput (for example {@code Calibration.fromReport(benchmarkReport)}) so that advice can
+     * give time estimates.
+     *
+     * @param calibrations the measurements
+     */
+    public void addCalibrations(Collection<Calibration> calibrations) {
+        List<Calibration> copy = List.copyOf(calibrations);
+        loop.call(() -> {
+            strategy.addSupplied(copy);
+            return null;
+        }, QUERY_TIMEOUT);
+    }
+
+    /**
+     * The throughput history used for advice: supplied by the Application, then measured by this runtime.
+     *
+     * @return the calibrations
+     */
+    public List<Calibration> calibrations() {
+        return loop.call(strategy::calibrations, QUERY_TIMEOUT);
     }
 
     /**
@@ -182,7 +258,7 @@ public final class Coordinator implements AutoCloseable {
      * @return the snapshot, if the task is active or retained
      */
     public Optional<TaskSnapshot> task(String taskId) {
-        return loop.call(() -> tasks.snapshot(taskId), QUERY_TIMEOUT);
+        return loop.call(() -> tasks.snapshot(taskId).or(() -> local.snapshot(taskId)), QUERY_TIMEOUT);
     }
 
     /**
@@ -191,7 +267,11 @@ public final class Coordinator implements AutoCloseable {
      * @return snapshots, finished tasks first
      */
     public List<TaskSnapshot> tasks() {
-        return loop.call(tasks::snapshots, QUERY_TIMEOUT);
+        return loop.call(() -> {
+            List<TaskSnapshot> all = new java.util.ArrayList<>(tasks.snapshots());
+            all.addAll(local.snapshots());
+            return all;
+        }, QUERY_TIMEOUT);
     }
 
     /**
@@ -201,7 +281,8 @@ public final class Coordinator implements AutoCloseable {
      * @return {@code true} if the task was running and is now cancelled
      */
     public boolean cancel(String taskId) {
-        return loop.call(() -> tasks.cancel(taskId, "cancelled by the client"), QUERY_TIMEOUT);
+        return loop.call(() -> tasks.cancel(taskId, "cancelled by the client") || local.cancel(taskId),
+                QUERY_TIMEOUT);
     }
 
     /**
@@ -269,7 +350,7 @@ public final class Coordinator implements AutoCloseable {
             }
             return new CoordinatorMetrics(config.coordinatorId(), startedAt,
                     java.time.Duration.between(startedAt, config.clock().instant()).toMillis(), byStatus, totalSlots,
-                    busySlots, tasks.activeTasks(), tasks.pendingPartitions(),
+                    busySlots, tasks.activeTasks() + local.active(), tasks.pendingPartitions(),
                     tasks.counter(TaskManager.Counter.TASKS_SUBMITTED),
                     tasks.counter(TaskManager.Counter.TASKS_COMPLETED), tasks.counter(TaskManager.Counter.TASKS_FAILED),
                     tasks.counter(TaskManager.Counter.TASKS_CANCELLED),
@@ -311,6 +392,7 @@ public final class Coordinator implements AutoCloseable {
         }
         loop.close();
         tasks.close();
+        local.close();
         eventBus.close();
     }
 

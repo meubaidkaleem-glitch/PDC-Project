@@ -67,8 +67,8 @@ earlier decisions.
 
 ## 4. Decision records
 
-Every assignment produces an `AssignmentRecord`. It is stored in the attempt's snapshot, and Phase 8 also
-publishes it as an event.
+Every assignment produces an `AssignmentRecord`. It is stored in the attempt's snapshot and published as an
+`ATTEMPT_ASSIGNED` event.
 
 | Field | Meaning |
 |---|---|

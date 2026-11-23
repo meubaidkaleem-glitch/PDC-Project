@@ -36,6 +36,8 @@ public enum EventType {
     RESULT_IGNORED,
     /** A partition was queued again after a failure. */
     PARTITION_RETRIED,
+    /** A task was submitted with a different mode than the one recommended at that moment. */
+    STRATEGY_OVERRIDE,
     /** The default scheduling policy changed. */
     SCHEDULING_POLICY_CHANGED,
     /** A subscriber missed events because it could not keep up; it should re-read the state. */

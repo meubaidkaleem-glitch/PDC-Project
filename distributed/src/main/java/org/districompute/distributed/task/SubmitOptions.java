@@ -11,12 +11,13 @@ import org.districompute.distributed.scheduler.PolicyName;
  * @param attemptTimeout time allowed for one attempt
  * @param maxAttempts attempts per partition before the task fails (including the first)
  * @param maxWorkers use at most this many distinct workers (limited availability experiments)
+ * @param overrideReason why the requested mode differs from the recommendation, if it does (recorded)
  */
 public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Duration attemptTimeout, Integer maxAttempts,
-        Integer maxWorkers) {
+        Integer maxWorkers, String overrideReason) {
 
     /** All defaults. */
-    public static final SubmitOptions DEFAULTS = new SubmitOptions(null, null, null, null, null);
+    public static final SubmitOptions DEFAULTS = new SubmitOptions(null, null, null, null, null, null);
 
     /** Validates the components. */
     public SubmitOptions {
@@ -32,6 +33,9 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
         if (maxWorkers != null && maxWorkers < 1) {
             throw new IllegalArgumentException("maxWorkers must be at least 1");
         }
+        if (overrideReason != null && overrideReason.length() > 500) {
+            throw new IllegalArgumentException("overrideReason must have at most 500 characters");
+        }
     }
 
     /**
@@ -41,7 +45,7 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
      * @return the new options
      */
     public SubmitOptions withPolicy(PolicyName value) {
-        return new SubmitOptions(value, partitionsPerSlot, attemptTimeout, maxAttempts, maxWorkers);
+        return new SubmitOptions(value, partitionsPerSlot, attemptTimeout, maxAttempts, maxWorkers, overrideReason);
     }
 
     /**
@@ -51,7 +55,7 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
      * @return the new options
      */
     public SubmitOptions withPartitionsPerSlot(int value) {
-        return new SubmitOptions(policy, value, attemptTimeout, maxAttempts, maxWorkers);
+        return new SubmitOptions(policy, value, attemptTimeout, maxAttempts, maxWorkers, overrideReason);
     }
 
     /**
@@ -61,7 +65,7 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
      * @return the new options
      */
     public SubmitOptions withAttemptTimeout(Duration value) {
-        return new SubmitOptions(policy, partitionsPerSlot, value, maxAttempts, maxWorkers);
+        return new SubmitOptions(policy, partitionsPerSlot, value, maxAttempts, maxWorkers, overrideReason);
     }
 
     /**
@@ -71,7 +75,17 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
      * @return the new options
      */
     public SubmitOptions withMaxAttempts(int value) {
-        return new SubmitOptions(policy, partitionsPerSlot, attemptTimeout, value, maxWorkers);
+        return new SubmitOptions(policy, partitionsPerSlot, attemptTimeout, value, maxWorkers, overrideReason);
+    }
+
+    /**
+     * Copy with the reason for overriding the recommended mode.
+     *
+     * @param value the reason
+     * @return the new options
+     */
+    public SubmitOptions withOverrideReason(String value) {
+        return new SubmitOptions(policy, partitionsPerSlot, attemptTimeout, maxAttempts, maxWorkers, value);
     }
 
     /**
@@ -81,6 +95,6 @@ public record SubmitOptions(PolicyName policy, Integer partitionsPerSlot, Durati
      * @return the new options
      */
     public SubmitOptions withMaxWorkers(int value) {
-        return new SubmitOptions(policy, partitionsPerSlot, attemptTimeout, maxAttempts, value);
+        return new SubmitOptions(policy, partitionsPerSlot, attemptTimeout, maxAttempts, value, overrideReason);
     }
 }

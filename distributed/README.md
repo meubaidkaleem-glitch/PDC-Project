@@ -54,6 +54,22 @@ java -jar districompute-distributed-0.1.0-SNAPSHOT-all.jar worker --coordinator 
 Every option can also come from a properties file (`--config coordinator.properties`, same names without the
 dashes). The secret can come from the `DISTRICOMPUTE_SECRET` environment variable instead of a file.
 
+## Submit a task
+
+Start the coordinator with its HTTP API (`--http-port 8650 --http-token-file api.token`), then:
+
+```bash
+java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar advise task.json --api http://127.0.0.1:8650 --token-file api.token
+```
+
+```bash
+java -jar distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar submit task.json --api http://127.0.0.1:8650 --token-file api.token --policy dynamic --wait
+```
+
+`task.json` is a Core `TaskSpec`. `status` lists the workers, the tasks and the attempt counters. The Application
+embeds the coordinator through its Java API, or uses the same HTTP API; see
+[docs/integration-contract.md](docs/integration-contract.md).
+
 ## Documentation
 
 | Document | Contents |

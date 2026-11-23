@@ -38,7 +38,7 @@ The specification's recovery requirements and how they are met:
 | 6. Prevent duplicate aggregation | Core accepts the first valid result per partition. Later copies are `DUPLICATE`, `LATE` or `CONFLICTING_DUPLICATE`. Other live attempts of a completed partition are `SUPERSEDED` and cancelled. |
 | 7. Track retry count | Every retry has a new attempt id (`…/a2`, `…/a3`). Snapshots and metrics report `attempts`, `retries` and `failedAttempts`. |
 | 8. Record the failure reason | Each attempt has `status`, `failure` and `retryable`; the task's `ErrorInfo` names the partition and the reason |
-| 9. Notify the Application | Task snapshots now; runtime events in Phase 8 |
+| 9. Notify the Application | Task snapshots, and the events `WORKER_STATUS_CHANGED`, `WORKER_DISCONNECTED`, `ATTEMPT_FAILED`, `PARTITION_RETRIED`, `RESULT_IGNORED` and `TASK_FINISHED` ([integration-contract.md §3](integration-contract.md#3-events--implemented)) |
 | 10. Mark unrecoverable tasks clearly | The task ends `FAILED` with Core's error code and a message such as `Partition t/p0 failed: …; the retry budget is exhausted (3 failed attempts, limit 3)` |
 
 **Quarantine.** A worker that returns `quarantineThreshold` (default 3) invalid or conflicting results within one

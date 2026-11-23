@@ -64,7 +64,7 @@ CONNECTING ───────────▶ REGISTERING ──────�
   coordinator that cannot prove the secret.
 
 The coordinator's view of a worker (`ACTIVE`, `SUSPECT`, `DRAINING`, `QUARANTINED`, `DISCONNECTED`) is described in
-[integration-contract.md §2.1](integration-contract.md#21-starting-a-coordinator-and-listing-workers).
+[integration-contract.md §2.1](integration-contract.md#21-starting-a-coordinator-and-listing-workers--implemented).
 
 ## 4. Heartbeats
 

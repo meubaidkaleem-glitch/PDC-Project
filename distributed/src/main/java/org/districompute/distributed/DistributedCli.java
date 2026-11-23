@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.districompute.core.CoreVersion;
+import org.districompute.distributed.cli.ClientCommand;
 import org.districompute.distributed.cli.CoordinatorCommand;
 import org.districompute.distributed.cli.Options;
 import org.districompute.distributed.cli.WorkerCommand;
@@ -47,7 +48,7 @@ public final class DistributedCli {
             return 0;
         }
         return switch (args.get(0)) {
-            case "coordinator", "worker" -> runCommand(args, out, err, args.get(0));
+            case "coordinator", "worker", "submit", "status", "advise" -> runCommand(args, out, err, args.get(0));
             case "version" -> {
                 out.println("districompute-distributed " + DistributedVersion.version() + " (core "
                         + CoreVersion.version() + ")");
@@ -67,6 +68,8 @@ public final class DistributedCli {
             return switch (command) {
                 case "coordinator" -> CoordinatorCommand.run(Options.parse(rest, CoordinatorCommand.FLAGS), out);
                 case "worker" -> WorkerCommand.run(Options.parse(rest, WorkerCommand.FLAGS), out);
+                case "submit", "status", "advise" -> ClientCommand.run(command, Options.parse(rest,
+                        ClientCommand.FLAGS), out);
                 default -> throw new IllegalStateException(command);
             };
         } catch (IllegalArgumentException e) {
@@ -74,6 +77,10 @@ public final class DistributedCli {
             return 2;
         } catch (IOException e) {
             err.println("Error: " + e.getMessage());
+            return 1;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            err.println("Interrupted");
             return 1;
         }
     }
@@ -90,6 +97,11 @@ public final class DistributedCli {
         out.println("               [--max-concurrent-tasks N] [--labels k=v,...] [--algorithms id,...]");
         out.println("               [--tls-truststore <p12> --tls-truststore-password <pw>] [--config <file>]");
         out.println("               [--fault-profile <file>]   (experiments only; see docs/fault-tolerance.md)");
+        out.println("  submit       submit a task to a coordinator's HTTP API: <task.json> --api http://host:8650");
+        out.println("               [--policy dynamic] [--max-workers N] [--override-reason <text>]");
+        out.println("               [--wait [--timeout-s 3600]] [--token-file <file>]");
+        out.println("  advise       ask which execution mode suits a task: <task.json> --api ...");
+        out.println("  status       list workers, tasks and counters: --api ...");
         out.println("  version      print the runtime and Core versions");
         out.println("  help         print this help");
         out.println();

@@ -31,6 +31,8 @@ import org.districompute.core.result.TaskResult;
 import org.districompute.core.task.TaskPriority;
 import org.districompute.core.task.TaskSpec;
 import org.districompute.core.task.TaskStatus;
+import org.districompute.core.scheduling.Calibration;
+import org.districompute.distributed.metrics.DistributedMetrics;
 import org.districompute.distributed.metrics.MetricsCalculator;
 import org.districompute.distributed.protocol.AttemptRef;
 import org.districompute.distributed.protocol.CancelPayload;
@@ -62,6 +64,7 @@ import org.districompute.distributed.task.Attempt;
 import org.districompute.distributed.task.AttemptStatus;
 import org.districompute.distributed.task.DistributedTask;
 import org.districompute.distributed.task.PartitionState;
+import org.districompute.distributed.strategy.StrategyOverride;
 import org.districompute.distributed.task.SubmitOptions;
 import org.districompute.distributed.task.TaskSnapshot;
 import org.slf4j.Logger;
@@ -109,9 +112,12 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         ATTEMPTS_FAILED, PARTITIONS_RETRIED, BYTES_SENT, BYTES_RECEIVED
     }
 
+    private final StrategyService strategy;
+
     TaskManager(CoordinatorConfig config, ControlLoop loop, WorkerManager workers, Scheduler scheduler,
-            RuntimeEvents events) {
+            RuntimeEvents events, StrategyService strategy) {
         this.events = events;
+        this.strategy = strategy;
         this.config = config;
         this.defaults = config.tasks();
         this.loop = loop;
@@ -143,7 +149,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
 
     // ---------------------------------------------------------------- submission and planning (control loop)
 
-    DistributedTask submit(TaskSpec spec, SubmitOptions options) {
+    DistributedTask submit(TaskSpec spec, SubmitOptions options, StrategyOverride override) {
         if (active.containsKey(spec.taskId()) || finished.containsKey(spec.taskId())) {
             throw new IllegalArgumentException("Task id " + spec.taskId() + " is already in use");
         }
@@ -164,6 +170,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
         DistributedTask task = new DistributedTask(spec, policy, maxAttempts, attemptTimeout, options.maxWorkers(),
                 config.clock());
         active.put(spec.taskId(), task);
+        task.setOverride(override);
         task.validating();
         int perSlot = options.partitionsPerSlot() != null ? options.partitionsPerSlot()
                 : defaults.partitionsPerSlot();
@@ -172,6 +179,9 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                 policy, defaultPartitions);
         counters[Counter.TASKS_SUBMITTED.ordinal()]++;
         events.taskSubmitted(task);
+        if (override != null) {
+            events.strategyOverride(spec, override);
+        }
         publishStatus(task);
         planning.execute(() -> open(task, defaultPartitions));
         return task;
@@ -442,6 +452,7 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
                         task.requirements().operationsPerPartition(), attempt.computeNanos(),
                         attempt.bytesSent() + attempt.bytesReceived(), attempt.transferNanos());
                 task.partitionCompleted(partition, receivedNanos);
+                strategy.observeTransfer(attempt.transferNanos());
                 events.taskProgress(task, (int) task.partitions().stream()
                         .filter(p -> p.status() == PartitionStatus.COMPLETED).count());
                 for (Attempt other : partition.live()) {
@@ -813,7 +824,18 @@ final class TaskManager implements WorkerManager.AttemptMessages, WorkerManager.
             default -> counters[Counter.TASKS_FAILED.ordinal()]++;
         }
         publishStatus(task);
-        events.taskFinished(task, result, metrics.compute(task));
+        DistributedMetrics finalMetrics = metrics.compute(task);
+        events.taskFinished(task, result, finalMetrics);
+        if (result.status() == TaskStatus.COMPLETED && result.profile() != null) {
+            long seconds = finalMetrics.distributedNanos() + finalMetrics.aggregationNanos();
+            int cores = task.workersUsed().stream().mapToInt(id -> workers.registry().get(id)
+                    .map(w -> Math.min(w.capabilities().cpuCores(), w.maxConcurrentTasks())).orElse(1)).sum();
+            if (seconds > 0) {
+                strategy.recordMeasured(new Calibration(result.algorithm().id(), ExecutionMode.DISTRIBUTED_CPU,
+                        Math.max(1, cores), result.profile().estimatedOperations() / (seconds / 1e9),
+                        result.profile().estimatedOperations()));
+            }
+        }
         active.remove(task.taskId());
         withoutCapableWorkerSince.remove(task.taskId());
         finished.put(task.taskId(), task);

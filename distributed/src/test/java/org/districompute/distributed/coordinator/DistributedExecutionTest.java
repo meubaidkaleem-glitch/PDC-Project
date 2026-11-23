@@ -143,8 +143,8 @@ class DistributedExecutionTest {
         assertEquals(ErrorCode.VALIDATION_FAILED, result.error().code());
         assertFalse(result.error().violations().isEmpty());
 
-        TaskSpec local = TaskSpec.builder("primes.count").taskId("local").mode(ExecutionMode.SEQUENTIAL_CPU).build();
-        DistriComputeException mode = assertThrows(DistriComputeException.class, () -> coordinator.submit(local));
+        TaskSpec gpu = TaskSpec.builder("primes.count").taskId("gpu").mode(ExecutionMode.GPU).build();
+        DistriComputeException mode = assertThrows(DistriComputeException.class, () -> coordinator.submit(gpu));
         assertEquals(ErrorCode.UNSUPPORTED_EXECUTION_MODE, mode.code());
         assertThrows(IllegalArgumentException.class, () -> coordinator.submit(invalid), "task ids are unique");
         DistriComputeException unknown = assertThrows(DistriComputeException.class, () -> coordinator.submit(
