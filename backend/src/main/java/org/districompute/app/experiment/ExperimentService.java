@@ -47,6 +47,7 @@ import org.districompute.app.persistence.RunMetric;
 import org.districompute.app.persistence.RunMetricRepository;
 import org.districompute.app.security.AuditService;
 import org.districompute.app.task.TaskDraft;
+import org.districompute.app.task.StoredTasks;
 import org.districompute.app.task.TaskFactory;
 import org.districompute.app.task.TaskFactory.PreparedTask;
 import org.districompute.distributed.coordinator.Coordinator;
@@ -70,6 +71,7 @@ public class ExperimentService {
     private static final Set<ExperimentStatus> ACTIVE = Set.of(ExperimentStatus.QUEUED, ExperimentStatus.RUNNING);
 
     private final TaskFactory tasks;
+    private final StoredTasks storedTasks;
     private final AdvisorService advisor;
     private final ExecutionService execution;
     private final ExperimentRepository experiments;
@@ -86,12 +88,13 @@ public class ExperimentService {
     private final AppProperties.Limits limits;
     private final Clock clock;
 
-    ExperimentService(TaskFactory tasks, AdvisorService advisor, ExecutionService execution,
+    ExperimentService(TaskFactory tasks, StoredTasks storedTasks, AdvisorService advisor, ExecutionService execution,
             ExperimentRepository experiments, ExperimentRunRepository runs, ExperimentResultRepository results,
             RunMetricRepository metrics, PartitionTaskRepository partitions, ResultStore resultStore,
             ExperimentDirectory directory, SubmissionLimiter limiter, AuditService audit, Coordinator coordinator,
             JsonSupport json, AppProperties properties, Clock clock) {
         this.tasks = tasks;
+        this.storedTasks = storedTasks;
         this.advisor = advisor;
         this.execution = execution;
         this.experiments = experiments;
@@ -238,17 +241,7 @@ public class ExperimentService {
      * @return the draft
      */
     public TaskDraft draftOf(Experiment experiment) {
-        Map<String, Object> parameters = new LinkedHashMap<>(json.map(experiment.getParameters()));
-        Map<String, String> uploads = new LinkedHashMap<>();
-        parameters.entrySet().removeIf(e -> {
-            if (e.getValue() instanceof Map<?, ?> ref && ref.get("upload") instanceof String upload) {
-                uploads.put(e.getKey(), upload);
-                return true;
-            }
-            return false;
-        });
-        return new TaskDraft(experiment.getAlgorithmId(), parameters, uploads, json.read(experiment.getConfiguration(),
-                org.districompute.app.task.ExecutionSettings.class));
+        return storedTasks.draftOf(experiment);
     }
 
     /**

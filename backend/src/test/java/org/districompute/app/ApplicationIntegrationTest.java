@@ -131,6 +131,17 @@ class ApplicationIntegrationTest {
     }
 
     @Test
+    void repeatedFailedSignInsAreRefusedForAWhile() {
+        for (int i = 0; i < 5; i++) {
+            assertEquals(401, new ApiClient(port).login("mallory", "guess-" + i).status());
+        }
+        Response blocked = new ApiClient(port).login("mallory", "guess-5");
+        assertEquals(429, blocked.status(), blocked.body());
+        assertEquals("TOO_MANY_LOGIN_ATTEMPTS", blocked.json().path("code").stringValue());
+        assertEquals(200, new ApiClient(port).login("alice", USER_PASSWORD).status(), "other users can still sign in");
+    }
+
+    @Test
     void theOpenApiDocumentDescribesTheApi() {
         assertEquals(401, new ApiClient(port).get("/v3/api-docs").status(), "documentation needs a session");
         Response docs = alice.get("/v3/api-docs");
@@ -565,8 +576,12 @@ class ApplicationIntegrationTest {
         execution.recoverInterrupted(); // what the application does at startup after a restart
         sleep(1500);
         JsonNode after = alice.get("/api/v1/batches/" + batch).json();
-        for (JsonNode e : after.path("experiments")) {
-            assertEquals("FAILED", e.path("status").stringValue(), after.toString());
+        // The runtime keeps running in this simulation, so the first experiment may also finish before recovery
+        // reaches it; what matters is that the queued experiments are not started.
+        assertTrue(Set.of("FAILED", "COMPLETED").contains(after.path("experiments").get(0).path("status")
+                .stringValue()), after.toString());
+        for (int i = 1; i < 3; i++) {
+            assertEquals("FAILED", after.path("experiments").get(i).path("status").stringValue(), after.toString());
         }
         for (int i = 1; i < 3; i++) {
             JsonNode detail = alice.get("/api/v1/experiments/" + after.path("experiments").get(i).path("id")

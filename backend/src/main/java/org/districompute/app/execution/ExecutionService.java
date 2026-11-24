@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,7 @@ import org.districompute.app.persistence.PartitionTask;
 import org.districompute.app.persistence.PartitionTaskRepository;
 import org.districompute.app.persistence.RunMetricRepository;
 import org.districompute.app.task.ExecutionSettings;
-import org.districompute.app.task.TaskDraft;
+import org.districompute.app.task.StoredTasks;
 import org.districompute.app.task.TaskFactory;
 import org.districompute.app.task.TaskFactory.PreparedTask;
 import org.districompute.core.DistriComputeException;
@@ -62,6 +61,7 @@ public class ExecutionService {
 
     private final Coordinator coordinator;
     private final TaskFactory tasks;
+    private final StoredTasks storedTasks;
     private final ResultStore results;
     private final ExperimentRepository experiments;
     private final ExperimentRunRepository runs;
@@ -86,12 +86,14 @@ public class ExecutionService {
      */
     private final Object[] stripes = java.util.stream.IntStream.range(0, 64).mapToObj(i -> new Object()).toArray();
 
-    ExecutionService(Coordinator coordinator, TaskFactory tasks, ResultStore results, ExperimentRepository experiments,
+    ExecutionService(Coordinator coordinator, TaskFactory tasks, StoredTasks storedTasks, ResultStore results,
+            ExperimentRepository experiments,
             ExperimentRunRepository runs, PartitionTaskRepository partitions, RunMetricRepository metrics,
             ExperimentResultRepository resultRecords, ApplicationEvents events, JsonSupport json,
             TransactionTemplate tx, @Qualifier("executionExecutor") Executor executor, Clock clock) {
         this.coordinator = coordinator;
         this.tasks = tasks;
+        this.storedTasks = storedTasks;
         this.results = results;
         this.experiments = experiments;
         this.runs = runs;
@@ -208,7 +210,7 @@ public class ExecutionService {
                 finishExperiment(experimentId, ExperimentStatus.COMPLETED, null, null);
                 return;
             }
-            PreparedTask task = tasks.prepare(draftOf(experiment), experiment.getOwner(), true);
+            PreparedTask task = tasks.prepare(storedTasks.draftOf(experiment), experiment.getOwner(), true);
             TaskSpec spec = tasks.spec(task, run.getCoreTaskId(), experimentId);
             SubmitOptions options = options(experiment, task.settings());
             Instant submittedAt = clock.instant();
@@ -495,25 +497,6 @@ public class ExecutionService {
         }
     }
 
-    /**
-     * Rebuilds the draft of an experiment from what was stored, so each run is validated again by Core.
-     *
-     * @param experiment the experiment
-     * @return the draft
-     */
-    TaskDraft draftOf(Experiment experiment) {
-        Map<String, Object> parameters = new LinkedHashMap<>(json.map(experiment.getParameters()));
-        Map<String, String> uploads = new LinkedHashMap<>();
-        parameters.entrySet().removeIf(e -> {
-            if (e.getValue() instanceof Map<?, ?> ref && ref.get("upload") instanceof String id) {
-                uploads.put(e.getKey(), id);
-                return true;
-            }
-            return false;
-        });
-        ExecutionSettings settings = json.read(experiment.getConfiguration(), ExecutionSettings.class);
-        return new TaskDraft(experiment.getAlgorithmId(), parameters, uploads, settings);
-    }
 
     private static SubmitOptions options(Experiment experiment, ExecutionSettings s) {
         SubmitOptions options = SubmitOptions.DEFAULTS;
