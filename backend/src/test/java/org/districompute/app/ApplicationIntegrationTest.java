@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.districompute.app.testing.ApiClient;
 import org.districompute.app.testing.ApiClient.Response;
 import org.districompute.app.testing.TestDatabase;
@@ -334,6 +337,70 @@ class ApplicationIntegrationTest {
                 List.of(sequential, parallel), "baselineId", distributed)).json().path("code").stringValue());
         assertEquals(404, anotherUser().post("/api/v1/analysis/compare",
                 Map.of("experimentIds", List.of(sequential, parallel))).status(), "other users' experiments stay hidden");
+    }
+
+    @Test
+    void reportsAndExportsAreGeneratedFromStoredData() throws Exception {
+        Map<String, Object> parameters = Map.of("rowsA", 40, "colsA", 30, "colsB", 20);
+        String sequential = create("report seq", draft("matrix.multiply", parameters, "SEQUENTIAL_CPU",
+                Map.of("repetitions", 2)));
+        String parallel = create("report, \"mt\" =1+1", draft("matrix.multiply", parameters, "MULTITHREADED_CPU",
+                Map.of("threads", 2)));
+        await(alice, sequential);
+        await(alice, parallel);
+
+        Response pdf = alice.get("/api/v1/experiments/" + sequential + "/report?format=pdf");
+        assertEquals(200, pdf.status(), pdf.body());
+        assertEquals("application/pdf", pdf.contentType());
+        assertTrue(pdf.disposition().startsWith("attachment") && pdf.disposition().contains(".pdf"),
+                pdf.disposition());
+        try (PDDocument document = Loader.loadPDF(alice.bytes("/api/v1/experiments/" + sequential
+                + "/report?format=pdf"))) {
+            String text = new PDFTextStripper().getText(document);
+            for (String expected : List.of("Experiment report", "report seq", sequential, "matrix.multiply",
+                    "Measurements over completed runs", "wall_time", "Freivalds")) {
+                assertTrue(text.contains(expected), expected + " missing from the PDF");
+            }
+        }
+
+        Response csv = alice.get("/api/v1/experiments/" + sequential + "/report?format=csv");
+        assertEquals(200, csv.status());
+        assertTrue(csv.contentType().startsWith("text/csv"), csv.contentType());
+        String[] lines = csv.body().replace("\uFEFF", "").split("\r\n");
+        assertEquals(3, lines.length, "header and one line per run");
+        assertTrue(lines[0].startsWith("experiment_id,run_index,") && lines[0].contains("wall_time [ms]")
+                && lines[0].contains("execution_time [ms]"), lines[0]);
+
+        JsonNode json = alice.get("/api/v1/experiments/" + sequential + "/report?format=json").json();
+        assertEquals("experiment", json.path("report").stringValue());
+        assertEquals(sequential, json.path("experiment").path("summary").path("id").stringValue());
+        assertEquals("0.1", json.path("versions").path("protocol").stringValue());
+        assertTrue(json.path("metricValues").size() > 10);
+
+        String ids = sequential + "," + parallel;
+        try (PDDocument document = Loader.loadPDF(alice.bytes("/api/v1/analysis/report?format=pdf&ids=" + ids))) {
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.contains("Comparison report") && text.contains("Findings") && text.contains("(baseline)"),
+                    text);
+        }
+        String comparisonCsv = alice.get("/api/v1/analysis/report?format=csv&basis=WALL_TIME&ids=" + ids).body();
+        assertTrue(comparisonCsv.contains(",WALL_TIME,"), comparisonCsv);
+        assertTrue(comparisonCsv.contains(",\"report, \"\"mt\"\" =1+1\","), "names are quoted: " + comparisonCsv);
+
+        String history = alice.get("/api/v1/experiments/export?format=csv&algorithm=matrix.multiply").body();
+        assertTrue(history.contains(sequential) && history.contains(parallel), history);
+        JsonNode historyJson = alice.get("/api/v1/experiments/export?format=json&status=COMPLETED").json();
+        assertEquals("history", historyJson.path("report").stringValue());
+        assertFalse(historyJson.path("truncated").asBoolean());
+
+        assertEquals("INVALID_FORMAT", alice.get("/api/v1/experiments/" + sequential + "/report?format=docx").json()
+                .path("code").stringValue());
+        assertEquals(400, alice.get("/api/v1/experiments/export?format=pdf").status());
+        assertEquals(400, alice.get("/api/v1/analysis/report?ids=" + sequential).status());
+        assertEquals(404, anotherUser().get("/api/v1/experiments/" + sequential + "/report?format=pdf").status(),
+                "other users' experiments stay hidden");
+        String bobsHistory = anotherUser().get("/api/v1/experiments/export?format=csv").body();
+        assertFalse(bobsHistory.contains(sequential), "the history export only holds what the user may see");
     }
 
     @Test

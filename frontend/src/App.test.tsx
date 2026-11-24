@@ -55,7 +55,7 @@ describe('sign-in and navigation', () => {
 
   it('marks unfinished pages as not implemented instead of showing sample content', async () => {
     fakeBackend({ 'GET /api/v1/auth/session': admin });
-    renderApp('/reports');
+    renderApp('/fault-lab');
     expect(await screen.findByText(/Not implemented yet/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Fault lab' })).toBeInTheDocument();
   });

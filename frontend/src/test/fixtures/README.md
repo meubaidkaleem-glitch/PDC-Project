@@ -15,5 +15,7 @@ production code, and the production build does not include it.
 | `experiment.json`, `live.json` | `GET /api/v1/experiments/{id}` and `/live` (distributed run, 3 repetitions) |
 | `events.json` | first 24 events of `GET /api/v1/experiments/{id}/events` |
 | `workers.json` | `GET /api/v1/workers` |
+| `workloads.json` | `GET /api/v1/analysis/workloads` |
+| `comparison.json` | `POST /api/v1/analysis/compare` (four 768 × 768 matrix multiplications, default basis) |
 
 To refresh them, record the same endpoints again from a running stack; tests that depend on specific values say so.

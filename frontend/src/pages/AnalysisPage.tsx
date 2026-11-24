@@ -9,6 +9,7 @@ import { Badge, Button, Card, EmptyState, ErrorState, Field, Notice, PageHeader,
 import { formatDate, formatDuration, formatMetric, formatNumber } from '../lib/format';
 import { metricLabel, MODE_SHORT, modeLabel } from '../lib/labels';
 import { usePreferences } from '../lib/preferences';
+import { DownloadLinks } from './ReportsPage';
 
 /** Phases of the time breakdown, in execution order, with the chart colour slot of each. */
 const PHASES: { key: string; label: string; metrics: string[]; color: string }[] = [
@@ -134,7 +135,14 @@ function ComparisonView({ ids, baseline, basis, onBaseline, onBasis }: ViewProps
 
   return (
     <div className="space-y-4">
-      <Link to="/analysis" className="text-sm text-blue-700 hover:underline dark:text-blue-400">All workloads</Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to="/analysis" className="text-sm text-blue-700 hover:underline dark:text-blue-400">All workloads</Link>
+        <DownloadLinks label="Download this comparison" href={(f) => {
+          const q = new URLSearchParams({ format: f, ids: ids.join(','), basis: c.basis });
+          if (c.baselineId) q.set('baseline', c.baselineId);
+          return `/api/v1/analysis/report?${q}`;
+        }} />
+      </div>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="Compare by" htmlFor="basis" hint={c.basisDescription}>
           <SelectInput id="basis" value={c.basis} onChange={(e) => onBasis(e.target.value as ComparisonBasis)}>

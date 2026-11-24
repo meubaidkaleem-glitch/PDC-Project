@@ -7,7 +7,7 @@ What is tested, how to run it, and what is not covered yet. Section 2 of
 
 | Suite | Where | Needs | Command |
 | --- | --- | --- | --- |
-| Backend unit tests | `backend/src/test/java/.../task`, `.../analysis` and others without a tag | JDK 21 | `./mvnw -pl backend test` |
+| Backend unit tests | `backend/src/test/java/.../task`, `.../analysis`, `.../report` and others without a tag | JDK 21 | `./mvnw -pl backend test` |
 | Persistence tests | `PersistenceTest` | Docker (MySQL 8.4 in Testcontainers) | part of `./mvnw -pl backend verify` |
 | Backend integration tests | `ApplicationIntegrationTest` (`@Tag("integration")`) | Docker | part of `./mvnw -pl backend verify` |
 | Frontend unit tests | `frontend/src/**/*.test.ts(x)` | Node.js 22 | `cd frontend && npm test` |
@@ -38,6 +38,9 @@ API, multipart upload, Server-Sent Events. It covers:
 - comparison of one workload in three modes: Core's execution time as the default basis, speedup and efficiency
   values checked against the stored medians, wall-time basis, breakdown, identical results, a different size
   refused as not comparable, workload groups, request validation and hiding other users' experiments;
+- reports: an experiment report as PDF (read back with PDFBox's text extraction), CSV (one row per run, metric
+  columns) and JSON; a comparison report as PDF and CSV (quoting of names); the history export as CSV and JSON;
+  unknown formats, a single experiment, and other users' experiments refused;
 - the polynomial parser endpoint;
 - visibility between users (another user's experiment is 404);
 - worker administration (deactivate, activate, remove; forbidden for users);
@@ -65,6 +68,8 @@ open and push events through. Covered:
 - experiment: runs, results with download links, metrics with units, configuration with Core defaults marked,
   live events from the stream, reload when a run finishes, cancellation, not-found;
 - history: filters and sorting sent to the API, comparison selection, empty state;
+- reports: download links for the preselected or chosen experiment, comparisons of workload groups, the history
+  export with its filters;
 - performance analysis: workload groups, comparing a group, speedups, efficiencies and findings shown as computed,
   new requests for another basis or baseline, no speedups when not comparable, a single selection;
 - workers: reported capabilities, deactivation with a reason (administrator);

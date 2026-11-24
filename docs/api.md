@@ -171,5 +171,15 @@ A task is one run, identified by Core's task id `<experimentId>-r<n>`.
 Errors: `DUPLICATE_EXPERIMENT`, `BASELINE_NOT_COMPARED` (400), validation (400), an experiment the user may not
 see (404).
 
-Endpoints added in later phases (reports, settings, templates, batches, fault lab) are listed here when they are
+### Reports
+
+| Method and path | Purpose |
+|---|---|
+| `GET /experiments/{id}/report?format=pdf\|csv\|json` | Report of one experiment |
+| `GET /analysis/report?ids=&baseline=&basis=&format=pdf\|csv\|json` | Report of a comparison |
+| `GET /experiments/export?format=csv\|json&<history filters>` | The experiment history, at most 5,000 rows |
+
+Downloads (`Content-Disposition: attachment`, `Cache-Control: no-store`), audited; see [reports.md](reports.md).
+
+Endpoints added in later phases (settings, templates, batches, fault lab) are listed here when they are
 implemented.

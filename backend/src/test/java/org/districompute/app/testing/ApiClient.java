@@ -84,6 +84,25 @@ public final class ApiClient {
     }
 
     /**
+     * GET of a binary download.
+     *
+     * @param path path
+     * @return the body bytes (empty for a status other than 200)
+     */
+    public byte[] bytes(String path) {
+        try {
+            HttpResponse<byte[]> response = http.send(request(path).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+            return response.statusCode() == 200 ? response.body() : new byte[0];
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
      * POST with a JSON body.
      *
      * @param path path
