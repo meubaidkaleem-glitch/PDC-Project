@@ -28,6 +28,31 @@ git clone --branch feature/application-gui https://github.com/meubaidkaleem-glit
 cd districompute && scripts/build.sh
 ```
 
+## Run locally
+
+The backend needs MySQL 8.4. For a local trial, start it in Docker:
+
+```bash
+docker run -d --name districompute-mysql -e MYSQL_DATABASE=districompute -e MYSQL_USER=districompute -e MYSQL_PASSWORD=change-me -e MYSQL_RANDOM_ROOT_PASSWORD=yes -p 127.0.0.1:3306:3306 mysql:8.4
+```
+
+Start the application (the jar built by `scripts/build.sh` serves the interface on port 8080). On first start it
+creates the user `admin`; put its password (at least 12 characters) in a file first, or read the generated one
+from `data/initial-admin-password`:
+
+```bash
+DISTRICOMPUTE_DB_PASSWORD=change-me java -jar backend/target/districompute-backend-0.1.0-SNAPSHOT.jar --districompute.data-dir=data --districompute.security.admin-password-file=admin.password
+```
+
+Workers are separate processes from the Distributed jar. They authenticate with the cluster secret the
+application generated in `data/cluster.secret` and connect to the worker port (7650 by default):
+
+```bash
+java -jar components/distributed/distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar worker --coordinator 127.0.0.1:7650 --id worker-1 --max-concurrent-tasks 2 --secret-file data/cluster.secret
+```
+
+Then open <http://localhost:8080>. The Workers page also shows the exact start command for a registered worker.
+
 ## Documentation
 
 | Document | Contents |
@@ -39,3 +64,4 @@ cd districompute && scripts/build.sh
 | [docs/database.md](docs/database.md) | Schema, relationships, constraints, file storage, migrations |
 | [docs/advisor.md](docs/advisor.md) | How execution strategies are assessed, estimate basis and confidence, overrides |
 | [docs/metrics.md](docs/metrics.md) | Every stored metric: name, unit, source, definition |
+| [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |

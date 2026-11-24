@@ -14,8 +14,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  frontend:
+    name: Frontend typecheck, tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Keep the built interface for the backend job
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 3
+
   build-and-test:
-    name: Build components and backend, run backend tests
+    name: Build components and backend (with the interface), run backend tests
+    needs: frontend
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -37,8 +64,18 @@ jobs:
       - name: Build Core and Distributed from the submodules (their own quality gates)
         run: ./mvnw -B -ntp install -pl components/core,components/distributed/distributed -DskipTests
 
-      - name: Backend build and tests
-        run: ./mvnw -B -ntp verify -pl backend
+      - name: Download the built interface
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Backend build and tests (the jar serves the interface)
+        run: ./mvnw -B -ntp verify -pl backend -Pwith-frontend
+
+      - name: Check that the jar contains the interface
+        # grep without -q reads all of its input, so unzip never gets SIGPIPE under pipefail.
+        run: unzip -l backend/target/districompute-backend-*.jar | grep 'BOOT-INF/classes/static/index.html' > /dev/null
 
       - name: Upload backend test reports
         if: always()
