@@ -80,6 +80,11 @@ public class ExecutionService {
     private final Set<String> started = ConcurrentHashMap.newKeySet();
     /** True while startup recovery marks interrupted experiments as failed; batches do not continue then. */
     private volatile boolean recovering;
+    /**
+     * Locks that serialise the state changes of one experiment (start of a run, its completion, cancellation), so
+     * that two threads never update the same experiment and its runs at once.
+     */
+    private final Object[] stripes = java.util.stream.IntStream.range(0, 64).mapToObj(i -> new Object()).toArray();
 
     ExecutionService(Coordinator coordinator, TaskFactory tasks, ResultStore results, ExperimentRepository experiments,
             ExperimentRunRepository runs, PartitionTaskRepository partitions, RunMetricRepository metrics,
@@ -118,19 +123,21 @@ public class ExecutionService {
      * @return {@code true} if the experiment was still active
      */
     public boolean cancel(String experimentId) {
-        Experiment experiment = experiments.findById(experimentId).orElse(null);
-        if (experiment == null || experiment.getStatus().isTerminal()) {
-            return false;
+        synchronized (lockFor(experimentId)) {
+            Experiment experiment = experiments.findById(experimentId).orElse(null);
+            if (experiment == null || experiment.getStatus().isTerminal()) {
+                return false;
+            }
+            cancelRequested.add(experimentId);
+            String coreTaskId = active.get(experimentId);
+            if (coreTaskId != null && coordinator.cancel(coreTaskId)) {
+                return true; // the completion handler records CANCELLED
+            }
+            if (coreTaskId == null) {
+                finishExperiment(experimentId, ExperimentStatus.CANCELLED, "CANCELLED", "Cancelled by the user");
+            }
+            return true;
         }
-        cancelRequested.add(experimentId);
-        String coreTaskId = active.get(experimentId);
-        if (coreTaskId != null && coordinator.cancel(coreTaskId)) {
-            return true; // the completion handler records CANCELLED
-        }
-        if (coreTaskId == null) {
-            finishExperiment(experimentId, ExperimentStatus.CANCELLED, "CANCELLED", "Cancelled by the user");
-        }
-        return true;
     }
 
     /**
@@ -162,7 +169,7 @@ public class ExecutionService {
     private void recover(List<Experiment> stale) {
         for (Experiment e : stale) {
             LOG.warn("Experiment {} was {} when the application stopped; marking it FAILED", e.getId(), e.getStatus());
-            tx.executeWithoutResult(s -> {
+            transaction(s -> {
                 for (ExperimentRun run : runs.findByExperimentIdOrderByRunIndexAsc(e.getId())) {
                     if (!run.getStatus().isTerminal()) {
                         run.setStatus(RunStatus.FAILED);
@@ -180,6 +187,12 @@ public class ExecutionService {
     }
 
     private void startNextRun(String experimentId) {
+        synchronized (lockFor(experimentId)) {
+            startNextRunLocked(experimentId);
+        }
+    }
+
+    private void startNextRunLocked(String experimentId) {
         try {
             if (cancelRequested.contains(experimentId)) {
                 finishExperiment(experimentId, ExperimentStatus.CANCELLED, "CANCELLED", "Cancelled by the user");
@@ -199,7 +212,7 @@ public class ExecutionService {
             TaskSpec spec = tasks.spec(task, run.getCoreTaskId(), experimentId);
             SubmitOptions options = options(experiment, task.settings());
             Instant submittedAt = clock.instant();
-            tx.executeWithoutResult(s -> {
+            transaction(s -> {
                 ExperimentRun r = runs.findById(run.getId()).orElseThrow();
                 r.setStatus(RunStatus.QUEUED);
                 r.setSubmittedAt(submittedAt);
@@ -232,6 +245,13 @@ public class ExecutionService {
     }
 
     private void onRunFinished(String experimentId, Long runId, TaskOutcome outcome, Throwable error, double wallMs) {
+        synchronized (lockFor(experimentId)) {
+            onRunFinishedLocked(experimentId, runId, outcome, error, wallMs);
+        }
+    }
+
+    private void onRunFinishedLocked(String experimentId, Long runId, TaskOutcome outcome, Throwable error,
+            double wallMs) {
         active.remove(experimentId);
         try {
             if (error != null || outcome == null) {
@@ -244,7 +264,7 @@ public class ExecutionService {
             }
             TaskResult result = outcome.result();
             ResultStore.Stored stored = results.take(result.taskId());
-            tx.executeWithoutResult(s -> record(experimentId, runId, outcome, stored, wallMs));
+            transaction(s -> record(experimentId, runId, outcome, stored, wallMs));
             ExperimentRun run = runs.findById(runId).orElseThrow();
             events.publish(experimentId, runId, "RUN_FINISHED", result.status() == TaskStatus.COMPLETED
                     ? Severity.INFO : Severity.WARN, "Run " + run.getRunIndex() + " " + result.status()
@@ -352,7 +372,7 @@ public class ExecutionService {
     }
 
     private void recordFailure(Long runId, String code, String message) {
-        tx.executeWithoutResult(s -> runs.findById(runId).ifPresent(run -> {
+        transaction(s -> runs.findById(runId).ifPresent(run -> {
             run.setStatus(RunStatus.FAILED);
             run.setErrorCode(code);
             run.setErrorMessage(truncate(message, 2000));
@@ -362,7 +382,7 @@ public class ExecutionService {
     }
 
     private void cancelRemaining(String experimentId, String reason) {
-        tx.executeWithoutResult(s -> {
+        transaction(s -> {
             for (ExperimentRun run : runs.findByExperimentIdOrderByRunIndexAsc(experimentId)) {
                 if (run.getStatus() == RunStatus.PENDING) {
                     run.setStatus(RunStatus.CANCELLED);
@@ -375,7 +395,7 @@ public class ExecutionService {
 
     private void failBeforeStart(String experimentId, String code, String message) {
         active.remove(experimentId);
-        tx.executeWithoutResult(s -> runs.findByExperimentIdOrderByRunIndexAsc(experimentId).stream()
+        transaction(s -> runs.findByExperimentIdOrderByRunIndexAsc(experimentId).stream()
                 .filter(r -> !r.getStatus().isTerminal()).findFirst().ifPresent(run -> {
                     run.setStatus(RunStatus.FAILED);
                     run.setErrorCode(code);
@@ -389,24 +409,27 @@ public class ExecutionService {
 
     private void finishExperiment(String experimentId, ExperimentStatus status, String code, String message) {
         cancelRequested.remove(experimentId);
-        boolean changed = Boolean.TRUE.equals(tx.execute(s -> {
-            Experiment e = experiments.findById(experimentId).orElse(null);
-            if (e == null || e.getStatus().isTerminal()) {
-                return false;
-            }
-            if (status == ExperimentStatus.CANCELLED) {
-                for (ExperimentRun run : runs.findByExperimentIdOrderByRunIndexAsc(experimentId)) {
-                    if (run.getStatus() == RunStatus.PENDING) {
-                        run.setStatus(RunStatus.CANCELLED);
-                        run.setErrorMessage("Cancelled before it started");
-                        runs.save(run);
+        boolean changed;
+        synchronized (lockFor(experimentId)) {
+            changed = Boolean.TRUE.equals(transactionResult(s -> {
+                Experiment e = experiments.findById(experimentId).orElse(null);
+                if (e == null || e.getStatus().isTerminal()) {
+                    return false;
+                }
+                if (status == ExperimentStatus.CANCELLED) {
+                    for (ExperimentRun run : runs.findByExperimentIdOrderByRunIndexAsc(experimentId)) {
+                        if (run.getStatus() == RunStatus.PENDING) {
+                            run.setStatus(RunStatus.CANCELLED);
+                            run.setErrorMessage("Cancelled before it started");
+                            runs.save(run);
+                        }
                     }
                 }
-            }
-            e.finish(status, clock.instant(), code, message);
-            experiments.save(e);
-            return true;
-        }));
+                e.finish(status, clock.instant(), code, message);
+                experiments.save(e);
+                return true;
+            }));
+        }
         started.remove(experimentId);
         if (changed) {
             events.publish(experimentId, null, "EXPERIMENT_FINISHED", status == ExperimentStatus.COMPLETED
@@ -415,6 +438,37 @@ public class ExecutionService {
                     Map.of("status", status.name()));
         }
         continueBatch(experimentId);
+    }
+
+    private Object lockFor(String experimentId) {
+        return stripes[Math.floorMod(experimentId.hashCode(), stripes.length)];
+    }
+
+    /** Runs a transaction, again (up to three times) if MySQL chose it as the victim of a deadlock. */
+    private void transaction(java.util.function.Consumer<org.springframework.transaction.TransactionStatus> work) {
+        transactionResult(s -> {
+            work.accept(s);
+            return null;
+        });
+    }
+
+    private <T> T transactionResult(org.springframework.transaction.support.TransactionCallback<T> work) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return tx.execute(work);
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                if (attempt >= 3) {
+                    throw e;
+                }
+                LOG.info("Retrying a transaction after a lock conflict ({})", e.getMostSpecificCause().getMessage());
+                try {
+                    Thread.sleep(20L * attempt + java.util.concurrent.ThreadLocalRandom.current().nextInt(30));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
     }
 
     /**
