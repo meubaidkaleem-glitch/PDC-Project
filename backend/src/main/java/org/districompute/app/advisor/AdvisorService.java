@@ -118,10 +118,12 @@ public class AdvisorService {
         }
         boolean reliable = !"NONE".equals(confidence);
         String explanation = reliable ? advice.explanation()
-                : "A reliable recommendation cannot be made yet: " + (recommended == null
-                        ? "no execution mode is suitable for this task with the current resources."
-                        : "there is neither an estimate nor a measurement for " + recommended + ". "
-                                + advice.explanation());
+                : recommended == null
+                        ? "No execution mode is suitable for this task with the current resources."
+                        : "Neither an estimate nor a measurement exists for " + describe(recommended)
+                                + " yet, so the modes cannot be compared by time. It is preferred only for the "
+                                + "structural reasons listed per mode below. Completed runs of this workload "
+                                + "calibrate later recommendations.";
 
         RuntimeContext runtime = advice.runtime();
         Double communication = runtime.transferBytesPerSecond() == null || runtime.transferBytesPerSecond() <= 0 ? null
@@ -139,7 +141,8 @@ public class AdvisorService {
             warnings.add("No connected worker can run " + task.info().descriptor().id() + " now. A distributed run "
                     + "would wait for one (30 s by default) and then fail.");
         }
-        if (runtime.transferBytesPerSecond() == null) {
+        if (runtime.transferBytesPerSecond() == null
+                && warnings.stream().noneMatch(w -> w.contains("network has not been measured"))) {
             warnings.add("The network has not been measured yet, so the communication cost of a distributed run is "
                     + "unknown until one completes.");
         }
@@ -154,6 +157,16 @@ public class AdvisorService {
         return new AdviceView(advice.createdAt(), task.info().descriptor().id().value(), workload(task.profile()),
                 reliable ? recommended.name() : null, reliable, confidence, basis.name(), explanation, modes, resources,
                 advice.assessment().assumptions(), List.copyOf(warnings));
+    }
+
+    /** Human-readable name of a mode, as the user interface shows it. */
+    static String describe(ExecutionMode mode) {
+        return switch (mode) {
+            case SEQUENTIAL_CPU -> "sequential CPU execution";
+            case MULTITHREADED_CPU -> "parallel CPU execution (threads)";
+            case DISTRIBUTED_CPU -> "distributed CPU execution (workers)";
+            default -> mode.name();
+        };
     }
 
     /**

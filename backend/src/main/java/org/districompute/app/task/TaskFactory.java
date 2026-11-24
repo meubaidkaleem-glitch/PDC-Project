@@ -153,7 +153,7 @@ public class TaskFactory {
             validated = TaskPreparation.validate(algorithm, probe, mode != ExecutionMode.SEQUENTIAL_CPU);
         } catch (ValidationException e) {
             throw ApiException.invalid("Core rejected the parameters", e.violations().stream()
-                    .map(v -> new FieldViolation("parameters." + v.field(), v.code(), v.message())).toList());
+                    .map(v -> new FieldViolation(v.field(), v.code(), v.message())).toList());
         } catch (DistriComputeException e) {
             throw ApiException.invalid(e.getMessage(), List.of(new FieldViolation("execution.mode", e.code().name(),
                     e.getMessage())));

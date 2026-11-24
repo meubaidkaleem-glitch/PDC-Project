@@ -108,12 +108,16 @@ class ApplicationIntegrationTest {
     @Test
     void anonymousCallsAreRejectedAndWritesNeedTheCsrfToken() {
         ApiClient anonymous = new ApiClient(port);
-        assertEquals(401, anonymous.get("/api/v1/experiments").status());
+        Response unauthenticated = anonymous.get("/api/v1/experiments");
+        assertEquals(401, unauthenticated.status());
+        assertEquals("UNAUTHENTICATED", unauthenticated.json().path("code").stringValue(), "a problem, not a redirect");
         assertEquals(200, anonymous.get("/api/v1/system/info").status(), "versions are public");
         assertFalse(anonymous.get("/api/v1/auth/session").json().path("authenticated").asBoolean());
         assertEquals(401, new ApiClient(port).login("alice", "wrong-password").status());
-        assertEquals(403, alice.postWithoutCsrf("/api/v1/tasks/validate", draft("primes.count",
-                Map.of("upperBound", 1000), "SEQUENTIAL_CPU")).status());
+        Response withoutToken = alice.postWithoutCsrf("/api/v1/tasks/validate", draft("primes.count",
+                Map.of("upperBound", 1000), "SEQUENTIAL_CPU"));
+        assertEquals(403, withoutToken.status());
+        assertEquals("CSRF_TOKEN_INVALID", withoutToken.json().path("code").stringValue(), withoutToken.body());
         assertEquals("alice", alice.get("/api/v1/auth/session").json().path("username").stringValue());
         JsonNode info = anonymous.get("/api/v1/system/info").json();
         assertEquals("0.1", info.path("protocol").stringValue());
@@ -157,7 +161,9 @@ class ApplicationIntegrationTest {
                 Map.of("rowsA", -3, "colsA", 4, "colsB", 4), "SEQUENTIAL_CPU"));
         assertEquals(400, invalid.status(), invalid.body());
         assertEquals("VALIDATION_FAILED", invalid.json().path("code").stringValue());
-        assertTrue(invalid.body().contains("parameters.rowsA"), invalid.body());
+        // The path is the one the form uses to place the message next to its field.
+        assertEquals("parameters.rowsA", invalid.json().path("violations").path(0).path("field").stringValue(),
+                invalid.body());
 
         Response gpu = alice.post("/api/v1/tasks/validate", draft("primes.count", Map.of("upperBound", 1000), "GPU"));
         assertEquals(400, gpu.status());

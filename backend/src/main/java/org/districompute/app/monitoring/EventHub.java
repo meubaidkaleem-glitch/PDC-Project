@@ -20,6 +20,7 @@ public class EventHub {
     private static final Logger LOG = LoggerFactory.getLogger(EventHub.class);
     /** Most simultaneous streams; more are refused. */
     static final int MAX_SUBSCRIBERS = 500;
+    static final long RECONNECT_MILLIS = 3000;
 
     private final List<Subscriber> subscribers = new CopyOnWriteArrayList<>();
 
@@ -52,6 +53,14 @@ public class EventHub {
         emitter.onCompletion(() -> subscribers.remove(subscriber));
         emitter.onTimeout(() -> subscribers.remove(subscriber));
         emitter.onError(e -> subscribers.remove(subscriber));
+        try {
+            // Commits the response at once so the browser reports the stream open before the first event; the
+            // emitter buffers this until Spring has initialised it.
+            emitter.send(SseEmitter.event().comment("connected").reconnectTime(RECONNECT_MILLIS));
+        } catch (IOException e) {
+            subscribers.remove(subscriber);
+            emitter.completeWithError(e);
+        }
         return emitter;
     }
 
