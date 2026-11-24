@@ -181,5 +181,15 @@ see (404).
 
 Downloads (`Content-Disposition: attachment`, `Cache-Control: no-store`), audited; see [reports.md](reports.md).
 
-Endpoints added in later phases (settings, templates, batches, fault lab) are listed here when they are
-implemented.
+### Fault lab (administrators)
+
+| Method and path | Purpose |
+|---|---|
+| `GET /fault-lab` | Whether the lab is enabled and busy, its scenarios and run setup |
+| `POST /fault-lab/runs` | Run `{scenario, seed?}` on an isolated coordinator in the background (202); 409 `FAULT_LAB_DISABLED` or `FAULT_LAB_BUSY` |
+| `GET /fault-lab/runs?limit=`, `GET /fault-lab/runs/{id}` | Lab runs with their outcome (detection, recovery, result) |
+| `GET /fault-lab/runs/{id}/events` | The run's runtime events, all marked `simulated` |
+
+See [fault-lab.md](fault-lab.md).
+
+Endpoints added in later phases (settings, templates, batches) are listed here when they are implemented.

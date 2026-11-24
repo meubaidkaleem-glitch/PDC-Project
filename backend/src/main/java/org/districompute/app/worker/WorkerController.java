@@ -76,7 +76,7 @@ public class WorkerController {
     @GetMapping("/{id}/events")
     public List<EventView> events(@PathVariable String id, @RequestParam(defaultValue = "100") int limit) {
         service.get(id);
-        return events.findByWorkerIdOrderByIdDesc(id, PageRequest.of(0, Math.min(500, Math.max(1, limit)))).stream()
+        return events.findByWorkerIdAndSimulatedFalseOrderByIdDesc(id, PageRequest.of(0, Math.min(500, Math.max(1, limit)))).stream()
                 .map(e -> EventView.of(e, currentUser.isAdmin() || e.getExperimentId() == null
                         ? json.map(e.getDetails()) : java.util.Map.of())).toList();
     }

@@ -1,0 +1,108 @@
+{
+    "id": "02216fe7-5b1d-4147-8935-baf4d272fc3a",
+    "scenario": "CORRUPTED_RESULTS",
+    "title": "Corrupted results",
+    "owner": "admin",
+    "status": "COMPLETED",
+    "simulated": true,
+    "seed": 7,
+    "algorithm": "matrix.multiply",
+    "parameters": {
+        "seed": 7,
+        "colsA": 192,
+        "colsB": 192,
+        "rowsA": 192
+    },
+    "faultProfile": {
+        "description": "corrupt p=1.0 (seed 7)",
+        "slowdownFactor": 1.0,
+        "failProbability": 0.0,
+        "hangProbability": 0.0,
+        "corruptProbability": 1.0,
+        "responseDelayMillis": 0,
+        "disconnectAfterTasks": 0,
+        "duplicateProbability": 0.0,
+        "messageLatencyMillis": 0,
+        "stopHeartbeatsAfterMillis": 0
+    },
+    "outcome": {
+        "task": {
+            "error": null,
+            "digest": "sha256:2ce08474e2ba1c22a5c59ddd09efe3aa5ce186f39b507ca6674990e9604dbeb6",
+            "status": "COMPLETED",
+            "retries": 4,
+            "attempts": 16,
+            "verified": true,
+            "durationMs": 314,
+            "partitions": 12,
+            "referenceDigest": "sha256:2ce08474e2ba1c22a5c59ddd09efe3aa5ce186f39b507ca6674990e9604dbeb6",
+            "referenceDurationMs": 61,
+            "resultMatchesReference": true
+        },
+        "events": 80,
+        "faults": "corrupt p=1.0 (seed 7)",
+        "metrics": {
+            "retries": 4.0,
+            "attempts": 16.0,
+            "workers_used": 3.0,
+            "load_imbalance": 1.121296578870336,
+            "failed_attempts": 4.0,
+            "distributed_time": 252.964859,
+            "transfer_time_sum": 151.915871,
+            "worker_utilization": 0.20953779921397436,
+            "communication_ratio": 0.49532937062327137
+        },
+        "verdict": "RECOVERED",
+        "workers": {
+            "lab-02216fe7-faulty": {
+                "role": "faulty",
+                "attempts": {
+                    "INVALID": 4
+                },
+                "computeMs": 69.78817199999999
+            },
+            "lab-02216fe7-healthy-1": {
+                "role": "healthy",
+                "attempts": {
+                    "SUCCEEDED": 6
+                },
+                "computeMs": 86.777593
+            },
+            "lab-02216fe7-healthy-2": {
+                "role": "healthy",
+                "attempts": {
+                    "SUCCEEDED": 6
+                },
+                "computeMs": 68.003211
+            }
+        },
+        "recovery": {
+            "retries": 4,
+            "firstRetry": {
+                "type": "PARTITION_RETRIED",
+                "afterMs": 214,
+                "message": "lab-02216fe7-run/p3 queued again after INVALID_RESULT: invalid result from lab-02216fe7-faulty: Payload size or checksum mismatch for format matrix-block/1",
+                "workerId": null
+            },
+            "finishedAfterMs": 330,
+            "recoveredPartitions": 4
+        },
+        "scenario": "CORRUPTED_RESULTS",
+        "detection": {
+            "type": "ATTEMPT_FAILED",
+            "afterMs": 211,
+            "message": "lab-02216fe7-run/p3/a1 INVALID: invalid result: Payload size or checksum mismatch for format matrix-block/1",
+            "workerId": "lab-02216fe7-faulty"
+        },
+        "verdictText": "The fault was detected and the task completed with the same result as the fault-free reference.",
+        "workerCount": 3,
+        "faultyWorker": "lab-02216fe7-faulty",
+        "attemptsByStatus": {
+            "INVALID": 4,
+            "SUCCEEDED": 12
+        }
+    },
+    "errorMessage": null,
+    "createdAt": "2026-11-24T13:06:26.957Z",
+    "completedAt": "2026-11-24T13:06:28.070Z"
+}

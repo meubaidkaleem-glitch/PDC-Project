@@ -28,6 +28,9 @@ public class ExecutionEvent {
     @Column(name = "run_id")
     private Long runId;
 
+    @Column(name = "lab_run_id", length = 36)
+    private String labRunId;
+
     @Column(name = "task_ref", length = 160)
     private String taskRef;
 
@@ -137,5 +140,20 @@ public class ExecutionEvent {
 
     public Instant getOccurredAt() {
         return occurredAt;
+    }
+
+    /**
+     * Marks the event as one of a fault lab run (and therefore simulated).
+     *
+     * @param id the lab run
+     */
+    public void setLabRunId(String id) {
+        this.labRunId = id;
+        this.simulated = id != null || simulated;
+    }
+
+    /** @return the fault lab run, or {@code null} */
+    public String getLabRunId() {
+        return labRunId;
     }
 }

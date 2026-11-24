@@ -475,3 +475,75 @@ export interface WorkloadGroup {
   lastCompletedAt: string | null;
   experimentIds: string[];
 }
+
+// Fault lab (docs/fault-lab.md)
+
+export interface FaultScenario {
+  id: string;
+  title: string;
+  fault: string;
+  expectedDetection: string;
+  expectedRecovery: string;
+  attemptTimeoutSeconds: number;
+  maxAttempts: number;
+}
+
+export interface FaultLabStatus {
+  enabled: boolean;
+  busy: boolean;
+  runningId: string | null;
+  scenarios: FaultScenario[];
+  setup: Record<string, string | number>;
+}
+
+export interface LabEventSummary {
+  type: string;
+  workerId: string | null;
+  message: string;
+  afterMs: number | null;
+}
+
+export interface LabOutcome {
+  verdict: 'RECOVERED' | 'UNAFFECTED' | 'NOT_RECOVERED' | 'DIFFERENT_RESULT';
+  verdictText: string;
+  scenario: string;
+  task: {
+    status: string;
+    error: string | null;
+    digest: string | null;
+    referenceDigest: string | null;
+    resultMatchesReference: boolean;
+    verified: boolean | null;
+    durationMs: number | null;
+    referenceDurationMs: number | null;
+    partitions: number;
+    attempts: number;
+    retries: number;
+  };
+  detection: LabEventSummary | null;
+  recovery: { retries: number; recoveredPartitions: number; firstRetry: LabEventSummary | null; finishedAfterMs: number | null };
+  attemptsByStatus: Record<string, number>;
+  workers: Record<string, { role: 'faulty' | 'healthy'; attempts: Record<string, number>; computeMs: number }>;
+  faultyWorker: string;
+  faults: string;
+  workerCount: number;
+  metrics: Record<string, number>;
+  events: number;
+}
+
+export interface LabRun {
+  id: string;
+  scenario: string;
+  title: string;
+  owner: string;
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  simulated: boolean;
+  seed: number;
+  algorithm: string;
+  parameters: Record<string, unknown>;
+  faultProfile: Record<string, unknown>;
+  outcome: LabOutcome | null;
+  errorMessage: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}

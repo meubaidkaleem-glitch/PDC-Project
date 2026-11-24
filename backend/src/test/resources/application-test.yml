@@ -6,6 +6,8 @@ districompute:
     heartbeat-interval: 200ms
     suspect-after: 800ms
     heartbeat-timeout: 3s
+  faults:
+    enabled: true
   limits:
     submissions-per-minute: 200
     max-active-experiments-per-user: 20

@@ -1,0 +1,88 @@
+{
+    "enabled": true,
+    "busy": false,
+    "runningId": null,
+    "scenarios": [
+        {
+            "id": "WORKER_DISCONNECT",
+            "title": "Worker disconnects",
+            "fault": "The faulty worker drops its connection right after it receives its first partition, then reconnects like after a network failure.",
+            "expectedDetection": "The coordinator sees the connection close and marks the worker's attempts as lost.",
+            "expectedRecovery": "Lost partitions are retried on connected workers; the task completes with the same result.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 4
+        },
+        {
+            "id": "MISSED_HEARTBEATS",
+            "title": "Missed heartbeats",
+            "fault": "The faulty worker stops sending heartbeats 300 ms after it registers and answers its partitions only after 4 s.",
+            "expectedDetection": "Without heartbeats the worker becomes suspect, then lost when the heartbeat timeout (2 s in the lab) expires.",
+            "expectedRecovery": "Its partitions are retried elsewhere; results it sends later are ignored.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 4
+        },
+        {
+            "id": "CORRUPTED_RESULTS",
+            "title": "Corrupted results",
+            "fault": "Every result of the faulty worker is altered in transit, so its checksum no longer matches.",
+            "expectedDetection": "The coordinator verifies each partial result and rejects the corrupted ones.",
+            "expectedRecovery": "Rejected partitions are retried on other workers; no corrupted value reaches the result.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 4
+        },
+        {
+            "id": "DUPLICATE_RESULTS",
+            "title": "Duplicate results",
+            "fault": "The faulty worker sends every result twice.",
+            "expectedDetection": "The coordinator recognises the second copy of a result it already accepted.",
+            "expectedRecovery": "Duplicates are ignored; no partition is counted twice.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 4
+        },
+        {
+            "id": "KERNEL_FAILURES",
+            "title": "Kernel failures",
+            "fault": "Half of the faulty worker's attempts report a (retryable) kernel failure.",
+            "expectedDetection": "Each failure is reported by the worker and recorded with its reason.",
+            "expectedRecovery": "Failed partitions are retried, up to six attempts each.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 6
+        },
+        {
+            "id": "HANGING_ATTEMPTS",
+            "title": "Hanging attempts",
+            "fault": "Every attempt on the faulty worker hangs: it never answers, not even to a cancellation.",
+            "expectedDetection": "Each attempt times out after 2 s (the lab's attempt timeout).",
+            "expectedRecovery": "Timed-out partitions are retried on other workers.",
+            "attemptTimeoutSeconds": 2,
+            "maxAttempts": 4
+        },
+        {
+            "id": "SLOW_WORKER",
+            "title": "Slow worker",
+            "fault": "The faulty worker computes five times slower than the others (a straggler).",
+            "expectedDetection": "Nothing fails; the slowdown shows as load imbalance and in the per-worker times.",
+            "expectedRecovery": "The task completes; how much the straggler delays it depends on the scheduling policy.",
+            "attemptTimeoutSeconds": 60,
+            "maxAttempts": 4
+        },
+        {
+            "id": "SLOW_NETWORK",
+            "title": "Slow network link",
+            "fault": "Every message the faulty worker sends is delayed by 150 ms.",
+            "expectedDetection": "Nothing fails; the delay shows in the transfer time and the communication share.",
+            "expectedRecovery": "The task completes with the same result, later.",
+            "attemptTimeoutSeconds": 20,
+            "maxAttempts": 4
+        }
+    ],
+    "setup": {
+        "algorithm": "matrix.multiply",
+        "size": "192 x 192 x 192",
+        "partitions": 12,
+        "workers": "1 faulty and 2 healthy, 2 slots each, in the application process",
+        "schedulingPolicy": "ROUND_ROBIN",
+        "heartbeat": "every 200 ms; suspect after 800 ms; lost after 2 s",
+        "coordinator": "a separate coordinator on a loopback port, started for each run and stopped after"
+    }
+}

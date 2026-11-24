@@ -1,0 +1,570 @@
+[
+  {
+    "id": 850,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "COORDINATOR_STARTED",
+    "severity": "INFO",
+    "message": "coordinator fault-lab-02216fe7 listening on port 46659",
+    "details": {
+      "tls": false,
+      "port": 46659,
+      "policy": "LEAST_LOADED",
+      "coordinatorId": "fault-lab-02216fe7"
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:26.984Z"
+  },
+  {
+    "id": 851,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "SCHEDULING_POLICY_CHANGED",
+    "severity": "INFO",
+    "message": "default scheduling policy: LEAST_LOADED -> ROUND_ROBIN",
+    "details": {
+      "to": "ROUND_ROBIN",
+      "from": "LEAST_LOADED"
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:26.986Z"
+  },
+  {
+    "id": 852,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "WORKER_REGISTERED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-faulty registered (4 cores, 2 slots)",
+    "details": {
+      "cpuCores": 4,
+      "hostname": "vm",
+      "sessionId": "31e9a95a-59d5-49c0-850d-c8dc273cb4f2",
+      "algorithms": 10,
+      "gpuAvailable": false,
+      "reconnection": false,
+      "faultSimulation": true,
+      "maxConcurrentTasks": 2
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.089Z"
+  },
+  {
+    "id": 853,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "WORKER_REGISTERED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-healthy-2 registered (4 cores, 2 slots)",
+    "details": {
+      "cpuCores": 4,
+      "hostname": "vm",
+      "sessionId": "7b79f477-bac1-4948-b02a-52ef01c4d82e",
+      "algorithms": 10,
+      "gpuAvailable": false,
+      "reconnection": false,
+      "faultSimulation": false,
+      "maxConcurrentTasks": 2
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.091Z"
+  },
+  {
+    "id": 854,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "WORKER_REGISTERED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-healthy-1 registered (4 cores, 2 slots)",
+    "details": {
+      "cpuCores": 4,
+      "hostname": "vm",
+      "sessionId": "5d68e98f-e615-4427-a4cf-9f02741c7d16",
+      "algorithms": 10,
+      "gpuAvailable": false,
+      "reconnection": false,
+      "faultSimulation": false,
+      "maxConcurrentTasks": 2
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.091Z"
+  },
+  {
+    "id": 855,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_SUBMITTED",
+    "severity": "INFO",
+    "message": "task lab-02216fe7-run (matrix.multiply@1.0.0) submitted with policy ROUND_ROBIN",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "priority": "NORMAL",
+      "algorithm": "matrix.multiply@1.0.0"
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.124Z"
+  },
+  {
+    "id": 856,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "STRATEGY_OVERRIDE",
+    "severity": "INFO",
+    "message": "task lab-02216fe7-run runs DISTRIBUTED_CPU although MULTITHREADED_CPU was recommended",
+    "details": {
+      "chosen": "DISTRIBUTED_CPU",
+      "recommended": "MULTITHREADED_CPU",
+      "chosenReasons": [
+        "No network estimate supplied; communication cost is unknown",
+        "3 workers with 6 cores"
+      ],
+      "chosenVerdict": "SUITABLE"
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.124Z"
+  },
+  {
+    "id": 857,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task lab-02216fe7-run: null -> VALIDATING",
+    "details": {
+      "to": "VALIDATING",
+      "partitions": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.124Z"
+  },
+  {
+    "id": 858,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task lab-02216fe7-run: VALIDATING -> QUEUED",
+    "details": {
+      "to": "QUEUED",
+      "from": "VALIDATING",
+      "partitions": 12
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.143Z"
+  },
+  {
+    "id": 859,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p0/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p0/a1 -> lab-02216fe7-faulty",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-faulty starts the rotation",
+      "decisionNanos": 1467947,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.148Z"
+  },
+  {
+    "id": 860,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p1/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p1/a1 -> lab-02216fe7-healthy-1",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-healthy-1 follows lab-02216fe7-faulty among [lab-02216fe7-faulty, lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 406095,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.150Z"
+  },
+  {
+    "id": 861,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p2/a1",
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p2/a1 -> lab-02216fe7-healthy-2",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-healthy-2 follows lab-02216fe7-healthy-1 among [lab-02216fe7-faulty, lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 84510,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.152Z"
+  },
+  {
+    "id": 862,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p3/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p3/a1 -> lab-02216fe7-faulty",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-faulty follows lab-02216fe7-healthy-2 among [lab-02216fe7-faulty, lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 58012,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.152Z"
+  },
+  {
+    "id": 863,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p4/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p4/a1 -> lab-02216fe7-healthy-1",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-healthy-1 follows lab-02216fe7-faulty among [lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 3690565,
+      "eligibleWorkers": 2,
+      "rejectedWorkers": 1
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.157Z"
+  },
+  {
+    "id": 864,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p5/a1",
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p5/a1 -> lab-02216fe7-healthy-2",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-healthy-2 follows lab-02216fe7-healthy-1 among [lab-02216fe7-healthy-2]",
+      "decisionNanos": 42101,
+      "eligibleWorkers": 1,
+      "rejectedWorkers": 2
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.157Z"
+  },
+  {
+    "id": 865,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task lab-02216fe7-run: QUEUED -> RUNNING",
+    "details": {
+      "to": "RUNNING",
+      "from": "QUEUED",
+      "partitions": 12
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.191Z"
+  },
+  {
+    "id": 866,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p0/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p0/a1 accepted by lab-02216fe7-faulty",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.251Z"
+  },
+  {
+    "id": 867,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p2/a1",
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p2/a1 accepted by lab-02216fe7-healthy-2",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.252Z"
+  },
+  {
+    "id": 868,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p1/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p1/a1 accepted by lab-02216fe7-healthy-1",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.253Z"
+  },
+  {
+    "id": 869,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p3/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p3/a1 accepted by lab-02216fe7-faulty",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.266Z"
+  },
+  {
+    "id": 870,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p4/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p4/a1 accepted by lab-02216fe7-healthy-1",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.266Z"
+  },
+  {
+    "id": 871,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p5/a1",
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p5/a1 accepted by lab-02216fe7-healthy-2",
+    "details": {},
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.271Z"
+  },
+  {
+    "id": 872,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p2/a1",
+    "workerId": "lab-02216fe7-healthy-2",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p2/a1 SUCCEEDED",
+    "details": {
+      "bytes": 460428,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 25734899,
+      "transferNanos": 10313630,
+      "roundTripNanos": 97894540
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.313Z"
+  },
+  {
+    "id": 873,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p3/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_FAILED",
+    "severity": "WARN",
+    "message": "lab-02216fe7-run/p3/a1 INVALID: invalid result: Payload size or checksum mismatch for format matrix-block/1",
+    "details": {
+      "status": "INVALID",
+      "attempt": 1,
+      "failure": "invalid result: Payload size or checksum mismatch for format matrix-block/1",
+      "retryable": true
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.318Z"
+  },
+  {
+    "id": 874,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p3",
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "PARTITION_RETRIED",
+    "severity": "WARN",
+    "message": "lab-02216fe7-run/p3 queued again after INVALID_RESULT: invalid result from lab-02216fe7-faulty: Payload size or checksum mismatch for format matrix-block/1",
+    "details": {
+      "reason": "invalid result from lab-02216fe7-faulty: Payload size or checksum mismatch for format matrix-block/1",
+      "failureKind": "INVALID_RESULT",
+      "nextAttempt": 2,
+      "countedFailures": 1
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.321Z"
+  },
+  {
+    "id": 875,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p0/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_FAILED",
+    "severity": "WARN",
+    "message": "lab-02216fe7-run/p0/a1 INVALID: invalid result: Payload size or checksum mismatch for format matrix-block/1",
+    "details": {
+      "status": "INVALID",
+      "attempt": 1,
+      "failure": "invalid result: Payload size or checksum mismatch for format matrix-block/1",
+      "retryable": true
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.321Z"
+  },
+  {
+    "id": 876,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p0",
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "PARTITION_RETRIED",
+    "severity": "WARN",
+    "message": "lab-02216fe7-run/p0 queued again after INVALID_RESULT: invalid result from lab-02216fe7-faulty: Payload size or checksum mismatch for format matrix-block/1",
+    "details": {
+      "reason": "invalid result from lab-02216fe7-faulty: Payload size or checksum mismatch for format matrix-block/1",
+      "failureKind": "INVALID_RESULT",
+      "nextAttempt": 2,
+      "countedFailures": 1
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.322Z"
+  },
+  {
+    "id": 877,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p4/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p4/a1 SUCCEEDED",
+    "details": {
+      "bytes": 460427,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 41694921,
+      "transferNanos": 31793275,
+      "roundTripNanos": 91574190
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.322Z"
+  },
+  {
+    "id": 878,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p6/a1",
+    "workerId": "lab-02216fe7-faulty",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p6/a1 -> lab-02216fe7-faulty",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-faulty follows lab-02216fe7-healthy-2 among [lab-02216fe7-faulty, lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 98174,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.323Z"
+  },
+  {
+    "id": 879,
+    "experimentId": null,
+    "runId": null,
+    "taskRef": "lab-02216fe7-run/p7/a1",
+    "workerId": "lab-02216fe7-healthy-1",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "lab-02216fe7-run/p7/a1 -> lab-02216fe7-healthy-1",
+    "details": {
+      "policy": "ROUND_ROBIN",
+      "attempt": 1,
+      "explanation": "round robin: lab-02216fe7-healthy-1 follows lab-02216fe7-faulty among [lab-02216fe7-faulty, lab-02216fe7-healthy-1, lab-02216fe7-healthy-2]",
+      "decisionNanos": 90777,
+      "eligibleWorkers": 3,
+      "rejectedWorkers": 0
+    },
+    "simulated": true,
+    "occurredAt": "2026-11-24T13:06:27.326Z"
+  }
+]

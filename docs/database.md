@@ -14,7 +14,8 @@ app_users ─┬─< experiments ─┬─< experiment_runs ─┬─< tasks    
            │       │        └─< execution_events (runtime and application events)
            │       └── batches
            ├─< batches
-           └─< experiment_templates
+           ├─< experiment_templates
+           └─< fault_lab_runs ─< execution_events (simulated, lab_run_id set)
 workers            (one row per worker id; history, approval, deactivation)
 app_settings       (non-secret settings changed at run time)
 audit_events       (logins, submissions, worker and settings changes)
@@ -31,6 +32,7 @@ audit_events       (logins, submissions, worker and settings changes)
 | `execution_events` | Runtime events (with the runtime's sequence number) and application events: type, severity, message, details (JSON), simulated flag | Indexes on experiment+id, worker+id, time |
 | `workers` | Host name, endpoint, reported capabilities (JSON), last status and reason, last heartbeat, first registration, last seen, approval, deactivation, notes, counters | Worker id key |
 | `batches`, `experiment_templates` | Grouped submissions; reusable configurations | Unique template name per owner |
+| `fault_lab_runs` | Fault lab runs ([fault-lab.md](fault-lab.md)): scenario, seed, algorithm and parameters, the faulty worker's profile (JSON), outcome (JSON), status (`RUNNING`, `COMPLETED`, `FAILED`) | Status check; index on creation time. Their events are `execution_events` rows with `lab_run_id` and `simulated = TRUE` (check constraint), deleted with the lab run |
 | `app_settings` | Run-time settings (never secrets) | Key |
 | `audit_events` | Who did what, when, from where | Indexes on time, user+time |
 
@@ -53,5 +55,7 @@ deletes the experiment's result files.
 
 * `V1__initial_schema.sql` creates the schema above. Later changes get new versioned files; applied migrations are
   never edited.
+* `V2__fault_lab.sql` adds `fault_lab_runs` and the `lab_run_id` column of `execution_events`. It was applied to a
+  database holding V1 data without loss.
 * `PersistenceTest` runs the migrations on a real MySQL 8.4 (Testcontainers) and checks Hibernate's validation,
   round trips of every entity, cascades, and the unique, check, JSON and foreign-key constraints.

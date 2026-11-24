@@ -141,7 +141,7 @@ public class SystemController {
         out.put("resources", Map.of("localCores", Runtime.getRuntime().availableProcessors(), "workerSlots",
                 m.totalSlots(), "gpuAvailable", !registry.gpuStatus().available().isEmpty()));
         out.put("recentExperiments", recentViews);
-        out.put("recentEvents", events.findAllByOrderByIdDesc(PageRequest.of(0, 40)).stream()
+        out.put("recentEvents", events.findBySimulatedFalseOrderByIdDesc(PageRequest.of(0, 40)).stream()
                 .filter(e -> admin || e.getExperimentId() == null || recent.stream()
                         .anyMatch(x -> x.getId().equals(e.getExperimentId())))
                 .limit(12).map(e -> EventView.of(e, Map.of())).toList());

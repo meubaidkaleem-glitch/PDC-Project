@@ -17,5 +17,7 @@ production code, and the production build does not include it.
 | `workers.json` | `GET /api/v1/workers` |
 | `workloads.json` | `GET /api/v1/analysis/workloads` |
 | `comparison.json` | `POST /api/v1/analysis/compare` (four 768 × 768 matrix multiplications, default basis) |
+| `fault-lab.json` | `GET /api/v1/fault-lab` (lab enabled) |
+| `lab-run.json`, `lab-events.json` | A `CORRUPTED_RESULTS` lab run (seed 7) and its first 30 events |
 
 To refresh them, record the same endpoints again from a running stack; tests that depend on specific values say so.

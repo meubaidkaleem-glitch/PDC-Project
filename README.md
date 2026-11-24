@@ -66,4 +66,5 @@ Then open <http://localhost:8080>. The Workers page also shows the exact start c
 | [docs/metrics.md](docs/metrics.md) | Every stored metric: name, unit, source, definition |
 | [docs/analysis.md](docs/analysis.md) | Comparison: basis, baseline, speedup, efficiency, breakdown, compatibility checks |
 | [docs/reports.md](docs/reports.md) | Experiment and comparison reports, history export: contents and formats |
+| [docs/fault-lab.md](docs/fault-lab.md) | Fault lab: isolation, scenarios, outcome, measured behaviour |
 | [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |

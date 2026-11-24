@@ -21,7 +21,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RuntimeEventBridge {
 
-    private static final Set<EventType> TRANSIENT = Set.of(EventType.TASK_PROGRESS, EventType.ATTEMPT_PROGRESS);
+    /** Progress events: pushed to live views, never stored. */
+    public static final Set<EventType> TRANSIENT = Set.of(EventType.TASK_PROGRESS, EventType.ATTEMPT_PROGRESS);
     private static final Set<EventType> WARNINGS = Set.of(EventType.ATTEMPT_FAILED, EventType.RESULT_IGNORED,
             EventType.PARTITION_RETRIED, EventType.WORKER_DISCONNECTED, EventType.WORKER_REJECTED,
             EventType.EVENTS_DROPPED);
@@ -81,7 +82,13 @@ public class RuntimeEventBridge {
         recorder.enqueue(new EventRecorder.Pending(row, details, ownerId));
     }
 
-    private static Severity severity(RuntimeEvent e) {
+    /**
+     * The severity the application gives a runtime event.
+     *
+     * @param e the event
+     * @return its severity
+     */
+    public static Severity severity(RuntimeEvent e) {
         if (e.type() == EventType.TASK_FINISHED) {
             Object status = e.details().get("status");
             return "COMPLETED".equals(status) ? Severity.INFO : "CANCELLED".equals(status) ? Severity.WARN

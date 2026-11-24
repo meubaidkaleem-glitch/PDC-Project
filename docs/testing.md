@@ -41,6 +41,10 @@ API, multipart upload, Server-Sent Events. It covers:
 - reports: an experiment report as PDF (read back with PDFBox's text extraction), CSV (one row per run, metric
   columns) and JSON; a comparison report as PDF and CSV (quoting of names); the history export as CSV and JSON;
   unknown formats, a single experiment, and other users' experiments refused;
+- the fault lab: all eight scenarios through the API (six recover with detection by the faulty worker and recovered
+  partitions, two unaffected, every result equal to the fault-free reference), one run at a time, events marked
+  simulated and absent from the application's events, lab workers absent from the application's workers,
+  administrators only;
 - the polynomial parser endpoint;
 - visibility between users (another user's experiment is 404);
 - worker administration (deactivate, activate, remove; forbidden for users);
@@ -70,6 +74,8 @@ open and push events through. Covered:
 - history: filters and sorting sent to the API, comparison selection, empty state;
 - reports: download links for the preselected or chosen experiment, comparisons of workload groups, the history
   export with its filters;
+- fault lab: the simulated notice, running a scenario, detection, recovery and per-worker attempts of a recorded run,
+  disabled lab, seed in advanced mode;
 - performance analysis: workload groups, comparing a group, speedups, efficiencies and findings shown as computed,
   new requests for another basis or baseline, no speedups when not comparable, a single selection;
 - workers: reported capabilities, deactivation with a reason (administrator);

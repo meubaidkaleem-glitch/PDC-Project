@@ -42,7 +42,7 @@ public class EventController {
     public List<EventView> recent(@RequestParam(defaultValue = "100") int limit) {
         AppUser user = currentUser.require();
         boolean admin = currentUser.isAdmin();
-        return events.findAllByOrderByIdDesc(PageRequest.of(0, Math.min(500, Math.max(1, limit)) * 3)).stream()
+        return events.findBySimulatedFalseOrderByIdDesc(PageRequest.of(0, Math.min(500, Math.max(1, limit)) * 3)).stream()
                 .filter(e -> admin || e.getExperimentId() == null
                         || directory.owner(e.getExperimentId()).map(user.getId()::equals).orElse(false))
                 .limit(Math.min(500, Math.max(1, limit))).map(e -> EventView.of(e, json.map(e.getDetails()))).toList();

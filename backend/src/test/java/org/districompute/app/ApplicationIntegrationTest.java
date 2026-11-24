@@ -404,6 +404,72 @@ class ApplicationIntegrationTest {
     }
 
     @Test
+    void theFaultLabShowsDetectionAndRecoveryOnAnIsolatedCoordinator() {
+        assertEquals(403, alice.get("/api/v1/fault-lab").status(), "administrators only");
+        JsonNode status = admin.get("/api/v1/fault-lab").json();
+        assertTrue(status.path("enabled").asBoolean());
+        assertEquals(8, status.path("scenarios").size());
+        int workersBefore = admin.get("/api/v1/workers").json().size();
+
+        Map<String, String> expected = new LinkedHashMap<>();
+        expected.put("MISSED_HEARTBEATS", "RECOVERED");
+        expected.put("WORKER_DISCONNECT", "RECOVERED");
+        expected.put("CORRUPTED_RESULTS", "RECOVERED");
+        expected.put("DUPLICATE_RESULTS", "RECOVERED");
+        expected.put("KERNEL_FAILURES", "RECOVERED");
+        expected.put("HANGING_ATTEMPTS", "RECOVERED");
+        expected.put("SLOW_WORKER", "UNAFFECTED");
+        expected.put("SLOW_NETWORK", "UNAFFECTED");
+        boolean checkedBusy = false;
+        for (Map.Entry<String, String> scenario : expected.entrySet()) {
+            Response started = admin.post("/api/v1/fault-lab/runs", Map.of("scenario", scenario.getKey(), "seed", 7));
+            assertEquals(202, started.status(), started.body());
+            String id = started.json().path("id").stringValue();
+            assertTrue(started.json().path("simulated").asBoolean());
+            if (!checkedBusy) {
+                Response busy = admin.post("/api/v1/fault-lab/runs", Map.of("scenario", "SLOW_WORKER"));
+                assertEquals("FAULT_LAB_BUSY", busy.json().path("code").stringValue(), "one lab run at a time");
+                checkedBusy = true;
+            }
+            JsonNode run = awaitLab(id);
+            assertEquals("COMPLETED", run.path("status").stringValue(), run.toString());
+            JsonNode outcome = run.path("outcome");
+            assertEquals(scenario.getValue(), outcome.path("verdict").stringValue(), scenario.getKey() + ": " + outcome);
+            assertTrue(outcome.path("task").path("resultMatchesReference").asBoolean(), outcome.toString());
+            if ("RECOVERED".equals(scenario.getValue())) {
+                assertFalse(outcome.path("detection").isNull(), scenario.getKey() + " detected");
+                assertTrue(outcome.path("detection").path("workerId").stringValue().endsWith("-faulty"));
+                if (!"DUPLICATE_RESULTS".equals(scenario.getKey())) {
+                    assertTrue(outcome.path("recovery").path("recoveredPartitions").asInt() > 0, outcome.toString());
+                }
+            }
+            JsonNode events = admin.get("/api/v1/fault-lab/runs/" + id + "/events").json();
+            assertTrue(events.size() > 10);
+            events.forEach(e -> assertTrue(e.path("simulated").asBoolean(), "every lab event is marked simulated"));
+        }
+
+        admin.get("/api/v1/events?limit=500").json().forEach(e ->
+                assertFalse(e.path("simulated").asBoolean(), "lab events stay out of the application's events"));
+        assertEquals(workersBefore, admin.get("/api/v1/workers").json().size(),
+                "lab workers never join the application's coordinator");
+        assertEquals("UNKNOWN_SCENARIO", admin.post("/api/v1/fault-lab/runs", Map.of("scenario", "METEOR"))
+                .json().path("code").stringValue());
+        assertEquals(8, admin.get("/api/v1/fault-lab/runs?limit=50").json().size());
+    }
+
+    private JsonNode awaitLab(String id) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120);
+        while (true) {
+            JsonNode run = admin.get("/api/v1/fault-lab/runs/" + id).json();
+            if (!"RUNNING".equals(run.path("status").stringValue())) {
+                return run;
+            }
+            assertTrue(System.nanoTime() < deadline, "lab run " + id + " did not finish");
+            sleep(200);
+        }
+    }
+
+    @Test
     void uploadedMatricesAreUsedAndTheResultIsExact() {
         String a = alice.upload("/api/v1/inputs?algorithm=matrix.add&parameter=matrixA", "a.csv", "text/csv",
                 "c0,c1,c2\n1,2,3\n4,5,6\n").json().path("id").stringValue();
