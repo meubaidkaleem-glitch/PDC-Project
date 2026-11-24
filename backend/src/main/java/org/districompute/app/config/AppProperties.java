@@ -121,12 +121,7 @@ public record AppProperties(
      * Fault-simulation lab ({@code docs/fault-lab.md}).
      *
      * @param enabled whether the lab is available (test and demonstration environments only)
-     * @param workerJar runnable Distributed jar used to start simulated worker processes
-     * @param javaExecutable Java executable for those processes (empty: the backend's own)
      */
-    public record Faults(
-            @DefaultValue("false") boolean enabled,
-            Path workerJar,
-            String javaExecutable) {
+    public record Faults(@DefaultValue("false") boolean enabled) {
     }
 }

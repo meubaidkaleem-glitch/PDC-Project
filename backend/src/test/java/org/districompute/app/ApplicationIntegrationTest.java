@@ -28,6 +28,7 @@ import org.districompute.app.testing.ApiClient;
 import org.districompute.app.testing.ApiClient.Response;
 import org.districompute.app.testing.TestDatabase;
 import org.districompute.distributed.coordinator.Coordinator;
+import org.districompute.distributed.scheduler.PolicyName;
 import org.districompute.distributed.security.SharedSecret;
 import org.districompute.distributed.worker.WorkerConfig;
 import org.districompute.distributed.worker.WorkerNode;
@@ -573,6 +574,25 @@ class ApplicationIntegrationTest {
             detail.path("runs").forEach(r -> assertTrue(r.path("submittedAt").isNull(),
                     "queued experiments of the batch were not started: " + detail));
         }
+    }
+
+    @Test
+    void administratorsChangeTheDefaultSchedulingPolicy() {
+        JsonNode forUser = alice.get("/api/v1/settings").json();
+        assertTrue(forUser.has("limits") && !forUser.has("server"), "users see limits, not the server configuration");
+        JsonNode forAdmin = admin.get("/api/v1/settings").json();
+        assertTrue(forAdmin.path("server").has("workerPort"));
+        assertFalse(forAdmin.toString().toLowerCase().contains("secret"), "no secret is shown");
+        String previous = forAdmin.path("schedulingPolicy").stringValue();
+
+        assertEquals(403, alice.patch("/api/v1/settings", Map.of("schedulingPolicy", "ROUND_ROBIN")).status());
+        assertEquals("UNKNOWN_POLICY", admin.patch("/api/v1/settings", Map.of("schedulingPolicy", "FASTEST")).json()
+                .path("code").stringValue());
+        JsonNode changed = admin.patch("/api/v1/settings", Map.of("schedulingPolicy", "ROUND_ROBIN")).json();
+        assertEquals("ROUND_ROBIN", changed.path("schedulingPolicy").stringValue());
+        assertEquals("admin", changed.path("schedulingPolicyChangedBy").stringValue());
+        assertEquals(PolicyName.ROUND_ROBIN, coordinator.schedulingPolicy(), "the running coordinator uses it");
+        admin.patch("/api/v1/settings", Map.of("schedulingPolicy", previous));
     }
 
     private static JsonNode awaitBatch(ApiClient client, String id) {

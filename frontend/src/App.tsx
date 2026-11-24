@@ -10,11 +10,11 @@ import { ExperimentPage } from './pages/ExperimentPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { WorkersPage } from './pages/WorkersPage';
 import { TopologyPage } from './pages/TopologyPage';
-import { NotYetPage } from './pages/NotYetPage';
 import { AnalysisPage } from './pages/AnalysisPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { FaultLabPage } from './pages/FaultLabPage';
 import { BatchesPage, BatchPage } from './pages/BatchesPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 export function AppRoutes() {
   const { session } = useAuth();
@@ -34,7 +34,7 @@ export function AppRoutes() {
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/fault-lab" element={<FaultLabPage />} />
-        <Route path="/settings" element={<NotYetPage title="Settings" phase="Phase 16" />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<div className="py-10 text-center"><p className="text-sm">This page does not exist.</p><Link to="/" className="text-sm text-blue-700 hover:underline">Back to the overview</Link></div>} />
       </Routes>
     </AppShell>

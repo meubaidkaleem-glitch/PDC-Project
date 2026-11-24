@@ -53,13 +53,6 @@ describe('sign-in and navigation', () => {
     expect(screen.queryByRole('link', { name: 'Fault lab' })).not.toBeInTheDocument();
   });
 
-  it('marks unfinished pages as not implemented instead of showing sample content', async () => {
-    fakeBackend({ 'GET /api/v1/auth/session': admin });
-    renderApp('/settings');
-    expect(await screen.findByText(/Not implemented yet/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Fault lab' })).toBeInTheDocument();
-  });
-
   it('returns to the sign-in page when the session expires', async () => {
     fakeBackend({ 'GET /api/v1/auth/session': admin, 'GET /api/v1/dashboard': dashboard });
     renderApp('/');

@@ -204,4 +204,9 @@ See [fault-lab.md](fault-lab.md).
 
 See [batches-and-templates.md](batches-and-templates.md).
 
-Endpoints added in later phases (settings) are listed here when they are implemented.
+### Settings
+
+| Method and path | Role | Purpose |
+|---|---|---|
+| `GET /settings` | user | The default scheduling policy and the available ones, the limits; the server's configuration (no secrets) for administrators |
+| `PATCH /settings` | admin | Change `{schedulingPolicy}`: applied to the running coordinator, stored in `app_settings`, applied again at startup, audited |
