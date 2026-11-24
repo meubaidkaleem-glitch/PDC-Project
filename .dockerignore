@@ -1,0 +1,4 @@
+# Only the jars built by scripts/build.sh go into the images.
+*
+!backend/target/districompute-backend-*.jar
+!components/distributed/distributed/target/districompute-distributed-*-all.jar

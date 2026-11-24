@@ -1,0 +1,71 @@
+# DistriCompute with Docker Compose (docs/deployment.md):
+#
+#   scripts/build.sh
+#   cp .env.example .env    # then set the passwords in .env
+#   docker compose up -d --build
+#   docker compose up -d --scale worker=4    # more workers
+#
+# The interface is on http://localhost:8080. The worker port (7650) is reachable only inside the Compose network;
+# publish it (and set DISTRICOMPUTE_ADVERTISED_HOST) to add workers on other machines.
+name: districompute
+
+services:
+  mysql:
+    image: mysql:8.4@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902
+    environment:
+      MYSQL_DATABASE: districompute
+      MYSQL_USER: districompute
+      MYSQL_PASSWORD: ${DISTRICOMPUTE_DB_PASSWORD:?set DISTRICOMPUTE_DB_PASSWORD in .env}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # Over TCP, so that the temporary server of the first initialisation does not count as ready.
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u districompute -p\"$$MYSQL_PASSWORD\" -e 'SELECT 1' districompute > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: app
+    image: districompute/app:0.1.0-SNAPSHOT
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DISTRICOMPUTE_DB_URL: jdbc:mysql://mysql:3306/districompute
+      DISTRICOMPUTE_DB_USER: districompute
+      DISTRICOMPUTE_DB_PASSWORD: ${DISTRICOMPUTE_DB_PASSWORD:?set DISTRICOMPUTE_DB_PASSWORD in .env}
+      # Optional: the first administrator's password; without it one is generated into /data/initial-admin-password.
+      DISTRICOMPUTE_ADMIN_PASSWORD: ${DISTRICOMPUTE_ADMIN_PASSWORD:-}
+    command:
+      - --districompute.data-dir=/data
+      - --districompute.coordinator.advertised-host=${DISTRICOMPUTE_ADVERTISED_HOST:-app}
+    ports:
+      - "${DISTRICOMPUTE_HTTP_BIND:-127.0.0.1}:8080:8080"
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    image: districompute/worker:0.1.0-SNAPSHOT
+    depends_on:
+      app:
+        condition: service_healthy
+    # The cluster secret is the one the application generated in its data volume, mounted read-only.
+    command: ["--coordinator", "app:7650", "--secret-file", "/data/cluster.secret", "--max-concurrent-tasks", "2"]
+    volumes:
+      - app-data:/data:ro
+    deploy:
+      replicas: 2
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  app-data:

@@ -133,6 +133,41 @@ jobs:
             ${{ runner.temp }}/districompute-e2e.*/logs
           if-no-files-found: ignore
 
+  docker:
+    name: Docker images and Compose smoke test
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Download the built interface
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - name: Build the jars the images package
+        run: |
+          ./mvnw -B -ntp install -pl components/core,components/distributed/distributed -DskipTests
+          ./mvnw -B -ntp package -pl backend -Pwith-frontend -DskipTests
+      - name: Compose smoke test (MySQL, application, two workers, one distributed experiment)
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: scripts/compose-smoke.sh
+      - name: Upload the Compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs
+          path: ${{ runner.temp }}/districompute-compose.*/compose.log
+          if-no-files-found: ignore
+
   component-tests:
     name: Component test suites at the pinned commits
     runs-on: ubuntu-24.04
