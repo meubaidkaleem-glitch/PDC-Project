@@ -14,44 +14,69 @@ the integration of the two other components, which are included as pinned Git su
 | DistriCompute-Distributed: coordinator, worker processes, scheduling, fault tolerance | [components/distributed](components/distributed) | Contributor 2 |
 | DistriCompute-Application: Spring Boot backend, React frontend, MySQL | [backend](backend), [frontend](frontend), [database](database) | Contributor 3 |
 
-> Status: under development. See [docs/implementation-plan.md](docs/implementation-plan.md) for what is done.
+> Status: all sixteen phases of [docs/implementation-plan.md](docs/implementation-plan.md) are implemented; the
+> [implementation report](docs/implementation-report.md) lists what was tested, what is limited and what is not
+> provided.
 
-## Build
+## What it does
 
-Requirements: JDK 21, Node.js 22+, Git; Docker for the integration tests.
+- Run a task from Core's catalog (matrix operations, numerical methods, data processing) with generated, pasted or
+  uploaded data, sequentially, on threads or on worker machines; Core validates it first.
+- See the advisor's recommendation for the task with its reasons and the basis of every estimate, and record why
+  when you choose otherwise.
+- Watch runs live (partitions, attempts, workers, events), read verified results and every measurement.
+- Compare experiments: speedup, efficiency, variation, time breakdown, with the caveats that apply; run benchmark
+  batches one experiment after another.
+- Download experiment and comparison reports as PDF, CSV or JSON.
+- Manage worker processes; for administrators, a fault lab on an isolated coordinator, settings and users.
+
+## Quick start with Docker Compose
+
+Requirements: Git, JDK 21, Node.js 22, Docker.
 
 ```bash
-git clone --branch feature/application-gui https://github.com/meubaidkaleem-glitch/PDC-Project.git districompute
+git clone --recurse-submodules --branch feature/application-gui https://github.com/meubaidkaleem-glitch/PDC-Project.git districompute
 ```
 
 ```bash
 cd districompute && scripts/build.sh
 ```
 
-## Run locally
-
-The backend needs MySQL 8.4. For a local trial, start it in Docker:
-
 ```bash
-docker run -d --name districompute-mysql -e MYSQL_DATABASE=districompute -e MYSQL_USER=districompute -e MYSQL_PASSWORD=change-me -e MYSQL_RANDOM_ROOT_PASSWORD=yes -p 127.0.0.1:3306:3306 mysql:8.4
+cp .env.example .env
 ```
 
-Start the application (the jar built by `scripts/build.sh` serves the interface on port 8080). On first start it
-creates the user `admin`; put its password (at least 12 characters) in a file first, or read the generated one
-from `data/initial-admin-password`:
+Set `DISTRICOMPUTE_DB_PASSWORD` (and optionally `DISTRICOMPUTE_ADMIN_PASSWORD`) in `.env`, then:
 
 ```bash
-DISTRICOMPUTE_DB_PASSWORD=change-me java -jar backend/target/districompute-backend-0.1.0-SNAPSHOT.jar --districompute.data-dir=data --districompute.security.admin-password-file=admin.password
+docker compose up -d --build
 ```
 
-Workers are separate processes from the Distributed jar. They authenticate with the cluster secret the
-application generated in `data/cluster.secret` and connect to the worker port (7650 by default):
+Open <http://localhost:8080> and sign in as `admin` (password from `.env`, or
+`docker compose exec app cat /data/initial-admin-password`). Two workers are running;
+`docker compose up -d --scale worker=4` adds more. [docs/deployment.md](docs/deployment.md) covers running without
+Docker, workers on other machines and operations.
+
+## Tests
 
 ```bash
-java -jar components/distributed/distributed/target/districompute-distributed-0.1.0-SNAPSHOT-all.jar worker --coordinator 127.0.0.1:7650 --id worker-1 --max-concurrent-tasks 2 --secret-file data/cluster.secret
+scripts/build.sh
 ```
 
-Then open <http://localhost:8080>. The Workers page also shows the exact start command for a registered worker.
+runs the frontend tests and the backend's unit, persistence and integration tests (MySQL in Testcontainers, so
+Docker is needed).
+
+```bash
+scripts/e2e.sh
+```
+
+runs the Playwright end-to-end tests against the packaged application, MySQL and worker processes, and
+
+```bash
+scripts/compose-smoke.sh
+```
+
+checks the Docker Compose deployment. [docs/testing.md](docs/testing.md) describes the suites.
 
 ## Documentation
 
@@ -69,3 +94,11 @@ Then open <http://localhost:8080>. The Workers page also shows the exact start c
 | [docs/fault-lab.md](docs/fault-lab.md) | Fault lab: isolation, scenarios, outcome, measured behaviour |
 | [docs/batches-and-templates.md](docs/batches-and-templates.md) | Templates and batches run in order |
 | [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |
+| [docs/user-guide.md](docs/user-guide.md) | Using the interface: tasks, advisor, monitoring, comparison, batches, reports, workers |
+| [docs/deployment.md](docs/deployment.md) | Build, Docker Compose, running without Docker, operations |
+| [docs/configuration.md](docs/configuration.md) | Every setting and environment variable |
+| [docs/security.md](docs/security.md) | Authentication, access, input, workers, secrets, audit, what to add in production |
+| [docs/workers.md](docs/workers.md) | Starting and managing worker processes, TLS |
+| [docs/fault-tolerance.md](docs/fault-tolerance.md) | Failures at each level and how they are handled and tested |
+| [docs/implementation-report.md](docs/implementation-report.md) | What was built and tested, known limitations, component versions |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |

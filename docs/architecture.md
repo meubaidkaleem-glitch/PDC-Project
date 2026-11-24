@@ -113,4 +113,4 @@ needs no change.
 * Secrets (database password, cluster secret, administrator bootstrap password) come from the environment or files
   and are never stored in plain text or returned by the API.
 
-Details: `docs/security.md`, written together with the security implementation.
+Details: [security.md](security.md); failures at each level: [fault-tolerance.md](fault-tolerance.md).
