@@ -35,3 +35,7 @@ cd districompute && scripts/build.sh
 | [docs/architecture.md](docs/architecture.md) | Repository inspection, decisions, logical architecture, security model |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Phases, acceptance criteria, status |
 | [docs/integration.md](docs/integration.md) | Submodules, pinned versions, build, component change requests, updating a component |
+| [docs/api.md](docs/api.md) | REST API conventions (authentication, CSRF, errors, paging, live events) and endpoints |
+| [docs/database.md](docs/database.md) | Schema, relationships, constraints, file storage, migrations |
+| [docs/advisor.md](docs/advisor.md) | How execution strategies are assessed, estimate basis and confidence, overrides |
+| [docs/metrics.md](docs/metrics.md) | Every stored metric: name, unit, source, definition |

@@ -31,6 +31,19 @@
     <test.excludedGroups>e2e</test.excludedGroups>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- Jackson 3.2.4 (Core, Distributed) needs jackson-annotations 2.22 (for example JsonApplyView); Spring
+           Boot's BOM would otherwise resolve 2.21 through its Jackson 2 line. The annotations are backward
+           compatible, so Jackson 2 users (Flyway, springdoc) work with 2.22 too. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>2.22</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <!-- Components (built from the pinned submodules in the same reactor) -->
     <dependency>

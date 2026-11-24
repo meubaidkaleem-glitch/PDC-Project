@@ -1,0 +1,15 @@
+# Settings for integration tests (profile "test"): ephemeral worker port, fast heartbeats, quiet logs.
+districompute:
+  coordinator:
+    bind-address: 127.0.0.1
+    port: 0
+    heartbeat-interval: 200ms
+    suspect-after: 800ms
+    heartbeat-timeout: 3s
+  limits:
+    submissions-per-minute: 200
+    max-active-experiments-per-user: 20
+logging:
+  level:
+    org.districompute: INFO
+    org.hibernate.SQL: WARN
