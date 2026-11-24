@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
 import { Activity, BarChart3, Cpu, FileText, FlaskConical, Gauge, History, LogOut, Menu, Moon, Network,
-  PlusSquare, Settings, Sun, SunMoon, X } from 'lucide-react';
+  PlusSquare, Settings, Sun, SunMoon, X, Layers } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../lib/preferences';
 import type { Theme } from '../../lib/preferences';
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/', label: 'Overview', icon: Gauge, end: true },
   { to: '/tasks/new', label: 'New task', icon: PlusSquare },
   { to: '/experiments', label: 'Experiments', icon: History },
+  { to: '/batches', label: 'Batches', icon: Layers },
   { to: '/analysis', label: 'Performance analysis', icon: BarChart3 },
   { to: '/workers', label: 'Workers', icon: Cpu },
   { to: '/topology', label: 'Cluster topology', icon: Network },

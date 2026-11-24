@@ -20,8 +20,14 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+const template = { id: 1, name: 'mm small', description: null, algorithm: 'matrix.multiply', executionMode: 'DISTRIBUTED_CPU',
+  createdAt: '2026-11-24T10:00:00Z', task: { algorithm: 'matrix.multiply', parameters: { rowsA: 32, colsA: 32, colsB: 32 }, inputs: {},
+    execution: { mode: 'DISTRIBUTED_CPU' } } };
+
 function backend(analyze: object = advice) {
   return fakeBackend({
+    'GET /api/v1/templates': [template],
+    'POST /api/v1/templates': (r) => ({ status: 201, body: { ...template, id: 2, name: (r.body as { name: string }).name } }),
     'GET /api/v1/auth/session': session,
     'GET /api/v1/categories': categories,
     'GET /api/v1/algorithms': algorithms,
@@ -97,5 +103,26 @@ describe('NewTaskPage', () => {
     expect(screen.getByRole('option', { name: /GPU — not available/ })).toBeDisabled();
     expect(screen.getByRole('option', { name: /Hybrid — not available/ })).toBeDisabled();
     expect(screen.getByText(/No GPU backend is installed/)).toBeInTheDocument();
+  });
+
+  it('starts from a template', async () => {
+    backend();
+    renderApp('/tasks/new');
+    await userEvent.selectOptions(await screen.findByLabelText('Start from a template'), '1');
+    expect(await screen.findByLabelText('rowsA')).toHaveValue('32');
+    expect(screen.getByLabelText('Execution mode')).toHaveValue('DISTRIBUTED_CPU');
+    expect(screen.getByLabelText('Experiment name')).toHaveValue('mm small');
+  });
+
+  it('saves the current task as a template', async () => {
+    const { requests } = backend();
+    renderApp('/tasks/new');
+    await chooseMatrixMultiplication();
+    await userEvent.type(screen.getByLabelText('rowsA'), '48');
+    await userEvent.type(screen.getByLabelText('Save this task as a template'), 'my template');
+    await userEvent.click(screen.getByRole('button', { name: 'Save as template' }));
+    expect(await screen.findByText('Saved as template "my template".')).toBeInTheDocument();
+    expect(requests.find((r) => r.method === 'POST' && r.path === '/api/v1/templates')?.body).toEqual({ name: 'my template',
+      task: { algorithm: 'matrix.multiply', parameters: { rowsA: 48 }, inputs: {}, execution: { mode: 'MULTITHREADED_CPU' } } });
   });
 });

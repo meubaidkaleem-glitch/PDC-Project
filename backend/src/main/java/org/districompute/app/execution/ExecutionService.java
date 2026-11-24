@@ -76,6 +76,10 @@ public class ExecutionService {
     /** Core task id of the run currently submitted for each experiment. */
     private final Map<String, String> active = new ConcurrentHashMap<>();
     private final Set<String> cancelRequested = ConcurrentHashMap.newKeySet();
+    /** Experiments started and not yet finished (between start() and finishExperiment()). */
+    private final Set<String> started = ConcurrentHashMap.newKeySet();
+    /** True while startup recovery marks interrupted experiments as failed; batches do not continue then. */
+    private volatile boolean recovering;
 
     ExecutionService(Coordinator coordinator, TaskFactory tasks, ResultStore results, ExperimentRepository experiments,
             ExperimentRunRepository runs, PartitionTaskRepository partitions, RunMetricRepository metrics,
@@ -102,7 +106,9 @@ public class ExecutionService {
      * @param experimentId experiment
      */
     public void start(String experimentId) {
-        executor.execute(() -> startNextRun(experimentId));
+        if (started.add(experimentId)) {
+            executor.execute(() -> startNextRun(experimentId));
+        }
     }
 
     /**
@@ -145,6 +151,15 @@ public class ExecutionService {
     public void recoverInterrupted() {
         List<Experiment> stale = experiments.findByStatusInOrderByCreatedAtAsc(
                 List.of(ExperimentStatus.QUEUED, ExperimentStatus.RUNNING));
+        recovering = true;
+        try {
+            recover(stale);
+        } finally {
+            recovering = false;
+        }
+    }
+
+    private void recover(List<Experiment> stale) {
         for (Experiment e : stale) {
             LOG.warn("Experiment {} was {} when the application stopped; marking it FAILED", e.getId(), e.getStatus());
             tx.executeWithoutResult(s -> {
@@ -392,11 +407,37 @@ public class ExecutionService {
             experiments.save(e);
             return true;
         }));
+        started.remove(experimentId);
         if (changed) {
             events.publish(experimentId, null, "EXPERIMENT_FINISHED", status == ExperimentStatus.COMPLETED
                     ? Severity.INFO : status == ExperimentStatus.CANCELLED ? Severity.WARN : Severity.ERROR,
                     "Experiment " + status.name().toLowerCase() + (message == null ? "" : ": " + message),
                     Map.of("status", status.name()));
+        }
+        continueBatch(experimentId);
+    }
+
+    /**
+     * Starts the next queued experiment of the finished experiment's batch, unless one of the batch's experiments
+     * is still running: a batch runs one experiment at a time, in order ({@code docs/batches-and-templates.md}).
+     */
+    private synchronized void continueBatch(String experimentId) {
+        if (recovering) {
+            return;
+        }
+        try {
+            Experiment finished = experiments.findById(experimentId).orElse(null);
+            if (finished == null || finished.getBatchId() == null) {
+                return;
+            }
+            List<Experiment> items = experiments.findByBatchIdOrderByBatchPositionAsc(finished.getBatchId());
+            if (items.stream().anyMatch(e -> started.contains(e.getId()) || e.getStatus() == ExperimentStatus.RUNNING)) {
+                return;
+            }
+            items.stream().filter(e -> e.getStatus() == ExperimentStatus.QUEUED).findFirst()
+                    .ifPresent(next -> start(next.getId()));
+        } catch (RuntimeException e) {
+            LOG.error("Could not continue the batch of experiment {}", experimentId, e);
         }
     }
 

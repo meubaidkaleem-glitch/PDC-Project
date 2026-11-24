@@ -547,3 +547,32 @@ export interface LabRun {
   createdAt: string;
   completedAt: string | null;
 }
+
+// Batches and templates (docs/batches-and-templates.md)
+
+export interface BatchView {
+  id: string;
+  name: string;
+  owner: string | null;
+  createdAt: string;
+  status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  counts: Record<string, number>;
+  experiments: ExperimentSummary[];
+}
+
+export interface BatchItem {
+  name: string;
+  description?: string | null;
+  task: TaskDraft;
+  overrideReason?: string | null;
+}
+
+export interface Template {
+  id: number;
+  name: string;
+  description: string | null;
+  algorithm: string;
+  executionMode: ExecutionMode;
+  task: TaskDraft;
+  createdAt: string;
+}

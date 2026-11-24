@@ -14,6 +14,7 @@ import { NotYetPage } from './pages/NotYetPage';
 import { AnalysisPage } from './pages/AnalysisPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { FaultLabPage } from './pages/FaultLabPage';
+import { BatchesPage, BatchPage } from './pages/BatchesPage';
 
 export function AppRoutes() {
   const { session } = useAuth();
@@ -26,6 +27,8 @@ export function AppRoutes() {
         <Route path="/tasks/new" element={<NewTaskPage />} />
         <Route path="/experiments" element={<HistoryPage />} />
         <Route path="/experiments/:id" element={<ExperimentPage />} />
+        <Route path="/batches" element={<BatchesPage />} />
+        <Route path="/batches/:id" element={<BatchPage />} />
         <Route path="/workers" element={<WorkersPage />} />
         <Route path="/topology" element={<TopologyPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />

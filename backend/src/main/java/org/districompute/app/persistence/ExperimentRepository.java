@@ -28,16 +28,8 @@ public interface ExperimentRepository extends JpaRepository<Experiment, String>,
      * @param batchId batch
      * @return experiments, oldest first
      */
-    List<Experiment> findByBatchIdOrderByCreatedAtAsc(String batchId);
+    List<Experiment> findByBatchIdOrderByBatchPositionAsc(String batchId);
 
-    /**
-     * Number of experiments of an owner in some statuses.
-     *
-     * @param ownerId owner
-     * @param statuses statuses
-     * @return count
-     */
-    long countByOwnerIdAndStatusIn(Long ownerId, Collection<ExperimentStatus> statuses);
 
     /**
      * Counts experiments per status, for everyone or for one owner.
@@ -73,4 +65,24 @@ public interface ExperimentRepository extends JpaRepository<Experiment, String>,
             + "order by e.createdAt desc")
     List<Experiment> findFinished(@Param("ownerId") Long ownerId,
             @Param("statuses") Collection<ExperimentStatus> statuses, Pageable pageable);
+
+    /**
+     * Queued or running experiments of a user that are not part of a batch.
+     *
+     * @param ownerId owner
+     * @param statuses active statuses
+     * @return how many
+     */
+    long countByOwnerIdAndBatchIdIsNullAndStatusIn(Long ownerId, Collection<ExperimentStatus> statuses);
+
+    /**
+     * Batches of a user that still have queued or running experiments.
+     *
+     * @param ownerId owner
+     * @param statuses active statuses
+     * @return how many
+     */
+    @Query("select count(distinct e.batchId) from Experiment e where e.owner.id = :ownerId and e.batchId is not null "
+            + "and e.status in :statuses")
+    long countActiveBatches(@Param("ownerId") Long ownerId, @Param("statuses") Collection<ExperimentStatus> statuses);
 }

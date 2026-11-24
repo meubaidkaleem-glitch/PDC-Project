@@ -31,7 +31,7 @@ audit_events       (logins, submissions, worker and settings changes)
 | `experiment_results` | Core's result type, summary (JSON) and digest; validation status and method; storage reference, format, size; whether the stored value's digest matches | One per run; validation and format checks |
 | `execution_events` | Runtime events (with the runtime's sequence number) and application events: type, severity, message, details (JSON), simulated flag | Indexes on experiment+id, worker+id, time |
 | `workers` | Host name, endpoint, reported capabilities (JSON), last status and reason, last heartbeat, first registration, last seen, approval, deactivation, notes, counters | Worker id key |
-| `batches`, `experiment_templates` | Grouped submissions; reusable configurations | Unique template name per owner |
+| `batches`, `experiment_templates` | Batches run their experiments one after another (`experiments.batch_position`); templates are validated tasks ([batches-and-templates.md](batches-and-templates.md)) | Unique template name per owner; position at least 1 |
 | `fault_lab_runs` | Fault lab runs ([fault-lab.md](fault-lab.md)): scenario, seed, algorithm and parameters, the faulty worker's profile (JSON), outcome (JSON), status (`RUNNING`, `COMPLETED`, `FAILED`) | Status check; index on creation time. Their events are `execution_events` rows with `lab_run_id` and `simulated = TRUE` (check constraint), deleted with the lab run |
 | `app_settings` | Run-time settings (never secrets) | Key |
 | `audit_events` | Who did what, when, from where | Indexes on time, user+time |
@@ -57,5 +57,7 @@ deletes the experiment's result files.
   never edited.
 * `V2__fault_lab.sql` adds `fault_lab_runs` and the `lab_run_id` column of `execution_events`. It was applied to a
   database holding V1 data without loss.
+* `V3__batch_order.sql` adds `experiments.batch_position` (the order of a batch's experiments, at least 1), also
+  applied to a database holding data.
 * `PersistenceTest` runs the migrations on a real MySQL 8.4 (Testcontainers) and checks Hibernate's validation,
   round trips of every entity, cascades, and the unique, check, JSON and foreign-key constraints.

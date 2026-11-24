@@ -22,6 +22,7 @@ import org.districompute.app.persistence.AppUser;
 import org.districompute.app.persistence.Experiment;
 import org.districompute.app.persistence.ExecutionEventRepository;
 import org.districompute.app.security.CurrentUser;
+import org.districompute.app.task.TaskDraft;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -119,6 +120,18 @@ public class ExperimentController {
     @GetMapping("/{id}")
     public ExperimentDetail get(@PathVariable String id) {
         return service.detail(access.require(id));
+    }
+
+    /**
+     * The task an experiment ran, as it would be submitted again (uploaded inputs by reference), for copying it
+     * into a new task, a template or a batch.
+     *
+     * @param id experiment id
+     * @return the task
+     */
+    @GetMapping("/{id}/task")
+    public TaskDraft task(@PathVariable String id) {
+        return service.draftOf(access.require(id));
     }
 
     /**

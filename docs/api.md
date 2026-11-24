@@ -192,4 +192,16 @@ Downloads (`Content-Disposition: attachment`, `Cache-Control: no-store`), audite
 
 See [fault-lab.md](fault-lab.md).
 
-Endpoints added in later phases (settings, templates, batches) are listed here when they are implemented.
+### Templates and batches
+
+| Method and path | Purpose |
+|---|---|
+| `GET /templates`, `POST /templates`, `POST /templates/from-experiment/{id}` | List and save the user's templates; Core validates the task first |
+| `GET /templates/{id}`, `DELETE /templates/{id}` | One template |
+| `GET /experiments/{id}/task` | The task of an experiment, as it would be submitted again |
+| `POST /batches` | Submit experiments that run one after another; nothing is created unless every item is valid (`items[i].` violations) |
+| `GET /batches`, `GET /batches/{id}`, `POST /batches/{id}/cancel` | Batches with their experiments in order; cancellation |
+
+See [batches-and-templates.md](batches-and-templates.md).
+
+Endpoints added in later phases (settings) are listed here when they are implemented.

@@ -67,4 +67,5 @@ Then open <http://localhost:8080>. The Workers page also shows the exact start c
 | [docs/analysis.md](docs/analysis.md) | Comparison: basis, baseline, speedup, efficiency, breakdown, compatibility checks |
 | [docs/reports.md](docs/reports.md) | Experiment and comparison reports, history export: contents and formats |
 | [docs/fault-lab.md](docs/fault-lab.md) | Fault lab: isolation, scenarios, outcome, measured behaviour |
+| [docs/batches-and-templates.md](docs/batches-and-templates.md) | Templates and batches run in order |
 | [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |

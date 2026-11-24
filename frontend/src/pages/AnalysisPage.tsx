@@ -171,7 +171,7 @@ function ComparisonView({ ids, baseline, basis, onBaseline, onBasis }: ViewProps
             {c.experiments.map((e) => (
               <tr key={e.id}>
                 <td className="tabular-nums">{number(e)}</td>
-                <td>
+                <td className="min-w-48">
                   <Link className="font-medium text-blue-700 hover:underline dark:text-blue-400" to={`/experiments/${e.id}`}>{e.name}</Link>
                   {e.id === c.baselineId && <span className="ml-2"><Badge tone="blue">baseline</Badge></span>}
                 </td>

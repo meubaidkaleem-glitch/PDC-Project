@@ -81,6 +81,8 @@ class ApplicationIntegrationTest {
     @LocalServerPort
     private int port;
     @Autowired
+    private org.districompute.app.execution.ExecutionService execution;
+    @Autowired
     private Coordinator coordinator;
 
     private final List<WorkerNode> workers = new ArrayList<>();
@@ -466,6 +468,122 @@ class ApplicationIntegrationTest {
             }
             assertTrue(System.nanoTime() < deadline, "lab run " + id + " did not finish");
             sleep(200);
+        }
+    }
+
+    @Test
+    void templatesKeepAValidatedTaskForTheirOwner() {
+        Map<String, Object> task = draft("primes.count", Map.of("upperBound", 50_000), "MULTITHREADED_CPU",
+                Map.of("threads", 2, "repetitions", 2));
+        Response saved = alice.post("/api/v1/templates", Map.of("name", "primes small", "task", task));
+        assertEquals(201, saved.status(), saved.body());
+        long id = saved.json().path("id").asLong();
+        JsonNode stored = alice.get("/api/v1/templates/" + id).json();
+        assertEquals("primes.count", stored.path("task").path("algorithm").stringValue());
+        assertEquals(2, stored.path("task").path("execution").path("threads").asInt());
+        assertEquals(50_000, stored.path("task").path("parameters").path("upperBound").asInt());
+
+        assertEquals("TEMPLATE_NAME_TAKEN", alice.post("/api/v1/templates", Map.of("name", "primes small", "task",
+                task)).json().path("code").stringValue());
+        Response invalid = alice.post("/api/v1/templates", Map.of("name", "broken", "task",
+                draft("primes.count", Map.of("upperBound", -5), "SEQUENTIAL_CPU")));
+        assertEquals(400, invalid.status(), "Core validates a template before it is saved");
+
+        String experiment = create("for a template", draft("matrix.multiply", Map.of("rowsA", 8, "colsA", 8,
+                "colsB", 8), "SEQUENTIAL_CPU"));
+        await(alice, experiment);
+        Response copied = alice.post("/api/v1/templates/from-experiment/" + experiment, Map.of("name", "mm 8"));
+        assertEquals(201, copied.status(), copied.body());
+        assertEquals("matrix.multiply", copied.json().path("task").path("algorithm").stringValue());
+
+        ApiClient bob = anotherUser();
+        assertEquals(404, bob.get("/api/v1/templates/" + id).status(), "templates are personal");
+        assertEquals(404, bob.post("/api/v1/templates/from-experiment/" + experiment, Map.of("name", "x")).status());
+        assertTrue(bob.get("/api/v1/templates").json().isEmpty());
+        assertEquals(2, alice.get("/api/v1/templates").json().size());
+        assertEquals(204, alice.delete("/api/v1/templates/" + id).status());
+        assertEquals(404, alice.get("/api/v1/templates/" + id).status());
+    }
+
+    @Test
+    void aBatchRunsItsExperimentsOneAfterAnotherInOrder() {
+        Map<String, Object> parameters = Map.of("rowsA", 64, "colsA", 64, "colsB", 64);
+        List<Map<String, Object>> items = List.of(
+                Map.of("name", "b-seq", "task", draft("matrix.multiply", parameters, "SEQUENTIAL_CPU",
+                        Map.of("repetitions", 2))),
+                Map.of("name", "b-mt", "task", draft("matrix.multiply", parameters, "MULTITHREADED_CPU",
+                        Map.of("threads", 2))),
+                Map.of("name", "b-dist", "task", draft("matrix.multiply", parameters, "DISTRIBUTED_CPU")));
+        Response created = alice.post("/api/v1/batches", Map.of("name", "three modes", "items", items));
+        assertEquals(202, created.status(), created.body());
+        String batch = created.json().path("id").stringValue();
+        assertEquals(3, created.json().path("experiments").size());
+
+        JsonNode done = awaitBatch(alice, batch);
+        assertEquals("COMPLETED", done.path("status").stringValue(), done.toString());
+        List<String> names = new ArrayList<>();
+        JsonNode previous = null;
+        for (JsonNode e : done.path("experiments")) {
+            names.add(e.path("name").stringValue());
+            assertEquals("COMPLETED", e.path("status").stringValue());
+            assertEquals(batch, e.path("batchId").stringValue());
+            if (previous != null) {
+                assertFalse(java.time.Instant.parse(e.path("startedAt").stringValue())
+                        .isBefore(java.time.Instant.parse(previous.path("completedAt").stringValue())),
+                        "an experiment starts after the previous one completed");
+            }
+            previous = e;
+        }
+        assertEquals(List.of("b-seq", "b-mt", "b-dist"), names, "the given order");
+        assertEquals(3, alice.get("/api/v1/experiments?batch=" + batch).json().path("totalItems").asInt());
+
+        int before = alice.get("/api/v1/batches").json().size();
+        Response invalid = alice.post("/api/v1/batches", Map.of("name", "bad", "items", List.of(items.get(0),
+                Map.of("name", "broken", "task", draft("matrix.multiply", Map.of("rowsA", 0), "SEQUENTIAL_CPU")))));
+        assertEquals(400, invalid.status());
+        assertTrue(invalid.body().contains("items[1].parameters.rowsA"), invalid.body());
+        assertEquals(before, alice.get("/api/v1/batches").json().size(), "nothing is created for an invalid batch");
+
+        Map<String, Object> slow = Map.of("name", "slow", "task", draft("matrix.multiply",
+                Map.of("rowsA", 400, "colsA", 400, "colsB", 400), "SEQUENTIAL_CPU", Map.of("repetitions", 3)));
+        String cancelled = alice.post("/api/v1/batches", Map.of("name", "to cancel", "items",
+                List.of(slow, slow, slow))).json().path("id").stringValue();
+        assertEquals(202, alice.post("/api/v1/batches/" + cancelled + "/cancel", null).status());
+        JsonNode stopped = awaitBatch(alice, cancelled);
+        assertEquals("CANCELLED", stopped.path("status").stringValue(), stopped.toString());
+        assertEquals("CANCELLED", stopped.path("experiments").get(2).path("status").stringValue());
+        assertEquals(404, anotherUser().get("/api/v1/batches/" + batch).status());
+    }
+
+    @Test
+    void aRestartDoesNotResumeTheRestOfABatch() {
+        Map<String, Object> slow = Map.of("name", "slow", "task", draft("matrix.multiply",
+                Map.of("rowsA", 300, "colsA", 300, "colsB", 300), "SEQUENTIAL_CPU", Map.of("repetitions", 2)));
+        String batch = alice.post("/api/v1/batches", Map.of("name", "interrupted", "items",
+                List.of(slow, slow, slow))).json().path("id").stringValue();
+        execution.recoverInterrupted(); // what the application does at startup after a restart
+        sleep(1500);
+        JsonNode after = alice.get("/api/v1/batches/" + batch).json();
+        for (JsonNode e : after.path("experiments")) {
+            assertEquals("FAILED", e.path("status").stringValue(), after.toString());
+        }
+        for (int i = 1; i < 3; i++) {
+            JsonNode detail = alice.get("/api/v1/experiments/" + after.path("experiments").get(i).path("id")
+                    .stringValue()).json();
+            detail.path("runs").forEach(r -> assertTrue(r.path("submittedAt").isNull(),
+                    "queued experiments of the batch were not started: " + detail));
+        }
+    }
+
+    private static JsonNode awaitBatch(ApiClient client, String id) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(120);
+        while (true) {
+            JsonNode batch = client.get("/api/v1/batches/" + id).json();
+            if (!Set.of("QUEUED", "RUNNING").contains(batch.path("status").stringValue())) {
+                return batch;
+            }
+            assertTrue(System.nanoTime() < deadline, "batch " + id + " did not finish: " + batch);
+            sleep(100);
         }
     }
 

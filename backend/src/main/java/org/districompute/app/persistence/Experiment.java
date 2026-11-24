@@ -41,6 +41,9 @@ public class Experiment {
     @Column(name = "batch_id", length = 36)
     private String batchId;
 
+    @Column(name = "batch_position")
+    private Integer batchPosition;
+
     @Column(nullable = false, length = 32)
     private String category;
 
@@ -175,6 +178,14 @@ public class Experiment {
 
     public void setBatchId(String batchId) {
         this.batchId = batchId;
+    }
+
+    public Integer getBatchPosition() {
+        return batchPosition;
+    }
+
+    public void setBatchPosition(Integer batchPosition) {
+        this.batchPosition = batchPosition;
     }
 
     public String getCategory() {

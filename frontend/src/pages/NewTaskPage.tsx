@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { ChevronLeft, Lock, Sparkles } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import { useApi } from '../api/hooks';
-import type { Advice, Algorithm, Category, ExecutionMode, ExecutionSettings, ExperimentDetail, TaskDraft } from '../api/types';
+import type { Advice, Algorithm, Category, ExecutionMode, ExecutionSettings, ExperimentDetail, InputUpload, TaskDraft, Template } from '../api/types';
 import { AdvisorPanel } from '../components/AdvisorPanel';
 import { EMPTY_PARAMETERS, ParameterForm, toDraftParameters } from '../components/ParameterForm';
 import type { ParameterState } from '../components/ParameterForm';
@@ -36,6 +36,10 @@ export function NewTaskPage() {
   const categories = useApi<Category[]>('/api/v1/categories');
   const algorithms = useApi<Algorithm[]>('/api/v1/algorithms');
   const source = useApi<ExperimentDetail>(search.get('from') ? `/api/v1/experiments/${search.get('from')}` : null);
+  const sourceTask = useApi<TaskDraft>(search.get('from') ? `/api/v1/experiments/${search.get('from')}/task` : null);
+  const templates = useApi<Template[]>('/api/v1/templates');
+  const [templateName, setTemplateName] = useState('');
+  const [templateMessage, setTemplateMessage] = useState<string>();
 
   const [categoryId, setCategoryId] = useState<string>();
   const [algorithmId, setAlgorithmId] = useState<string>();
@@ -53,27 +57,52 @@ export function NewTaskPage() {
 
   const algorithm = algorithms.data?.find((a) => a.id === algorithmId);
 
-  // Prefill from an earlier experiment (?from=<id>): same algorithm, parameters and settings.
-  useEffect(() => {
-    const d = source.data;
-    if (!d || !algorithms.data) return;
-    const a = algorithms.data.find((x) => x.id === d.summary.algorithm);
+  /** Fills the form with a stored task: same algorithm, parameters, uploaded inputs and settings. */
+  async function applyDraft(task: TaskDraft, newName: string) {
+    const a = algorithms.data?.find((x) => x.id === task.algorithm);
     if (!a) return;
     setCategoryId(a.category);
     setAlgorithmId(a.id);
     const values: Record<string, string> = {};
-    for (const [k, v] of Object.entries(d.parameters)) {
+    for (const [k, v] of Object.entries(task.parameters)) {
       if (v && typeof v === 'object' && !Array.isArray(v)) continue;
       values[k] = Array.isArray(v) ? v.join(', ') : String(v);
     }
-    setParams({ values, uploads: {} });
-    setMode(d.summary.executionMode);
+    const uploads: Record<string, InputUpload> = {};
+    for (const [parameter, id] of Object.entries(task.inputs ?? {})) {
+      try {
+        uploads[parameter] = await api<InputUpload>(`/api/v1/inputs/${id}`);
+      } catch {
+        // An upload that is gone is simply not prefilled; the form asks for the data again.
+      }
+    }
+    setParams({ values, uploads });
+    setMode(task.execution.mode);
     const s: Record<string, string> = {};
-    for (const [k, v] of Object.entries(d.configuration)) if (v !== null && k !== 'mode' && k !== 'schedulingPolicy' && k !== 'priority') s[k] = String(v);
+    for (const [k, v] of Object.entries(task.execution)) if (v !== null && v !== undefined && k !== 'mode' && k !== 'schedulingPolicy' && k !== 'priority') s[k] = String(v);
     setSettings(s);
-    setPolicy((d.configuration.schedulingPolicy as string) ?? '');
-    setName(`${d.summary.name} (copy)`);
-  }, [source.data, algorithms.data]);
+    setPolicy(task.execution.schedulingPolicy ?? '');
+    setName(newName);
+    setAdvice(undefined);
+  }
+
+  // Prefill from an earlier experiment (?from=<id>).
+  useEffect(() => {
+    if (source.data && sourceTask.data && algorithms.data) void applyDraft(sourceTask.data, `${source.data.summary.name} (copy)`);
+  }, [source.data, sourceTask.data, algorithms.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function saveTemplate() {
+    if (!draft || !templateName.trim()) return;
+    setTemplateMessage(undefined);
+    try {
+      const saved = await api<Template>('/api/v1/templates', { body: { name: templateName.trim(), task: draft.task } });
+      setTemplateMessage(`Saved as template "${saved.name}".`);
+      setTemplateName('');
+      templates.reload();
+    } catch (e) {
+      setTemplateMessage(e instanceof ApiError ? e.message : String(e));
+    }
+  }
 
   const draft = useMemo(() => {
     if (!algorithm) return undefined;
@@ -143,6 +172,20 @@ export function NewTaskPage() {
     <>
       <PageHeader title="New task" description={advanced ? 'Advanced mode: every execution setting is available.'
         : 'Beginner mode: choose what to compute, analyse it, and run it with the recommended strategy. Switch to advanced mode at the top for more control.'} />
+
+      {templates.data && templates.data.length > 0 && (
+        <div className="mb-4 max-w-md">
+          <Field label="Start from a template" htmlFor="template">
+            <SelectInput id="template" value="" onChange={(e) => {
+              const t = templates.data!.find((x) => String(x.id) === e.target.value);
+              if (t) void applyDraft(t.task, t.name);
+            }}>
+              <option value="">Choose a template…</option>
+              {templates.data.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.algorithm}, {MODE_LABELS[t.executionMode]})</option>)}
+            </SelectInput>
+          </Field>
+        </div>
+      )}
 
       {!categoryId && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -262,6 +305,13 @@ export function NewTaskPage() {
                 Run with {MODE_LABELS[mode]}
               </Button>
               <span className="text-xs text-slate-500">The task runs in the background; you will see it live.</span>
+            </div>
+            <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+              <Field label="Save this task as a template" htmlFor="template-name">
+                <TextInput id="template-name" maxLength={200} placeholder="Template name" value={templateName} onChange={(e) => setTemplateName(e.target.value)} />
+              </Field>
+              <Button onClick={() => void saveTemplate()} disabled={!draft || Object.keys(draft.problems).length > 0 || !templateName.trim()}>Save as template</Button>
+              {templateMessage && <span className="text-sm" role="status">{templateMessage}</span>}
             </div>
           </Card>
         </div>

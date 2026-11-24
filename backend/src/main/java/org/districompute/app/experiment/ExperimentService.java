@@ -121,14 +121,56 @@ public class ExperimentService {
      */
     @Transactional
     public ExperimentDetail create(CreateExperiment request, AppUser owner, boolean admin, String batchId) {
-        long active = experiments.countByOwnerIdAndStatusIn(owner.getId(), ACTIVE);
+        if (batchId != null) {
+            throw new IllegalArgumentException("Batch experiments are created with createInBatch");
+        }
+        checkActiveLimit(owner);
+        limiter.acquire(owner.getId(), 1);
+        Experiment experiment = persist(request, owner, admin, null, null);
+        String id = experiment.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                execution.start(id);
+            }
+        });
+        return detail(experiment);
+    }
+
+    /**
+     * Creates a queued experiment of a batch without starting it; the batch starts its experiments one after
+     * another ({@code docs/batches-and-templates.md}). The caller checks the limits for the whole batch.
+     *
+     * @param request the experiment
+     * @param owner the user
+     * @param admin whether the user is an administrator
+     * @param batchId the batch
+     * @param position its position in the batch, from 1
+     * @return the experiment
+     */
+    @Transactional
+    public Experiment createInBatch(CreateExperiment request, AppUser owner, boolean admin, String batchId,
+            int position) {
+        return persist(request, owner, admin, batchId, position);
+    }
+
+    /**
+     * Rejects a new submission when the user already has as many active experiments as allowed. A batch with
+     * queued or running experiments counts as one, because it runs one experiment at a time.
+     *
+     * @param owner the user
+     */
+    public void checkActiveLimit(AppUser owner) {
+        long active = experiments.countByOwnerIdAndBatchIdIsNullAndStatusIn(owner.getId(), ACTIVE)
+                + experiments.countActiveBatches(owner.getId(), ACTIVE);
         if (active >= limits.maxActiveExperimentsPerUser()) {
-            throw ApiException.tooManyRequests("You already have " + active + " queued or running experiments (limit "
-                    + limits.maxActiveExperimentsPerUser() + "); wait for one to finish");
+            throw ApiException.tooManyRequests("You already have " + active + " queued or running experiments or "
+                    + "batches (limit " + limits.maxActiveExperimentsPerUser() + "); wait for one to finish");
         }
-        if (batchId == null) {
-            limiter.acquire(owner.getId(), 1);
-        }
+    }
+
+    private Experiment persist(CreateExperiment request, AppUser owner, boolean admin, String batchId,
+            Integer position) {
         PreparedTask task = tasks.prepare(request.task(), owner, admin);
         String recommended = null;
         AdviceBasis basis = AdviceBasis.NONE;
@@ -143,6 +185,7 @@ public class ExperimentService {
         experiment.setName(request.name().strip());
         experiment.setDescription(request.description());
         experiment.setBatchId(batchId);
+        experiment.setBatchPosition(position);
         experiment.setCategory(task.category().name());
         experiment.setAlgorithmId(task.info().descriptor().id().value());
         experiment.setAlgorithmVersion(task.algorithmVersion());
@@ -165,16 +208,9 @@ public class ExperimentService {
             runs.save(new ExperimentRun(experiment.getId(), i, task.mode().name()));
         }
         audit.record(owner.getUsername(), "EXPERIMENT_CREATED", "EXPERIMENT", experiment.getId(),
-                experiment.getAlgorithmId() + " " + experiment.getExecutionMode() + " x" + experiment.getRepetitions(),
-                null);
-        String id = experiment.getId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                execution.start(id);
-            }
-        });
-        return detail(experiment);
+                experiment.getAlgorithmId() + " " + experiment.getExecutionMode() + " x" + experiment.getRepetitions()
+                        + (batchId == null ? "" : " in batch " + batchId), null);
+        return experiment;
     }
 
     /**

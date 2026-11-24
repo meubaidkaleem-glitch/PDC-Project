@@ -45,6 +45,9 @@ API, multipart upload, Server-Sent Events. It covers:
   partitions, two unaffected, every result equal to the fault-free reference), one run at a time, events marked
   simulated and absent from the application's events, lab workers absent from the application's workers,
   administrators only;
+- templates: validated before saving, unique names, from an experiment, personal; batches: three modes run one after
+  another in the given order (each starts after the previous completed), filterable in the history, an invalid
+  item rejects the whole batch with `items[i]` violations and creates nothing, cancellation, personal;
 - the polynomial parser endpoint;
 - visibility between users (another user's experiment is 404);
 - worker administration (deactivate, activate, remove; forbidden for users);
@@ -74,6 +77,9 @@ open and push events through. Covered:
 - history: filters and sorting sent to the API, comparison selection, empty state;
 - reports: download links for the preselected or chosen experiment, comparisons of workload groups, the history
   export with its filters;
+- batches: building a benchmark batch (modes, thread counts, repetitions) from an experiment, no mode chosen, the
+  batch page in order with comparison and report links, cancellation; templates: starting from one and saving the
+  current task; the batch builder's settings per mode;
 - fault lab: the simulated notice, running a scenario, detection, recovery and per-worker attempts of a recorded run,
   disabled lab, seed in advanced mode;
 - performance analysis: workload groups, comparing a group, speedups, efficiencies and findings shown as computed,
