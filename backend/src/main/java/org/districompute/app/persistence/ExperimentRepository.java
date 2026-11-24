@@ -60,4 +60,17 @@ public interface ExperimentRepository extends JpaRepository<Experiment, String>,
     @Query("select e from Experiment e where (:ownerId is null or e.owner.id = :ownerId) and e.createdAt >= :since "
             + "order by e.createdAt desc")
     Page<Experiment> recent(@Param("ownerId") Long ownerId, @Param("since") Instant since, Pageable pageable);
+
+    /**
+     * Finished experiments, newest first, for everyone or for one owner.
+     *
+     * @param ownerId owner, or {@code null} for all
+     * @param statuses finished statuses
+     * @param pageable how many
+     * @return experiments
+     */
+    @Query("select e from Experiment e where (:ownerId is null or e.owner.id = :ownerId) and e.status in :statuses "
+            + "order by e.createdAt desc")
+    List<Experiment> findFinished(@Param("ownerId") Long ownerId,
+            @Param("statuses") Collection<ExperimentStatus> statuses, Pageable pageable);
 }

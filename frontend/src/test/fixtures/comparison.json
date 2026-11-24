@@ -1,0 +1,442 @@
+{
+    "computedAt": "2026-11-24T07:29:13.011769978Z",
+    "comparable": true,
+    "baselineId": "03fa983d-4f13-4977-b09d-61d3d65520e1",
+    "baselineReason": "sequential execution, the reference implementation",
+    "basis": "EXECUTION_TIME",
+    "basisDescription": "Core's execution time: validation, input preparation, partitioning, computation (on threads or workers), aggregation and verification; median of completed runs",
+    "experiments": [
+        {
+            "id": "faa3c41a-f786-4e5e-8d81-74077afe14d3",
+            "name": "Parallel 768 2 threads",
+            "owner": "admin",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "mode": "MULTITHREADED_CPU",
+            "status": "COMPLETED",
+            "inputSource": "GENERATED",
+            "dimensions": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "estimatedOperations": 905969664.0,
+            "operationUnit": "floating-point operations",
+            "parameters": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "repetitions": 3,
+            "completedRuns": 3,
+            "threads": 2,
+            "workers": null,
+            "partitions": 8,
+            "schedulingPolicy": null,
+            "wallTime": {
+                "count": 3,
+                "median": 914.032592,
+                "mean": 967.6995400000001,
+                "min": 877.771247,
+                "max": 1111.294781,
+                "stddev": 125.67185927521055,
+                "cv": 0.12986661053410292
+            },
+            "executionTime": {
+                "count": 3,
+                "median": 193.175817,
+                "mean": 197.91361433333336,
+                "min": 188.353345,
+                "max": 212.211681,
+                "stddev": 12.615073993085788,
+                "cv": 0.0637403042513236
+            },
+            "waitingTime": {
+                "count": 3,
+                "median": 607.0,
+                "mean": 680.6666666666666,
+                "min": 598.0,
+                "max": 837.0,
+                "stddev": 135.4634021916375,
+                "cv": 0.19901577207390428
+            },
+            "runs": [
+                {
+                    "runIndex": 1,
+                    "wallTimeMs": 1111.294781,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 2,
+                    "wallTimeMs": 914.032592,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 3,
+                    "wallTimeMs": 877.771247,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                }
+            ],
+            "speedup": 1.637305320675828,
+            "speedupRange": [
+                1.4904353592109758,
+                1.6792257817348561
+            ],
+            "efficiency": 0.818652660337914,
+            "efficiencyBasis": "thread",
+            "breakdown": {
+                "waiting": 607.0,
+                "validation_time": 0.145746,
+                "input_preparation_time": 7.46107,
+                "partitioning_time": 0.082148,
+                "compute_time": 191.630855,
+                "aggregation_time": 1.453839,
+                "verification_time": 8.913206,
+                "other": 72.892417
+            },
+            "indicators": {
+                "throughput_operations": 4689871010.096466,
+                "cpu_utilization": 1.353838446564355
+            },
+            "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b",
+            "resultsConsistent": true
+        },
+        {
+            "id": "57c8f499-c9d9-4336-8812-3d60bcd4778a",
+            "name": "Parallel 768 x3",
+            "owner": "admin",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "mode": "MULTITHREADED_CPU",
+            "status": "COMPLETED",
+            "inputSource": "GENERATED",
+            "dimensions": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "estimatedOperations": 905969664.0,
+            "operationUnit": "floating-point operations",
+            "parameters": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "repetitions": 3,
+            "completedRuns": 3,
+            "threads": 4,
+            "workers": null,
+            "partitions": 16,
+            "schedulingPolicy": null,
+            "wallTime": {
+                "count": 3,
+                "median": 900.132963,
+                "mean": 910.0125556666667,
+                "min": 899.999207,
+                "max": 929.905497,
+                "stddev": 17.227922359804882,
+                "cv": 0.01893152160651659
+            },
+            "executionTime": {
+                "count": 3,
+                "median": 154.754584,
+                "mean": 150.133008,
+                "min": 132.047388,
+                "max": 163.597052,
+                "stddev": 16.27465969447766,
+                "cv": 0.10840160942141158
+            },
+            "waitingTime": {
+                "count": 3,
+                "median": 647.0,
+                "mean": 641.6666666666666,
+                "min": 610.0,
+                "max": 668.0,
+                "stddev": 29.36551265231604,
+                "cv": 0.04576443530231071
+            },
+            "runs": [
+                {
+                    "runIndex": 1,
+                    "wallTimeMs": 929.905497,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 2,
+                    "wallTimeMs": 899.999207,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 3,
+                    "wallTimeMs": 900.132963,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                }
+            ],
+            "speedup": 2.0438024181564796,
+            "speedupRange": [
+                1.933334306048498,
+                2.395259745690691
+            ],
+            "efficiency": 0.5109506045391199,
+            "efficiencyBasis": "thread",
+            "breakdown": {
+                "waiting": 647.0,
+                "validation_time": 0.152823,
+                "input_preparation_time": 8.07222,
+                "partitioning_time": 0.065498,
+                "compute_time": 145.274375,
+                "aggregation_time": 6.432978,
+                "verification_time": 9.336015,
+                "other": 83.38099700000004
+            },
+            "indicators": {
+                "throughput_operations": 5854234754.041276,
+                "cpu_utilization": 0.8251982437923148
+            },
+            "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b",
+            "resultsConsistent": true
+        },
+        {
+            "id": "03fa983d-4f13-4977-b09d-61d3d65520e1",
+            "name": "Sequential 768 x3",
+            "owner": "admin",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "mode": "SEQUENTIAL_CPU",
+            "status": "COMPLETED",
+            "inputSource": "GENERATED",
+            "dimensions": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "estimatedOperations": 905969664.0,
+            "operationUnit": "floating-point operations",
+            "parameters": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "repetitions": 3,
+            "completedRuns": 3,
+            "threads": 1,
+            "workers": null,
+            "partitions": 1,
+            "schedulingPolicy": null,
+            "wallTime": {
+                "count": 3,
+                "median": 891.024313,
+                "mean": 837.6206353333333,
+                "min": 715.122437,
+                "max": 906.715156,
+                "stddev": 106.37625244713767,
+                "cv": 0.1269981277440771
+            },
+            "executionTime": {
+                "count": 3,
+                "median": 316.287793,
+                "mean": 338.73854766666665,
+                "min": 309.570386,
+                "max": 390.357464,
+                "stddev": 44.82929044465975,
+                "cv": 0.13234186293073943
+            },
+            "waitingTime": {
+                "count": 3,
+                "median": 501.0,
+                "mean": 349.3333333333333,
+                "min": 36.0,
+                "max": 511.0,
+                "stddev": 271.4006877908258,
+                "cv": 0.7769103658134328
+            },
+            "runs": [
+                {
+                    "runIndex": 1,
+                    "wallTimeMs": 715.122437,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 2,
+                    "wallTimeMs": 891.024313,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 3,
+                    "wallTimeMs": 906.715156,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                }
+            ],
+            "speedup": 1.0,
+            "speedupRange": [
+                0.8102516851067565,
+                1.0216991266083186
+            ],
+            "efficiency": null,
+            "efficiencyBasis": null,
+            "breakdown": {
+                "waiting": 501.0,
+                "validation_time": 0.145092,
+                "input_preparation_time": 6.478288,
+                "partitioning_time": 0.0,
+                "compute_time": 316.274301,
+                "aggregation_time": 0.013492,
+                "verification_time": 9.201907,
+                "other": 64.954409
+            },
+            "indicators": {
+                "throughput_operations": 2864383906.21038,
+                "cpu_utilization": 1.7676106226573907
+            },
+            "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b",
+            "resultsConsistent": true
+        },
+        {
+            "id": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "name": "Distributed 768 x3",
+            "owner": "admin",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "mode": "DISTRIBUTED_CPU",
+            "status": "COMPLETED",
+            "inputSource": "GENERATED",
+            "dimensions": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "estimatedOperations": 905969664.0,
+            "operationUnit": "floating-point operations",
+            "parameters": {
+                "colsA": 768,
+                "colsB": 768,
+                "rowsA": 768
+            },
+            "repetitions": 3,
+            "completedRuns": 3,
+            "threads": 2,
+            "workers": 2,
+            "partitions": 8,
+            "schedulingPolicy": null,
+            "wallTime": {
+                "count": 3,
+                "median": 753.874164,
+                "mean": 794.8362403333334,
+                "min": 628.307878,
+                "max": 1002.326679,
+                "stddev": 190.34425299578336,
+                "cv": 0.23947606228417315
+            },
+            "executionTime": {
+                "count": 3,
+                "median": 730.101295,
+                "mean": 745.877117,
+                "min": 665.462075,
+                "max": 842.067981,
+                "stddev": 89.35361732102385,
+                "cv": 0.1197967001326089
+            },
+            "waitingTime": {
+                "count": 3,
+                "median": 36.0,
+                "mean": 67.66666666666667,
+                "min": 17.0,
+                "max": 150.0,
+                "stddev": 71.93283904680347,
+                "cv": 1.0630468824650758
+            },
+            "runs": [
+                {
+                    "runIndex": 1,
+                    "wallTimeMs": 1002.326679,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 2,
+                    "wallTimeMs": 753.874164,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                },
+                {
+                    "runIndex": 3,
+                    "wallTimeMs": 628.307878,
+                    "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b"
+                }
+            ],
+            "speedup": 0.4332108368606578,
+            "speedupRange": [
+                0.3756083833331266,
+                0.4752904859379101
+            ],
+            "efficiency": 0.2166054184303289,
+            "efficiencyBasis": "worker",
+            "breakdown": {
+                "waiting": 36.0,
+                "validation_time": 0.079262,
+                "input_preparation_time": 11.576025,
+                "partitioning_time": 182.537191,
+                "compute_time": 563.877252,
+                "aggregation_time": 1.763552,
+                "verification_time": 12.870733,
+                "other": 0.0
+            },
+            "indicators": {
+                "throughput_operations": 1240882149.0995986,
+                "communication_ratio": 0.31948688922756907,
+                "worker_utilization": 0.3138392028099434,
+                "load_imbalance": 1.027263491598857,
+                "transfer_time_sum": 241.344283,
+                "bytes_sent": 56630964.0,
+                "bytes_received": 6298362.0,
+                "attempts": 8.0,
+                "retries": 0.0,
+                "failed_attempts": 0.0
+            },
+            "resultDigest": "sha256:4e1e9f47de2827fbd57bb612b7440087fb5b495e3395e394352f6b5e57e2b64b",
+            "resultsConsistent": true
+        }
+    ],
+    "issues": [
+        {
+            "severity": "WARNING",
+            "code": "HIGH_VARIATION",
+            "message": "The times of Parallel 768 x3 vary by 11 % (coefficient of variation); differences smaller than that are not meaningful.",
+            "experimentIds": [
+                "57c8f499-c9d9-4336-8812-3d60bcd4778a"
+            ]
+        },
+        {
+            "severity": "WARNING",
+            "code": "HIGH_VARIATION",
+            "message": "The times of Sequential 768 x3 vary by 13 % (coefficient of variation); differences smaller than that are not meaningful.",
+            "experimentIds": [
+                "03fa983d-4f13-4977-b09d-61d3d65520e1"
+            ]
+        },
+        {
+            "severity": "WARNING",
+            "code": "HIGH_VARIATION",
+            "message": "The times of Distributed 768 x3 vary by 12 % (coefficient of variation); differences smaller than that are not meaningful.",
+            "experimentIds": [
+                "d847ce57-7499-4b08-b357-49496ebb478c"
+            ]
+        },
+        {
+            "severity": "INFO",
+            "code": "RESULTS_IDENTICAL",
+            "message": "Every compared run produced the same verified result, so the experiments did the same work.",
+            "experimentIds": []
+        },
+        {
+            "severity": "INFO",
+            "code": "UNCONTROLLED_LOAD",
+            "message": "Experiments are measured when they run; other load on the server and the workers at that time is not controlled.",
+            "experimentIds": []
+        }
+    ],
+    "summary": [
+        "Parallel 768 2 threads (parallel CPU, threads) was 1.64\u00d7 as fast as Sequential 768 x3 (median Core execution time of 3 and 3 runs).",
+        "Parallel 768 x3 (parallel CPU, threads) was 2.04\u00d7 as fast as Sequential 768 x3 (median Core execution time of 3 and 3 runs).",
+        "Distributed 768 x3 (distributed CPU, workers) took 2.31\u00d7 the time of Sequential 768 x3 (median Core execution time of 3 and 3 runs).",
+        "Fastest: Parallel 768 x3 (parallel CPU, threads), median Core execution time 154.8 ms."
+    ]
+}

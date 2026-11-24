@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -255,6 +256,84 @@ class ApplicationIntegrationTest {
                 types.toString());
         JsonNode task = alice.get("/api/v1/tasks/" + distributed + "-r1").json();
         assertEquals("COMPLETED", task.path("run").path("status").stringValue());
+    }
+
+    @Test
+    void experimentsOfOneWorkloadAreComparedAgainstTheSequentialBaseline() {
+        Map<String, Object> parameters = Map.of("rowsA", 80, "colsA", 72, "colsB", 64, "seed", 11);
+        String parallel = create("cmp-mt", draft("matrix.multiply", parameters, "MULTITHREADED_CPU",
+                Map.of("threads", 2, "repetitions", 2)));
+        String sequential = create("cmp-seq", draft("matrix.multiply", parameters, "SEQUENTIAL_CPU",
+                Map.of("repetitions", 3)));
+        String distributed = create("cmp-dist", draft("matrix.multiply", parameters, "DISTRIBUTED_CPU"));
+        Map<String, Double> walls = new HashMap<>();
+        Map<String, Double> executions = new HashMap<>();
+        for (String id : List.of(parallel, sequential, distributed)) {
+            JsonNode detail = await(alice, id);
+            assertEquals("COMPLETED", detail.path("summary").path("status").stringValue(), detail.toString());
+            walls.put(id, detail.path("summary").path("medianWallTimeMs").asDouble());
+            executions.put(id, stat(detail, "execution_time").path("median").asDouble());
+        }
+
+        Response response = alice.post("/api/v1/analysis/compare",
+                Map.of("experimentIds", List.of(parallel, sequential, distributed)));
+        assertEquals(200, response.status(), response.body());
+        JsonNode comparison = response.json();
+        assertTrue(comparison.path("comparable").asBoolean(), comparison.toString());
+        assertEquals(sequential, comparison.path("baselineId").stringValue(), "a sequential experiment is the baseline");
+        assertEquals("EXECUTION_TIME", comparison.path("basis").stringValue(), "Core's time is the default basis");
+        JsonNode mt = comparison.path("experiments").get(0);
+        assertEquals(parallel, mt.path("id").stringValue(), "experiments keep the requested order");
+        assertEquals(2, mt.path("completedRuns").asInt());
+        assertEquals(executions.get(sequential) / executions.get(parallel), mt.path("speedup").asDouble(), 1e-9);
+        assertEquals(mt.path("speedup").asDouble() / 2, mt.path("efficiency").asDouble(), 1e-9);
+        assertEquals("thread", mt.path("efficiencyBasis").stringValue());
+        JsonNode seq = comparison.path("experiments").get(1);
+        assertEquals(1.0, seq.path("speedup").asDouble(), 1e-12);
+        assertEquals(3, seq.path("wallTime").path("count").asInt());
+        assertTrue(seq.path("breakdown").has("waiting") && seq.path("breakdown").has("compute_time")
+                && seq.path("breakdown").has("other"), seq.path("breakdown").toString());
+        JsonNode byWall = alice.post("/api/v1/analysis/compare", Map.of("experimentIds",
+                List.of(parallel, sequential, distributed), "basis", "WALL_TIME")).json();
+        assertEquals(walls.get(sequential) / walls.get(parallel),
+                byWall.path("experiments").get(0).path("speedup").asDouble(), 1e-9);
+        assertEquals(400, alice.post("/api/v1/analysis/compare", Map.of("experimentIds",
+                List.of(parallel, sequential), "basis", "CPU_TIME")).status());
+        JsonNode dist = comparison.path("experiments").get(2);
+        assertEquals("worker", dist.path("efficiencyBasis").stringValue());
+        assertTrue(dist.path("indicators").has("communication_ratio"), dist.path("indicators").toString());
+        Set<String> codes = new HashSet<>();
+        comparison.path("issues").forEach(i -> codes.add(i.path("code").stringValue()));
+        assertTrue(codes.containsAll(Set.of("RESULTS_IDENTICAL", "SINGLE_RUN")), codes.toString());
+        assertFalse(comparison.path("summary").isEmpty());
+
+        String smaller = create("cmp-small", draft("matrix.multiply", Map.of("rowsA", 16, "colsA", 16, "colsB", 16),
+                "SEQUENTIAL_CPU"));
+        await(alice, smaller);
+        JsonNode mismatch = alice.post("/api/v1/analysis/compare",
+                Map.of("experimentIds", List.of(sequential, smaller))).json();
+        assertFalse(mismatch.path("comparable").asBoolean(), "different sizes are not compared");
+        assertTrue(mismatch.path("issues").toString().contains("DIMENSIONS_DIFFER"), mismatch.toString());
+        assertTrue(mismatch.path("experiments").get(1).path("speedup").isNull());
+
+        JsonNode group = null;
+        for (JsonNode g : alice.get("/api/v1/analysis/workloads").json()) {
+            if (g.path("experimentIds").toString().contains(sequential)) {
+                group = g;
+            }
+        }
+        assertTrue(group != null, "the workload is listed");
+        assertEquals(3, group.path("modes").size(), group.toString());
+        assertFalse(group.path("experimentIds").toString().contains(smaller), "another size is another workload");
+
+        assertEquals(400, alice.post("/api/v1/analysis/compare", Map.of("experimentIds", List.of(sequential)))
+                .status());
+        assertEquals("DUPLICATE_EXPERIMENT", alice.post("/api/v1/analysis/compare",
+                Map.of("experimentIds", List.of(sequential, sequential))).json().path("code").stringValue());
+        assertEquals("BASELINE_NOT_COMPARED", alice.post("/api/v1/analysis/compare", Map.of("experimentIds",
+                List.of(sequential, parallel), "baselineId", distributed)).json().path("code").stringValue());
+        assertEquals(404, anotherUser().post("/api/v1/analysis/compare",
+                Map.of("experimentIds", List.of(sequential, parallel))).status(), "other users' experiments stay hidden");
     }
 
     @Test

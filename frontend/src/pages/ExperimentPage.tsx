@@ -209,7 +209,7 @@ function Metrics({ detail }: { detail: ExperimentDetail }) {
               <XAxis dataKey="run" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} unit=" s" />
               <Tooltip formatter={(v) => [`${Number(v).toFixed(3)} s`, 'wall time']} />
-              <Bar dataKey="seconds" fill="#2563eb" isAnimationActive={false} />
+              <Bar dataKey="seconds" fill="var(--series-1)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -83,7 +83,7 @@ export function DashboardPage() {
                   <XAxis dataKey="mode" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} unit=" s" />
                   <Tooltip formatter={(v) => [`${Number(v).toFixed(3)} s`, 'median wall time']} />
-                  <Bar dataKey="seconds" fill="#2563eb" />
+                  <Bar dataKey="seconds" fill="var(--series-1)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

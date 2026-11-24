@@ -131,8 +131,9 @@ export function ErrorState({ error, onRetry }: { error: ApiError | Error; onRetr
   );
 }
 
-export function Notice({ tone = 'blue', children }: { tone?: 'blue' | 'amber' | 'gray'; children: ReactNode }) {
+export function Notice({ tone = 'blue', children }: { tone?: 'blue' | 'amber' | 'gray' | 'red'; children: ReactNode }) {
   const styles = {
+    red: 'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-100',
     blue: 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100',
     amber: 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100',
     gray: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300',

@@ -161,5 +161,15 @@ A task is one run, identified by Core's task id `<experimentId>-r<n>`.
 | `GET /system/status` | Coordinator, workers, local resources, GPU status, health checks |
 | `GET /dashboard` | Overview: experiment counts, recent experiments and events, worker summary, measured performance per mode, health |
 
-Endpoints added in later phases (comparison, reports, settings, templates, batches, fault lab) are listed here when
-they are implemented.
+### Performance analysis
+
+| Method and path | Purpose |
+|---|---|
+| `POST /analysis/compare` | Compare 2 to 20 experiments the user may see: `{experimentIds, baselineId?, basis?}` with `basis` `EXECUTION_TIME` (default when every experiment reports it) or `WALL_TIME`. Answers statistics per experiment, speedup and efficiency against the baseline, a time breakdown, further measurements, compatibility issues (`ERROR`, `WARNING`, `INFO` with a stable `code`) and plain-language findings. See [analysis.md](analysis.md) |
+| `GET /analysis/workloads` | Finished experiments with completed runs, grouped by algorithm, version and dimensions, newest first |
+
+Errors: `DUPLICATE_EXPERIMENT`, `BASELINE_NOT_COMPARED` (400), validation (400), an experiment the user may not
+see (404).
+
+Endpoints added in later phases (reports, settings, templates, batches, fault lab) are listed here when they are
+implemented.

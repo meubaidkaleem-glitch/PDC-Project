@@ -64,4 +64,5 @@ Then open <http://localhost:8080>. The Workers page also shows the exact start c
 | [docs/database.md](docs/database.md) | Schema, relationships, constraints, file storage, migrations |
 | [docs/advisor.md](docs/advisor.md) | How execution strategies are assessed, estimate basis and confidence, overrides |
 | [docs/metrics.md](docs/metrics.md) | Every stored metric: name, unit, source, definition |
+| [docs/analysis.md](docs/analysis.md) | Comparison: basis, baseline, speedup, efficiency, breakdown, compatibility checks |
 | [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |

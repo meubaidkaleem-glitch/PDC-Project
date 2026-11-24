@@ -1,0 +1,43 @@
+[
+    {
+        "key": "matrix.multiply@1.0.0 {colsA 768, colsB 768, rowsA 768}",
+        "algorithm": "matrix.multiply",
+        "algorithmVersion": "1.0.0",
+        "dimensions": {
+            "colsA": 768,
+            "colsB": 768,
+            "rowsA": 768
+        },
+        "experiments": 4,
+        "modes": {
+            "DISTRIBUTED_CPU": 1,
+            "MULTITHREADED_CPU": 2,
+            "SEQUENTIAL_CPU": 1
+        },
+        "lastCompletedAt": "2026-11-24T07:23:38.259Z",
+        "experimentIds": [
+            "faa3c41a-f786-4e5e-8d81-74077afe14d3",
+            "57c8f499-c9d9-4336-8812-3d60bcd4778a",
+            "03fa983d-4f13-4977-b09d-61d3d65520e1",
+            "d847ce57-7499-4b08-b357-49496ebb478c"
+        ]
+    },
+    {
+        "key": "matrix.multiply@1.0.0 {colsA 512, colsB 512, rowsA 512}",
+        "algorithm": "matrix.multiply",
+        "algorithmVersion": "1.0.0",
+        "dimensions": {
+            "colsA": 512,
+            "colsB": 512,
+            "rowsA": 512
+        },
+        "experiments": 1,
+        "modes": {
+            "DISTRIBUTED_CPU": 1
+        },
+        "lastCompletedAt": "2026-11-24T07:02:50.239Z",
+        "experimentIds": [
+            "1ab35840-66c9-4013-a710-3218cd6089ea"
+        ]
+    }
+]

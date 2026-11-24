@@ -392,3 +392,86 @@ export interface SystemInfo {
   distributed: string;
   protocol: string;
 }
+
+// Comparison and performance analysis (docs/analysis.md)
+
+export interface Stats {
+  count: number;
+  median: number;
+  mean: number;
+  min: number;
+  max: number;
+  stddev: number;
+  cv: number | null;
+}
+
+export interface RunPoint {
+  runIndex: number;
+  wallTimeMs: number;
+  resultDigest: string | null;
+}
+
+export interface ComparedExperiment {
+  id: string;
+  name: string;
+  owner: string;
+  algorithm: string;
+  algorithmVersion: string;
+  mode: ExecutionMode;
+  status: ExperimentStatus;
+  inputSource: string;
+  dimensions: Record<string, number>;
+  estimatedOperations: number | null;
+  operationUnit: string | null;
+  parameters: Record<string, unknown>;
+  repetitions: number;
+  completedRuns: number;
+  threads: number | null;
+  workers: number | null;
+  partitions: number | null;
+  schedulingPolicy: string | null;
+  wallTime: Stats | null;
+  executionTime: Stats | null;
+  waitingTime: Stats | null;
+  runs: RunPoint[];
+  speedup: number | null;
+  speedupRange: [number, number] | null;
+  efficiency: number | null;
+  efficiencyBasis: 'thread' | 'worker' | null;
+  breakdown: Record<string, number>;
+  indicators: Record<string, number>;
+  resultDigest: string | null;
+  resultsConsistent: boolean;
+}
+
+export type ComparisonBasis = 'EXECUTION_TIME' | 'WALL_TIME';
+
+export interface ComparisonIssue {
+  severity: 'ERROR' | 'WARNING' | 'INFO';
+  code: string;
+  message: string;
+  experimentIds: string[];
+}
+
+export interface Comparison {
+  computedAt: string;
+  comparable: boolean;
+  baselineId: string | null;
+  baselineReason: string;
+  basis: ComparisonBasis;
+  basisDescription: string;
+  experiments: ComparedExperiment[];
+  issues: ComparisonIssue[];
+  summary: string[];
+}
+
+export interface WorkloadGroup {
+  key: string;
+  algorithm: string;
+  algorithmVersion: string;
+  dimensions: Record<string, number>;
+  experiments: number;
+  modes: Record<string, number>;
+  lastCompletedAt: string | null;
+  experimentIds: string[];
+}

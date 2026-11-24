@@ -1,10 +1,13 @@
 package org.districompute.app.persistence;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.districompute.app.persistence.Enums.RunStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /** Experiment runs. */
 public interface ExperimentRunRepository extends JpaRepository<ExperimentRun, Long> {
@@ -41,4 +44,15 @@ public interface ExperimentRunRepository extends JpaRepository<ExperimentRun, Lo
      * @return runs
      */
     List<ExperimentRun> findByExperimentIdInAndStatus(Collection<String> experimentIds, RunStatus status);
+
+    /**
+     * Runs that were executing at some time between two instants, of any experiment and user. Used to tell whether
+     * measured runs competed with others.
+     *
+     * @param from start of the window
+     * @param to end of the window
+     * @return runs whose execution overlaps the window
+     */
+    @Query("select r from ExperimentRun r where r.startedAt < :to and r.completedAt > :from")
+    List<ExperimentRun> findExecutingBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

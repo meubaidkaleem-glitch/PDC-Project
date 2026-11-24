@@ -39,7 +39,7 @@ only completed work. The status table records what has actually been done. It is
 | 9 | Done | Advice from `Coordinator.advise` plus measured history, basis, confidence, warnings; recommendation and override recorded per experiment; calibrations re-seeded at startup; [advisor.md](advisor.md). Advisor panel: per-mode verdict, estimate and its basis, measured medians, reasons, resources, warnings; an unconfirmed preference is never labelled a recommendation; override reason asked for. |
 | 10 | Done | Runtime events bridged, stored in batches and streamed over SSE with replay after reconnection; live run view from the coordinator. Live monitor: partition progress, attempts, retries, active workers, assignment timeline per worker slot, event log. |
 | 11 | Done | Worker records synchronized from the coordinator, registration instructions, approval policy, deactivation and removal (requested from Distributed, C2), connection test, events. Workers page (capabilities as reported, load, counters, observed performance, administration) and cluster topology. |
-| 12 | Not started | |
+| 12 | Done | `POST /api/v1/analysis/compare` and `GET /api/v1/analysis/workloads`: statistics over completed runs, speedup (with range) and efficiency against a chosen or sequential baseline, on Core's execution time by default or wall time, time breakdown including the wait before a run starts, compatibility issues with stable codes, plain-language findings. Performance analysis page with charts and tables. Found while checking it against real runs: local runs queue behind each other, so wall time is not a fair speedup basis; documented in [analysis.md](analysis.md). |
 | 13 | Not started | |
 | 14 | Not started | |
 | 15 | Not started | |
