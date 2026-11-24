@@ -26,7 +26,7 @@ No component source is copied into this branch.
 | Component | Submodule | Commit | Branch | Version | Notes |
 |---|---|---|---|---|---|
 | Core | `components/core` | `f269bf6` | `feature/core-engine` | `0.1.0-SNAPSHOT`, contract schema `0.1` | Code identical to Core's integration commit `dd1f9ce` (later commits change documentation only) |
-| Distributed | `components/distributed` | `d2563ad` | `feature/distributed-engine` | `0.1.0-SNAPSHOT`, protocol `0.1` | Code identical to Distributed's integration commit `055cb18` |
+| Distributed | `components/distributed` | `fc5f20e` | `feature/distributed-engine` | `0.1.0-SNAPSHOT`, protocol `0.1` | Code identical to `1931fd0`, which adds the two requests in [§4](#4-changes-requested-from-the-components) (CI run 45215288130) |
 
 `git submodule status` prints the exact commits. From Phase 3, the running backend also reports the component
 versions it was built with at `GET /api/v1/system/info`.
@@ -61,10 +61,13 @@ The result is `backend/target/districompute-backend-0.1.0-SNAPSHOT.jar` (the app
 The application must not change the components' interfaces silently. When it needs something they do not offer,
 the change is made in the component's own branch, with tests and documentation, and then pinned here.
 
+While adding C1, a defect in Distributed was found and fixed in the same commit: finished tasks kept Core's
+session (input, partial results and full value) in memory for as long as they were retained.
+
 | # | Component | Need | Status |
 |---|---|---|---|
-| C1 | Distributed | The full result value of a completed task, so results can be stored, previewed and downloaded | Not started |
-| C2 | Distributed | Deactivate, reactivate and remove (disconnect) a worker | Not started |
+| C1 | Distributed | The full result value of a completed task, so results can be stored, previewed and downloaded | Done in `1931fd0`: `Coordinator.submit(spec, options, ResultSink)` |
+| C2 | Distributed | Deactivate, reactivate and remove (disconnect) a worker | Done in `1931fd0`: `deactivateWorker`, `activateWorker`, `disconnectWorker`, `forgetWorker`, status `DEACTIVATED` |
 
 ## 5. Updating a component
 
