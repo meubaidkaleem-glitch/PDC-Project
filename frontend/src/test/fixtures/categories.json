@@ -1,0 +1,44 @@
+[
+    {
+        "id": "MATRIX",
+        "name": "Matrix and linear algebra",
+        "description": "Dense matrix addition and multiplication on generated or uploaded matrices.",
+        "algorithmCount": 2,
+        "available": true
+    },
+    {
+        "id": "NUMERICAL",
+        "name": "Mathematical and numerical computation",
+        "description": "Integration, polynomial evaluation, root finding, Monte Carlo estimation and prime counting.",
+        "algorithmCount": 5,
+        "available": true
+    },
+    {
+        "id": "DATA",
+        "name": "Data processing",
+        "description": "Sorting, filtering and statistical aggregation of generated or uploaded data.",
+        "algorithmCount": 3,
+        "available": true
+    },
+    {
+        "id": "IMAGE_SIGNAL",
+        "name": "Image and signal processing",
+        "description": "No image or signal algorithm is registered in DistriCompute-Core.",
+        "algorithmCount": 0,
+        "available": false
+    },
+    {
+        "id": "SIMULATION",
+        "name": "Scientific simulations",
+        "description": "No simulation algorithm is registered in DistriCompute-Core.",
+        "algorithmCount": 0,
+        "available": false
+    },
+    {
+        "id": "CUSTOM",
+        "name": "Custom registered algorithms",
+        "description": "Algorithms registered with Core's service loader (AlgorithmProvider) in addition to the built-in ones.",
+        "algorithmCount": 0,
+        "available": false
+    }
+]

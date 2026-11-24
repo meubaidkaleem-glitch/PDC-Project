@@ -1,0 +1,256 @@
+{
+    "scope": "all users",
+    "experiments": {
+        "total": 2,
+        "byStatus": {
+            "QUEUED": 0,
+            "RUNNING": 0,
+            "COMPLETED": 2,
+            "FAILED": 0,
+            "CANCELLED": 0
+        }
+    },
+    "workers": {
+        "connected": 2,
+        "byStatus": {
+            "ACTIVE": 2
+        },
+        "busySlots": 0,
+        "totalSlots": 4
+    },
+    "resources": {
+        "gpuAvailable": false,
+        "localCores": 4,
+        "workerSlots": 4
+    },
+    "recentExperiments": [
+        {
+            "id": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "name": "Distributed 768 x3",
+            "owner": "admin",
+            "category": "MATRIX",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "executionMode": "DISTRIBUTED_CPU",
+            "recommendedMode": null,
+            "recommendationAccepted": null,
+            "schedulingPolicy": null,
+            "status": "COMPLETED",
+            "repetitions": 3,
+            "completedRuns": 3,
+            "workersUsed": 2,
+            "medianWallTimeMs": 753.874164,
+            "createdAt": "2026-11-24T07:06:56.736Z",
+            "startedAt": "2026-11-24T07:06:56.796Z",
+            "completedAt": "2026-11-24T07:06:59.499Z",
+            "durationMs": 2703,
+            "errorMessage": null,
+            "batchId": null
+        },
+        {
+            "id": "1ab35840-66c9-4013-a710-3218cd6089ea",
+            "name": "Matrix multiplication (cache-blocked) 11/24/2026, 7:02:48 AM",
+            "owner": "admin",
+            "category": "MATRIX",
+            "algorithm": "matrix.multiply",
+            "algorithmVersion": "1.0.0",
+            "executionMode": "DISTRIBUTED_CPU",
+            "recommendedMode": null,
+            "recommendationAccepted": null,
+            "schedulingPolicy": null,
+            "status": "COMPLETED",
+            "repetitions": 1,
+            "completedRuns": 1,
+            "workersUsed": 2,
+            "medianWallTimeMs": 1114.147467,
+            "createdAt": "2026-11-24T07:02:48.967Z",
+            "startedAt": "2026-11-24T07:02:49.022Z",
+            "completedAt": "2026-11-24T07:02:50.239Z",
+            "durationMs": 1217,
+            "errorMessage": null,
+            "batchId": null
+        }
+    ],
+    "recentEvents": [
+        {
+            "id": 146,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": null,
+            "taskRef": null,
+            "workerId": null,
+            "source": "APPLICATION",
+            "type": "EXPERIMENT_FINISHED",
+            "severity": "INFO",
+            "message": "Experiment completed",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.505Z"
+        },
+        {
+            "id": 145,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": null,
+            "workerId": null,
+            "source": "APPLICATION",
+            "type": "RUN_FINISHED",
+            "severity": "INFO",
+            "message": "Run 3 COMPLETED in 0.628 s",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.489Z"
+        },
+        {
+            "id": 144,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": null,
+            "workerId": null,
+            "source": "RUNTIME",
+            "type": "TASK_FINISHED",
+            "severity": "INFO",
+            "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r3 COMPLETED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.420Z"
+        },
+        {
+            "id": 143,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": null,
+            "workerId": null,
+            "source": "RUNTIME",
+            "type": "TASK_STATUS_CHANGED",
+            "severity": "INFO",
+            "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r3: AGGREGATING -> COMPLETED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.420Z"
+        },
+        {
+            "id": 142,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": null,
+            "workerId": null,
+            "source": "RUNTIME",
+            "type": "TASK_STATUS_CHANGED",
+            "severity": "INFO",
+            "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r3: RUNNING -> AGGREGATING",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.282Z"
+        },
+        {
+            "id": 141,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6/a1",
+            "workerId": "lab-b",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_SUCCEEDED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6/a1 SUCCEEDED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.282Z"
+        },
+        {
+            "id": 140,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5/a1",
+            "workerId": "lab-a",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_SUCCEEDED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5/a1 SUCCEEDED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.235Z"
+        },
+        {
+            "id": 139,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7/a1",
+            "workerId": "lab-b",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_SUCCEEDED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7/a1 SUCCEEDED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.212Z"
+        },
+        {
+            "id": 138,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p4/a1",
+            "workerId": "lab-a",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_SUCCEEDED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p4/a1 SUCCEEDED",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.182Z"
+        },
+        {
+            "id": 137,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6/a1",
+            "workerId": "lab-b",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_ACCEPTED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6/a1 accepted by lab-b",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.180Z"
+        },
+        {
+            "id": 136,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7/a1",
+            "workerId": "lab-b",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_ACCEPTED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7/a1 accepted by lab-b",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.151Z"
+        },
+        {
+            "id": 135,
+            "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+            "runId": 4,
+            "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5/a1",
+            "workerId": "lab-a",
+            "source": "RUNTIME",
+            "type": "ATTEMPT_ACCEPTED",
+            "severity": "INFO",
+            "message": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5/a1 accepted by lab-a",
+            "details": {},
+            "simulated": false,
+            "occurredAt": "2026-11-24T07:06:59.125Z"
+        }
+    ],
+    "performance": [
+        {
+            "mode": "DISTRIBUTED_CPU",
+            "medianWallTimeMs": 878.1004215,
+            "completedRuns": 4
+        }
+    ],
+    "health": {
+        "database": "UP",
+        "coordinator": "UP",
+        "eventsDropped": 0
+    }
+}

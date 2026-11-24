@@ -1,0 +1,228 @@
+{
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "experimentStatus": "COMPLETED",
+    "runIndex": 3,
+    "coreTaskId": "d847ce57-7499-4b08-b357-49496ebb478c-r3",
+    "available": true,
+    "status": "COMPLETED",
+    "mode": "DISTRIBUTED_CPU",
+    "algorithm": "matrix.multiply",
+    "policy": "LEAST_LOADED",
+    "submittedAt": "2026-11-24T07:06:58.792617782Z",
+    "finishedAt": "2026-11-24T07:06:59.419498202Z",
+    "totalPartitions": 8,
+    "completedPartitions": 8,
+    "failedPartitions": 0,
+    "pendingPartitions": 0,
+    "runningPartitions": 0,
+    "attempts": 8,
+    "retries": 0,
+    "activeWorkers": [],
+    "partitions": [
+        {
+            "index": 0,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p0",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p0/a1",
+                    "workerId": "lab-a",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:58.849663810Z",
+                    "acceptedAt": "2026-11-24T07:06:58.891138560Z",
+                    "finishedAt": "2026-11-24T07:06:58.959104736Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-a uses 0 of 2 slots (0%); the lowest of 2 eligible workers",
+                    "transferMs": 24.338197,
+                    "computeMs": 47.821559,
+                    "bytes": 7866162
+                }
+            ]
+        },
+        {
+            "index": 1,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p1",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p1/a1",
+                    "workerId": "lab-b",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:58.844284889Z",
+                    "acceptedAt": "2026-11-24T07:06:58.881630541Z",
+                    "finishedAt": "2026-11-24T07:06:58.999864906Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-b uses 0 of 2 slots (0%); the lowest of 2 eligible workers",
+                    "transferMs": 23.199381,
+                    "computeMs": 72.356306,
+                    "bytes": 7866165
+                }
+            ]
+        },
+        {
+            "index": 2,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p2",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p2/a1",
+                    "workerId": "lab-a",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:58.905020074Z",
+                    "acceptedAt": "2026-11-24T07:06:58.930022738Z",
+                    "finishedAt": "2026-11-24T07:06:59.004625893Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-a uses 1 of 2 slots (50%); the lowest of 2 eligible workers",
+                    "transferMs": 14.832246,
+                    "computeMs": 45.133862,
+                    "bytes": 7866165
+                }
+            ]
+        },
+        {
+            "index": 3,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p3",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p3/a1",
+                    "workerId": "lab-b",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:58.933209673Z",
+                    "acceptedAt": "2026-11-24T07:06:58.964423366Z",
+                    "finishedAt": "2026-11-24T07:06:59.033850032Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+                    "transferMs": 18.236534,
+                    "computeMs": 44.570059,
+                    "bytes": 7866166
+                }
+            ]
+        },
+        {
+            "index": 4,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p4",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p4/a1",
+                    "workerId": "lab-a",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:59.042816929Z",
+                    "acceptedAt": "2026-11-24T07:06:59.083725481Z",
+                    "finishedAt": "2026-11-24T07:06:59.182026169Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-a uses 1 of 2 slots (50%)",
+                    "transferMs": 30.00671,
+                    "computeMs": 71.046492,
+                    "bytes": 7866166
+                }
+            ]
+        },
+        {
+            "index": 5,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p5/a1",
+                    "workerId": "lab-a",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:59.088917843Z",
+                    "acceptedAt": "2026-11-24T07:06:59.125239389Z",
+                    "finishedAt": "2026-11-24T07:06:59.234828018Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-a uses 1 of 2 slots (50%); the lowest of 2 eligible workers",
+                    "transferMs": 29.372936,
+                    "computeMs": 79.478223,
+                    "bytes": 7866166
+                }
+            ]
+        },
+        {
+            "index": 6,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p6/a1",
+                    "workerId": "lab-b",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:59.147872712Z",
+                    "acceptedAt": "2026-11-24T07:06:59.180445846Z",
+                    "finishedAt": "2026-11-24T07:06:59.282163040Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+                    "transferMs": 17.97713,
+                    "computeMs": 71.636852,
+                    "bytes": 7866167
+                }
+            ]
+        },
+        {
+            "index": 7,
+            "partitionId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7",
+            "status": "COMPLETED",
+            "attempts": [
+                {
+                    "attemptId": "d847ce57-7499-4b08-b357-49496ebb478c-r3/p7/a1",
+                    "workerId": "lab-b",
+                    "status": "SUCCEEDED",
+                    "dispatchedAt": "2026-11-24T07:06:59.126540054Z",
+                    "acceptedAt": "2026-11-24T07:06:59.150884263Z",
+                    "finishedAt": "2026-11-24T07:06:59.212302783Z",
+                    "failure": null,
+                    "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+                    "transferMs": 16.722217,
+                    "computeMs": 41.993032,
+                    "bytes": 7866165
+                }
+            ]
+        }
+    ],
+    "metrics": {
+        "totalNanos": 626906366,
+        "queueNanos": 9298021,
+        "planningNanos": 7921728,
+        "distributedNanos": 474605719,
+        "aggregationNanos": 136883600,
+        "kernelNanos": 474036385,
+        "workerExecuteNanos": 595799522,
+        "transferNanos": 174685351,
+        "serializationNanos": 510166180,
+        "resultProcessingNanos": 19576909,
+        "schedulingNanos": 7940220,
+        "bytesSent": 56630964,
+        "bytesReceived": 6298358,
+        "partitions": 8,
+        "attempts": 8,
+        "succeededAttempts": 8,
+        "failedAttempts": 0,
+        "retries": 0,
+        "workersUsed": 2,
+        "workerUtilization": 0.3138392028099434,
+        "throughputPartitionsPerSecond": 16.85609692368667,
+        "loadImbalance": 1.027263491598857,
+        "perWorker": [
+            {
+                "workerId": "lab-a",
+                "attempts": 4,
+                "succeeded": 4,
+                "kernelNanos": 243480136,
+                "executeNanos": 298153125,
+                "transferNanos": 98550089,
+                "bytes": 31464659
+            },
+            {
+                "workerId": "lab-b",
+                "attempts": 4,
+                "succeeded": 4,
+                "kernelNanos": 230556249,
+                "executeNanos": 297646397,
+                "transferNanos": 76135262,
+                "bytes": 31464663
+            }
+        ]
+    },
+    "errors": []
+}

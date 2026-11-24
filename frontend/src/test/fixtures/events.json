@@ -1,0 +1,449 @@
+[
+  {
+    "id": 44,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "APPLICATION",
+    "type": "RUN_SUBMITTED",
+    "severity": "INFO",
+    "message": "Run 1 of 3 submitted in DISTRIBUTED_CPU",
+    "details": {
+      "mode": "DISTRIBUTED_CPU",
+      "runIndex": 1,
+      "coreTaskId": "d847ce57-7499-4b08-b357-49496ebb478c-r1"
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.830Z"
+  },
+  {
+    "id": 45,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_SUBMITTED",
+    "severity": "INFO",
+    "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r1 (matrix.multiply@1.0.0) submitted with policy LEAST_LOADED",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "priority": "NORMAL",
+      "algorithm": "matrix.multiply@1.0.0"
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.849Z"
+  },
+  {
+    "id": 46,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "STRATEGY_OVERRIDE",
+    "severity": "INFO",
+    "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r1 runs DISTRIBUTED_CPU although MULTITHREADED_CPU was recommended",
+    "details": {
+      "chosen": "DISTRIBUTED_CPU",
+      "recommended": "MULTITHREADED_CPU",
+      "chosenReasons": [
+        "No network estimate supplied; communication cost is unknown",
+        "2 workers with 4 cores"
+      ],
+      "chosenVerdict": "SUITABLE"
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.850Z"
+  },
+  {
+    "id": 47,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r1: null -> VALIDATING",
+    "details": {
+      "to": "VALIDATING",
+      "partitions": 0
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.850Z"
+  },
+  {
+    "id": 48,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r1: VALIDATING -> QUEUED",
+    "details": {
+      "to": "QUEUED",
+      "from": "VALIDATING",
+      "partitions": 8
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.932Z"
+  },
+  {
+    "id": 49,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1 -> lab-a",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-a uses 0 of 2 slots (0%); the lowest of 2 eligible workers",
+      "decisionNanos": 3453808,
+      "eligibleWorkers": 2,
+      "rejectedWorkers": 0
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.940Z"
+  },
+  {
+    "id": 50,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1 -> lab-b",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-b uses 0 of 2 slots (0%); the lowest of 2 eligible workers",
+      "decisionNanos": 156644,
+      "eligibleWorkers": 2,
+      "rejectedWorkers": 0
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.946Z"
+  },
+  {
+    "id": 51,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1 -> lab-a",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-a uses 1 of 2 slots (50%); the lowest of 2 eligible workers",
+      "decisionNanos": 117378,
+      "eligibleWorkers": 2,
+      "rejectedWorkers": 0
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.948Z"
+  },
+  {
+    "id": 52,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1 -> lab-b",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+      "decisionNanos": 379555,
+      "eligibleWorkers": 1,
+      "rejectedWorkers": 1
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:56.950Z"
+  },
+  {
+    "id": 53,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": null,
+    "workerId": null,
+    "source": "RUNTIME",
+    "type": "TASK_STATUS_CHANGED",
+    "severity": "INFO",
+    "message": "task d847ce57-7499-4b08-b357-49496ebb478c-r1: QUEUED -> RUNNING",
+    "details": {
+      "to": "RUNNING",
+      "from": "QUEUED",
+      "partitions": 8
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.048Z"
+  },
+  {
+    "id": 54,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1 accepted by lab-a",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.105Z"
+  },
+  {
+    "id": 55,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1 accepted by lab-a",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.153Z"
+  },
+  {
+    "id": 56,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1 accepted by lab-b",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.157Z"
+  },
+  {
+    "id": 57,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1 accepted by lab-b",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.198Z"
+  },
+  {
+    "id": 58,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p0/a1 SUCCEEDED",
+    "details": {
+      "bytes": 7866164,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 61925643,
+      "transferNanos": 50009464,
+      "roundTripNanos": 151338587
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.259Z"
+  },
+  {
+    "id": 59,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p1/a1 SUCCEEDED",
+    "details": {
+      "bytes": 7866165,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 65657836,
+      "transferNanos": 96487956,
+      "roundTripNanos": 202474035
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.270Z"
+  },
+  {
+    "id": 60,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p4/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p4/a1 -> lab-a",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-a uses 1 of 2 slots (50%); the lowest of 2 eligible workers",
+      "decisionNanos": 1940070,
+      "eligibleWorkers": 2,
+      "rejectedWorkers": 0
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.273Z"
+  },
+  {
+    "id": 61,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p5/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p5/a1 -> lab-b",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+      "decisionNanos": 150208,
+      "eligibleWorkers": 1,
+      "rejectedWorkers": 1
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.274Z"
+  },
+  {
+    "id": 62,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p2/a1 SUCCEEDED",
+    "details": {
+      "bytes": 7866168,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 61699389,
+      "transferNanos": 32029091,
+      "roundTripNanos": 150451408
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.300Z"
+  },
+  {
+    "id": 63,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p6/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p6/a1 -> lab-a",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-a uses 1 of 2 slots (50%)",
+      "decisionNanos": 2976501,
+      "eligibleWorkers": 1,
+      "rejectedWorkers": 1
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.304Z"
+  },
+  {
+    "id": 64,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_SUCCEEDED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p3/a1 SUCCEEDED",
+    "details": {
+      "bytes": 7866166,
+      "status": "SUCCEEDED",
+      "attempt": 1,
+      "computeNanos": 37825004,
+      "transferNanos": 78186818,
+      "roundTripNanos": 168653878
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.320Z"
+  },
+  {
+    "id": 65,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p7/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ASSIGNED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p7/a1 -> lab-b",
+    "details": {
+      "policy": "LEAST_LOADED",
+      "attempt": 1,
+      "explanation": "least loaded: lab-b uses 1 of 2 slots (50%)",
+      "decisionNanos": 480011,
+      "eligibleWorkers": 1,
+      "rejectedWorkers": 1
+    },
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.321Z"
+  },
+  {
+    "id": 66,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p5/a1",
+    "workerId": "lab-b",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p5/a1 accepted by lab-b",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.410Z"
+  },
+  {
+    "id": 67,
+    "experimentId": "d847ce57-7499-4b08-b357-49496ebb478c",
+    "runId": 2,
+    "taskRef": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p4/a1",
+    "workerId": "lab-a",
+    "source": "RUNTIME",
+    "type": "ATTEMPT_ACCEPTED",
+    "severity": "INFO",
+    "message": "d847ce57-7499-4b08-b357-49496ebb478c-r1/p4/a1 accepted by lab-a",
+    "details": {},
+    "simulated": false,
+    "occurredAt": "2026-11-24T07:06:57.414Z"
+  }
+]

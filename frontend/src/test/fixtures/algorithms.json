@@ -1,0 +1,1384 @@
+[
+    {
+        "id": "data.statistics",
+        "version": "1.0.0",
+        "displayName": "Descriptive statistics",
+        "description": "Count, sum, mean, sample variance, standard deviation, min and max.",
+        "category": "DATA",
+        "coreCategory": "DATA_PROCESSING",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the values come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "size",
+                "type": "INTEGER",
+                "description": "Number of generated values (input = GENERATED)",
+                "required": false,
+                "defaultValue": 1000000,
+                "minimum": 1,
+                "maximum": 100000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "values",
+                "uploadable": false
+            },
+            {
+                "name": "distribution",
+                "type": "ENUM",
+                "description": "Distribution of generated values",
+                "required": false,
+                "defaultValue": "NORMAL",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "UNIFORM",
+                    "NORMAL"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "values",
+                "type": "DECIMAL_ARRAY",
+                "description": "Values (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": -1e+150,
+                "maximum": 1e+150,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            }
+        ],
+        "resultType": "statistics",
+        "verificationMethod": "Independent two-pass recomputation; count, min and max exact, sum, mean and variance within a relative tolerance of 1e-9 of the data scale",
+        "limitations": [
+            "Statistics of an empty data set are undefined; at least one value is required",
+            "Mean and variance agree across partitionings within rounding, not bit for bit",
+            "The 1e-9 relative verification tolerance is deliberately generous, not a proven bound",
+            "NORMAL values use the Box-Muller transform of the counter-based generator"
+        ],
+        "partitionStrategy": "CHUNK",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "values"
+        ]
+    },
+    {
+        "id": "data.filter",
+        "version": "1.0.0",
+        "displayName": "Filter and search",
+        "description": "Counts the values in [minValue, maxValue] and returns the indices of the first matches.",
+        "category": "DATA",
+        "coreCategory": "DATA_PROCESSING",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the values come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "size",
+                "type": "INTEGER",
+                "description": "Number of generated values (input = GENERATED)",
+                "required": false,
+                "defaultValue": 1000000,
+                "minimum": 0,
+                "maximum": 100000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "values",
+                "uploadable": false
+            },
+            {
+                "name": "distribution",
+                "type": "ENUM",
+                "description": "Distribution of generated values",
+                "required": false,
+                "defaultValue": "FEW_UNIQUE",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "UNIFORM",
+                    "SORTED",
+                    "REVERSED",
+                    "NEARLY_SORTED",
+                    "FEW_UNIQUE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "values",
+                "type": "INTEGER_ARRAY",
+                "description": "Values (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 0,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "minValue",
+                "type": "INTEGER",
+                "description": "Inclusive lower bound of matching values",
+                "required": false,
+                "defaultValue": 3,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "maxValue",
+                "type": "INTEGER",
+                "description": "Inclusive upper bound of matching values",
+                "required": false,
+                "defaultValue": 5,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "limit",
+                "type": "INTEGER",
+                "description": "Maximum number of matching indices to return",
+                "required": false,
+                "defaultValue": 100,
+                "minimum": 0,
+                "maximum": 10000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            }
+        ],
+        "resultType": "matches",
+        "verificationMethod": "Exact sequential rescan: count and returned indices must match exactly",
+        "limitations": [
+            "Predicate is an inclusive value range over 64-bit integers",
+            "At most 10,000 matching indices are returned; the count is always complete"
+        ],
+        "partitionStrategy": "CHUNK",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "values"
+        ]
+    },
+    {
+        "id": "sort.merge",
+        "version": "1.0.0",
+        "displayName": "Merge sort",
+        "description": "Sorts 64-bit signed integers in ascending order with a top-down merge sort.",
+        "category": "DATA",
+        "coreCategory": "SORTING",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the values come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "size",
+                "type": "INTEGER",
+                "description": "Number of generated values (input = GENERATED)",
+                "required": false,
+                "defaultValue": 1000000,
+                "minimum": 0,
+                "maximum": 100000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "elements",
+                "uploadable": false
+            },
+            {
+                "name": "distribution",
+                "type": "ENUM",
+                "description": "Distribution of generated values (input = GENERATED)",
+                "required": false,
+                "defaultValue": "UNIFORM",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "UNIFORM",
+                    "SORTED",
+                    "REVERSED",
+                    "NEARLY_SORTED",
+                    "FEW_UNIQUE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed (input = GENERATED)",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "values",
+                "type": "INTEGER_ARRAY",
+                "description": "Values to sort (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 0,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            }
+        ],
+        "resultType": "long-array",
+        "verificationMethod": "Output is checked to be non-decreasing and to be a permutation of the input (element count and two 64-bit order-independent hash sums)",
+        "limitations": [
+            "Elements are 64-bit signed integers only",
+            "Generated inputs are limited to 10^8 elements and inline inputs to 10^6",
+            "size, distribution and seed are ignored for INLINE input",
+            "Needs about 4 x 8 bytes per element (input, output, merge buffer or sorted runs)",
+            "Partitioned execution merges the sorted runs sequentially, which limits speedup"
+        ],
+        "partitionStrategy": "CHUNK",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "values"
+        ]
+    },
+    {
+        "id": "matrix.add",
+        "version": "1.0.0",
+        "displayName": "Matrix addition",
+        "description": "Computes C = A + B for two dense rows x cols matrices of doubles.",
+        "category": "MATRIX",
+        "coreCategory": "LINEAR_ALGEBRA",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "rows",
+                "type": "INTEGER",
+                "description": "Rows of A, B and the result",
+                "required": false,
+                "defaultValue": 1024,
+                "minimum": 1,
+                "maximum": 100000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "rows",
+                "uploadable": false
+            },
+            {
+                "name": "cols",
+                "type": "INTEGER",
+                "description": "Columns of A, B and the result",
+                "required": false,
+                "defaultValue": 1024,
+                "minimum": 1,
+                "maximum": 100000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "columns",
+                "uploadable": false
+            },
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the operands come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "distribution",
+                "type": "ENUM",
+                "description": "Element distribution of generated operands",
+                "required": false,
+                "defaultValue": "UNIFORM",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "UNIFORM",
+                    "INTEGER"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed for generated operands",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "matrixA",
+                "type": "DECIMAL_ARRAY",
+                "description": "Left operand in row-major order (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "matrixB",
+                "type": "DECIMAL_ARRAY",
+                "description": "Right operand in row-major order (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            }
+        ],
+        "resultType": "matrix",
+        "verificationMethod": "Exact recomputation of every element, compared bit for bit",
+        "limitations": [
+            "Dense double-precision matrices only",
+            "rows x cols must fit in one Java array (about 2.1 billion elements)",
+            "Memory-bound: speedup is limited by memory bandwidth, not core count",
+            "Inline operands are limited to 10^6 elements each"
+        ],
+        "partitionStrategy": "BLOCK_2D",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "matrixA",
+            "matrixB"
+        ]
+    },
+    {
+        "id": "matrix.multiply",
+        "version": "1.0.0",
+        "displayName": "Matrix multiplication (cache-blocked)",
+        "description": "Computes C = A x B for dense double matrices with a cache-blocked kernel.",
+        "category": "MATRIX",
+        "coreCategory": "LINEAR_ALGEBRA",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "rowsA",
+                "type": "INTEGER",
+                "description": "Rows of A (and of the result)",
+                "required": false,
+                "defaultValue": 512,
+                "minimum": 1,
+                "maximum": 20000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "rows",
+                "uploadable": false
+            },
+            {
+                "name": "colsA",
+                "type": "INTEGER",
+                "description": "Columns of A; must equal the rows of B",
+                "required": false,
+                "defaultValue": 512,
+                "minimum": 1,
+                "maximum": 20000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "columns",
+                "uploadable": false
+            },
+            {
+                "name": "rowsB",
+                "type": "INTEGER",
+                "description": "Rows of B; required for INLINE input, must equal colsA",
+                "required": false,
+                "defaultValue": null,
+                "minimum": 1,
+                "maximum": 20000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "rows",
+                "uploadable": false
+            },
+            {
+                "name": "colsB",
+                "type": "INTEGER",
+                "description": "Columns of B (and of the result)",
+                "required": false,
+                "defaultValue": 512,
+                "minimum": 1,
+                "maximum": 20000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "columns",
+                "uploadable": false
+            },
+            {
+                "name": "blockSize",
+                "type": "INTEGER",
+                "description": "Cache tile edge of the blocked kernel",
+                "required": false,
+                "defaultValue": 64,
+                "minimum": 8,
+                "maximum": 4096,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "elements",
+                "uploadable": false
+            },
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the operands come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "distribution",
+                "type": "ENUM",
+                "description": "Element distribution of generated operands",
+                "required": false,
+                "defaultValue": "UNIFORM",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "UNIFORM",
+                    "INTEGER"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed for generated operands",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "matrixA",
+                "type": "DECIMAL_ARRAY",
+                "description": "Left operand in row-major order (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "matrixB",
+                "type": "DECIMAL_ARRAY",
+                "description": "Right operand in row-major order (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            }
+        ],
+        "resultType": "matrix",
+        "verificationMethod": "Freivalds' algorithm (3 random sign vectors) with a rigorous floating-point error bound",
+        "limitations": [
+            "Dense double-precision matrices only; dimensions up to 20,000",
+            "Each of A, B and C must fit in one Java array",
+            "O(m\u00b7k\u00b7n) classical algorithm; Strassen-type algorithms are not used",
+            "Verification cannot detect errors smaller than the floating-point rounding bound",
+            "Inline operands are limited to 10^6 elements each"
+        ],
+        "partitionStrategy": "BLOCK_2D",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "matrixA",
+            "matrixB"
+        ]
+    },
+    {
+        "id": "numeric.monte-carlo",
+        "version": "1.0.0",
+        "displayName": "Monte Carlo estimation of pi",
+        "description": "Estimates pi from the fraction of random points in the unit square that fall inside the quarter circle.",
+        "category": "NUMERICAL",
+        "coreCategory": "NUMERICAL",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "samples",
+                "type": "INTEGER",
+                "description": "Number of random points",
+                "required": false,
+                "defaultValue": 10000000,
+                "minimum": 1,
+                "maximum": 10000000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "samples",
+                "uploadable": false
+            },
+            {
+                "name": "seed",
+                "type": "INTEGER",
+                "description": "Generator seed",
+                "required": false,
+                "defaultValue": 42,
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            }
+        ],
+        "resultType": "estimate",
+        "verificationMethod": "Statistical: |estimate - pi| <= 5 standard errors (false-alarm probability ~6e-7)",
+        "limitations": [
+            "Accuracy improves only as 1/sqrt(samples)",
+            "Verification is statistical, not exact; a correct run fails with probability ~6e-7",
+            "Pseudo-random numbers come from a counter-based generator, not a cryptographic one"
+        ],
+        "partitionStrategy": "RANGE",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": []
+    },
+    {
+        "id": "numeric.integrate",
+        "version": "1.0.0",
+        "displayName": "Numerical integration (composite Simpson)",
+        "description": "Integrates a catalog function (polynomial, sin, cos, exp) over [lowerLimit, upperLimit].",
+        "category": "NUMERICAL",
+        "coreCategory": "NUMERICAL",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "function",
+                "type": "ENUM",
+                "description": "Function to use",
+                "required": false,
+                "defaultValue": "POLYNOMIAL",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "POLYNOMIAL",
+                    "SIN",
+                    "COS",
+                    "EXP"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "coefficients",
+                "type": "DECIMAL_ARRAY",
+                "description": "Polynomial coefficients a0, a1, ... (function = POLYNOMIAL)",
+                "required": false,
+                "defaultValue": [
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 64,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "lowerLimit",
+                "type": "DECIMAL",
+                "description": "Lower integration limit",
+                "required": false,
+                "defaultValue": 0.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "upperLimit",
+                "type": "DECIMAL",
+                "description": "Upper integration limit",
+                "required": false,
+                "defaultValue": 1.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "panels",
+                "type": "INTEGER",
+                "description": "Number of Simpson panels",
+                "required": false,
+                "defaultValue": 1000000,
+                "minimum": 1,
+                "maximum": 1000000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "panels",
+                "uploadable": false
+            }
+        ],
+        "resultType": "scalar",
+        "verificationMethod": "Closed-form antiderivative F(b) - F(a), within the Simpson truncation bound plus a rounding bound",
+        "limitations": [
+            "Only catalog functions; arbitrary expressions are not supported",
+            "Simpson's rule is exact only up to cubic polynomials; otherwise error is O(h^4)",
+            "Different partitionings agree within rounding, not bit for bit",
+            "Each interior node is evaluated twice (3 function evaluations per panel)"
+        ],
+        "partitionStrategy": "RANGE",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "coefficients"
+        ]
+    },
+    {
+        "id": "numeric.polynomial-eval",
+        "version": "1.0.0",
+        "displayName": "Polynomial evaluation (Horner)",
+        "description": "Evaluates a polynomial of degree < 64 at many points.",
+        "category": "NUMERICAL",
+        "coreCategory": "NUMERICAL",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "coefficients",
+                "type": "DECIMAL_ARRAY",
+                "description": "Polynomial coefficients a0, a1, ...",
+                "required": false,
+                "defaultValue": [
+                    1.0,
+                    -3.0,
+                    2.0
+                ],
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 64,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "input",
+                "type": "ENUM",
+                "description": "Where the points come from",
+                "required": false,
+                "defaultValue": "GENERATED",
+                "minimum": null,
+                "maximum": null,
+                "allowedValues": [
+                    "GENERATED",
+                    "INLINE"
+                ],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "points",
+                "type": "INTEGER",
+                "description": "Number of grid points (input = GENERATED)",
+                "required": false,
+                "defaultValue": 1000000,
+                "minimum": 1,
+                "maximum": 100000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "points",
+                "uploadable": false
+            },
+            {
+                "name": "xMin",
+                "type": "DECIMAL",
+                "description": "Grid start (input = GENERATED)",
+                "required": false,
+                "defaultValue": -1.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "xMax",
+                "type": "DECIMAL",
+                "description": "Grid end (input = GENERATED)",
+                "required": false,
+                "defaultValue": 1.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "xValues",
+                "type": "DECIMAL_ARRAY",
+                "description": "Points to evaluate (input = INLINE)",
+                "required": false,
+                "defaultValue": null,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": 1,
+                "maxLength": 1000000,
+                "unit": null,
+                "uploadable": true
+            }
+        ],
+        "resultType": "double-array",
+        "verificationMethod": "512 deterministic sample points are re-evaluated exactly (BigDecimal) and must agree within twice Horner's rounding bound",
+        "limitations": [
+            "Points not in the sample are covered by bitwise cross-mode equality, not by exact checks",
+            "Values whose magnitude would exceed 1e300 are rejected during validation"
+        ],
+        "partitionStrategy": "CHUNK",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "coefficients",
+            "xValues"
+        ]
+    },
+    {
+        "id": "numeric.root-find",
+        "version": "1.0.0",
+        "displayName": "Polynomial root finding (scan + bisection)",
+        "description": "Finds the real roots of a polynomial in [lowerLimit, upperLimit] where it changes sign.",
+        "category": "NUMERICAL",
+        "coreCategory": "NUMERICAL",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "coefficients",
+                "type": "DECIMAL_ARRAY",
+                "description": "Polynomial coefficients a0, a1, ...",
+                "required": false,
+                "defaultValue": [
+                    -2.0,
+                    0.0,
+                    1.0
+                ],
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": 2,
+                "maxLength": 64,
+                "unit": null,
+                "uploadable": true
+            },
+            {
+                "name": "lowerLimit",
+                "type": "DECIMAL",
+                "description": "Interval start",
+                "required": false,
+                "defaultValue": -10.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "upperLimit",
+                "type": "DECIMAL",
+                "description": "Interval end",
+                "required": false,
+                "defaultValue": 10.0,
+                "minimum": -1000000.0,
+                "maximum": 1000000.0,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            },
+            {
+                "name": "subintervals",
+                "type": "INTEGER",
+                "description": "Scan resolution",
+                "required": false,
+                "defaultValue": 100000,
+                "minimum": 1,
+                "maximum": 100000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "subintervals",
+                "uploadable": false
+            },
+            {
+                "name": "tolerance",
+                "type": "DECIMAL",
+                "description": "Width of the final bracket around each root",
+                "required": false,
+                "defaultValue": 1e-12,
+                "minimum": 1e-15,
+                "maximum": 0.001,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": null,
+                "uploadable": false
+            }
+        ],
+        "resultType": "double-array",
+        "verificationMethod": "Every reported root lies in [lowerLimit, upperLimit], roots are strictly increasing, and the polynomial changes sign within +/- tolerance of each root (or is zero within its rounding bound there)",
+        "limitations": [
+            "Roots without a sign change (even multiplicity, e.g. x^2 at 0) are not found",
+            "Two roots closer than one scan subinterval cancel and are not found",
+            "Verification checks reported roots; it cannot prove that none were missed",
+            "Bisection of one root is sequential; only root isolation is parallelized",
+            "Polynomials only (degree 1 to 63)"
+        ],
+        "partitionStrategy": "RANGE",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": [
+            "coefficients"
+        ]
+    },
+    {
+        "id": "primes.count",
+        "version": "1.0.0",
+        "displayName": "Prime counting (segmented sieve)",
+        "description": "Counts the prime numbers in the inclusive range [lowerBound, upperBound] using an odd-only segmented sieve of Eratosthenes.",
+        "category": "NUMERICAL",
+        "coreCategory": "NUMBER_THEORY",
+        "builtIn": true,
+        "parameters": [
+            {
+                "name": "lowerBound",
+                "type": "INTEGER",
+                "description": "Inclusive lower bound of the range",
+                "required": false,
+                "defaultValue": 0,
+                "minimum": 0,
+                "maximum": 100000000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "integer",
+                "uploadable": false
+            },
+            {
+                "name": "upperBound",
+                "type": "INTEGER",
+                "description": "Inclusive upper bound of the range",
+                "required": false,
+                "defaultValue": 10000000,
+                "minimum": 0,
+                "maximum": 100000000000,
+                "allowedValues": [],
+                "minLength": null,
+                "maxLength": null,
+                "unit": "integer",
+                "uploadable": false
+            }
+        ],
+        "resultType": "count",
+        "verificationMethod": "Independent prime-counting function (Lucy-Hedgehog, O(x^3/4)): count = pi(upperBound) - pi(lowerBound - 1), compared exactly",
+        "limitations": [
+            "upperBound is limited to 10^11",
+            "Cancellation and progress granularity is one segment (2^19 integers)",
+            "Throughput depends on cache size; no performance figures are claimed without measurement"
+        ],
+        "partitionStrategy": "RANGE",
+        "distributable": true,
+        "modes": [
+            {
+                "mode": "SEQUENTIAL_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "MULTITHREADED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "DISTRIBUTED_CPU",
+                "supportedByAlgorithm": true,
+                "executable": true,
+                "reason": null
+            },
+            {
+                "mode": "GPU",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "No GPU backend: No GPU backend is installed (DistriCompute-Core ships none)"
+            },
+            {
+                "mode": "HYBRID",
+                "supportedByAlgorithm": false,
+                "executable": false,
+                "reason": "Hybrid CPU/GPU/distributed execution is not implemented by the components"
+            }
+        ],
+        "inputParameters": []
+    }
+]

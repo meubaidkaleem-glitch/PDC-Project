@@ -1,0 +1,114 @@
+{
+    "createdAt": "2026-11-24T07:08:32.190611106Z",
+    "algorithm": "matrix.multiply",
+    "workload": {
+        "dimensions": {
+            "rowsA": 64,
+            "colsA": 64,
+            "colsB": 64
+        },
+        "estimatedOperations": 524288.0,
+        "operationUnit": "floating-point operations",
+        "timeComplexity": "O(m\u00b7k\u00b7n)",
+        "inputBytes": 65536,
+        "outputBytes": 32768,
+        "estimatedPeakMemoryBytes": 137216,
+        "partitionable": true,
+        "partitionStrategy": "BLOCK_2D",
+        "maxUsefulPartitions": 4096,
+        "dataDependency": "NONE",
+        "aggregation": "O(m\u00b7n): copy result blocks into C"
+    },
+    "recommendedMode": null,
+    "reliable": false,
+    "confidence": "NONE",
+    "basis": "NONE",
+    "explanation": "Neither an estimate nor a measurement exists for sequential CPU execution yet, so the modes cannot be compared by time. It is preferred only for the structural reasons listed per mode below. Completed runs of this workload calibrate later recommendations.",
+    "modes": [
+        {
+            "mode": "SEQUENTIAL_CPU",
+            "verdict": "RECOMMENDED",
+            "executable": true,
+            "threads": 1,
+            "estimatedSeconds": null,
+            "estimateBasis": "NONE",
+            "measured": null,
+            "reasons": [
+                "Reference implementation; no partitioning overhead"
+            ]
+        },
+        {
+            "mode": "MULTITHREADED_CPU",
+            "verdict": "UNSUITABLE",
+            "executable": true,
+            "threads": 4,
+            "estimatedSeconds": null,
+            "estimateBasis": "NONE",
+            "measured": null,
+            "reasons": [
+                "Workload too small: partitioning and scheduling overhead would likely exceed the gain"
+            ]
+        },
+        {
+            "mode": "DISTRIBUTED_CPU",
+            "verdict": "UNSUITABLE",
+            "executable": true,
+            "threads": 4,
+            "estimatedSeconds": null,
+            "estimateBasis": "NONE",
+            "measured": null,
+            "reasons": [
+                "Workload too small to amortize communication and remote scheduling"
+            ]
+        },
+        {
+            "mode": "GPU",
+            "verdict": "UNSUPPORTED",
+            "executable": false,
+            "threads": null,
+            "estimatedSeconds": null,
+            "estimateBasis": "NONE",
+            "measured": null,
+            "reasons": [
+                "No GPU implementation: No GPU backend is installed (DistriCompute-Core ships none)"
+            ]
+        },
+        {
+            "mode": "HYBRID",
+            "verdict": "UNSUPPORTED",
+            "executable": false,
+            "threads": null,
+            "estimatedSeconds": null,
+            "estimateBasis": "NONE",
+            "measured": null,
+            "reasons": [
+                "Hybrid CPU/GPU/distributed execution is not implemented"
+            ]
+        }
+    ],
+    "resources": {
+        "localCores": 4,
+        "eligibleWorkers": [
+            "lab-b",
+            "lab-a"
+        ],
+        "ineligibleWorkers": [],
+        "totalSlots": 4,
+        "busySlots": 0,
+        "pendingPartitions": 0,
+        "gpuAvailable": false,
+        "gpuStatus": "No GPU backend is installed (DistriCompute-Core ships none)",
+        "networkMeasured": true,
+        "transferBytesPerSecond": 348272121.07412857,
+        "latencyMillis": 14.832246,
+        "estimatedTransferBytes": 131072,
+        "estimatedCommunicationSeconds": 0.0003763493890804477
+    },
+    "assumptions": [
+        "No calibration for matrix.multiply: no time estimates; small-workload threshold 1.00e+07 estimated operations"
+    ],
+    "warnings": [
+        "GPU: No GPU backend is installed (DistriCompute-Core ships none); no worker reports a GPU backend",
+        "Hybrid CPU/GPU/distributed execution is not implemented"
+    ]
+}

@@ -1,0 +1,134 @@
+[
+    {
+        "workerId": "lab-a",
+        "hostname": "vm",
+        "endpoint": "127.0.0.1:54032",
+        "status": "ACTIVE",
+        "statusReason": "registered",
+        "connected": true,
+        "approved": false,
+        "deactivated": false,
+        "cpuCores": 4,
+        "maxHeapBytes": 536870912,
+        "physicalMemoryBytes": 14338371584,
+        "os": "Linux (amd64)",
+        "javaVersion": "21.0.13.0.3",
+        "runtimeVersion": "0.1.0-SNAPSHOT",
+        "coreVersion": "0.1.0-SNAPSHOT",
+        "gpuAvailable": false,
+        "gpuDetails": [
+            "No GPU backend is installed (DistriCompute-Core ships none)"
+        ],
+        "algorithms": [
+            "data.filter@1.0.0",
+            "data.statistics@1.0.0",
+            "matrix.add@1.0.0",
+            "matrix.multiply@1.0.0",
+            "numeric.integrate@1.0.0",
+            "numeric.monte-carlo@1.0.0",
+            "numeric.polynomial-eval@1.0.0",
+            "numeric.root-find@1.0.0",
+            "primes.count@1.0.0",
+            "sort.merge@1.0.0"
+        ],
+        "labels": {},
+        "faultSimulation": false,
+        "slots": 2,
+        "assignedTasks": 0,
+        "activeTasks": 0,
+        "freeMemoryBytes": 466982688,
+        "processCpuLoad": 0.0012531328320802004,
+        "systemLoadAverage": 0.2060546875,
+        "completedTasks": 12,
+        "failedTasks": 0,
+        "counters": {
+            "assigned": 12,
+            "succeeded": 12,
+            "failed": 0,
+            "rejected": 0,
+            "timedOut": 0,
+            "lost": 0,
+            "invalidResults": 0,
+            "duplicateResults": 0
+        },
+        "performance": [
+            {
+                "samples": 12,
+                "meanKernelMillis": 63.036053083333336,
+                "algorithm": "matrix.multiply",
+                "transferBytesPerSecond": 309045889.4231788,
+                "operationsPerSecond": 1796376291.4664946
+            }
+        ],
+        "lastHeartbeatAt": "2026-11-24T07:08:21.963423844Z",
+        "registeredAt": "2026-11-24T07:00:17.899Z",
+        "lastSeenAt": "2026-11-24T07:08:21.827Z",
+        "notes": null
+    },
+    {
+        "workerId": "lab-b",
+        "hostname": "vm",
+        "endpoint": "127.0.0.1:54018",
+        "status": "ACTIVE",
+        "statusReason": "registered",
+        "connected": true,
+        "approved": false,
+        "deactivated": false,
+        "cpuCores": 4,
+        "maxHeapBytes": 536870912,
+        "physicalMemoryBytes": 14338371584,
+        "os": "Linux (amd64)",
+        "javaVersion": "21.0.13.0.3",
+        "runtimeVersion": "0.1.0-SNAPSHOT",
+        "coreVersion": "0.1.0-SNAPSHOT",
+        "gpuAvailable": false,
+        "gpuDetails": [
+            "No GPU backend is installed (DistriCompute-Core ships none)"
+        ],
+        "algorithms": [
+            "data.filter@1.0.0",
+            "data.statistics@1.0.0",
+            "matrix.add@1.0.0",
+            "matrix.multiply@1.0.0",
+            "numeric.integrate@1.0.0",
+            "numeric.monte-carlo@1.0.0",
+            "numeric.polynomial-eval@1.0.0",
+            "numeric.root-find@1.0.0",
+            "primes.count@1.0.0",
+            "sort.merge@1.0.0"
+        ],
+        "labels": {},
+        "faultSimulation": false,
+        "slots": 2,
+        "assignedTasks": 0,
+        "activeTasks": 0,
+        "freeMemoryBytes": 414563408,
+        "processCpuLoad": 0.0012515644555694619,
+        "systemLoadAverage": 0.2060546875,
+        "completedTasks": 12,
+        "failedTasks": 0,
+        "counters": {
+            "assigned": 12,
+            "succeeded": 12,
+            "failed": 0,
+            "rejected": 0,
+            "timedOut": 0,
+            "lost": 0,
+            "invalidResults": 0,
+            "duplicateResults": 0
+        },
+        "performance": [
+            {
+                "samples": 12,
+                "meanKernelMillis": 58.663445083333336,
+                "algorithm": "matrix.multiply",
+                "transferBytesPerSecond": 387498352.72507834,
+                "operationsPerSecond": 2012745025.4932733
+            }
+        ],
+        "lastHeartbeatAt": "2026-11-24T07:08:21.711080665Z",
+        "registeredAt": "2026-11-24T07:00:17.914Z",
+        "lastSeenAt": "2026-11-24T07:08:21.820Z",
+        "notes": null
+    }
+]
