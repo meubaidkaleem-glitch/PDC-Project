@@ -12,10 +12,10 @@ What is tested, how to run it, and what is not covered yet. Section 2 of
 | Backend integration tests | `ApplicationIntegrationTest` (`@Tag("integration")`) | Docker | part of `./mvnw -pl backend verify` |
 | Frontend unit tests | `frontend/src/**/*.test.ts(x)` | Node.js 22 | `cd frontend && npm test` |
 | Component suites | Core and Distributed, at the pinned commits | JDK 21 | `./mvnw -pl components/core,components/distributed/distributed install` |
-| End-to-end tests | not written yet (Phase 15) | | |
+| End-to-end tests | `frontend/e2e/*.spec.ts` (Playwright) | JDK 21, Node.js 22, Docker (or an empty MySQL database) | `scripts/build.sh && scripts/e2e.sh` |
 
-Tests tagged `e2e` are excluded from the default backend run (`test.excludedGroups` in `backend/pom.xml`); none
-exist yet.
+Tests tagged `e2e` are excluded from the default backend run (`test.excludedGroups` in `backend/pom.xml`); the
+end-to-end tests are the Playwright suite of section 4.
 
 Before the backend suites, install the components once: `./mvnw -B -ntp install -pl
 components/core,components/distributed/distributed -DskipTests` (or run `scripts/build.sh`).
@@ -54,7 +54,7 @@ API, multipart upload, Server-Sent Events. It covers:
 - cancellation;
 - the SSE stream (named events with ids for resumption).
 
-The worker processes of a real deployment are separate JVMs; the end-to-end tests of Phase 15 will start them as
+The worker processes of a real deployment are separate JVMs; the end-to-end tests (section 4) start them as
 processes.
 
 ## 3. Frontend tests
@@ -65,7 +65,7 @@ running backend** (`src/test/fixtures`, see its README). `EventSource` is replac
 open and push events through. Covered:
 
 - sign-in (wrong and right password, CSRF header, form fields), session expiry, administrator-only navigation,
-  sections of unfinished phases marked "Not implemented yet";
+  settings (password change, limits for users, default policy and user management for administrators);
 - overview: figures from the API, stream state, reload on a finished experiment, error with retry;
 - new task: categories Core implements, beginner form fields, analysis request body, advice display, submission
   with the chosen mode, Core's violations next to their field, syntax errors blocking analysis, GPU and hybrid
@@ -89,14 +89,30 @@ open and push events through. Covered:
 
 The fixtures are never part of the build: production code imports nothing under `src/test`.
 
-## 4. Manual check against the real stack
+## 4. End-to-end tests
 
-The interface was also exercised in Chromium (Playwright, headless) against the packaged jar, MySQL 8.4 in Docker
-and two worker processes started from the Distributed jar: sign-in, a matrix multiplication in distributed mode
-with three repetitions, the live monitor, results, metrics, configuration, workers, topology, dark theme and a
-390-pixel-wide viewport. This is not an automated test; Phase 15 turns this journey into Playwright tests.
+`scripts/e2e.sh` runs Playwright (`@playwright/test` 1.63.0, Chromium) against the real platform: the packaged
+backend jar serving the built interface, **two independent worker processes** started from the Distributed jar
+(`java -jar ...-all.jar worker`), and MySQL 8.4 (a throwaway Docker container with a generated password, unless
+`DISTRICOMPUTE_DB_URL` names an empty database). The harness (`frontend/e2e/stack.ts`) keeps the process ids so
+that tests can kill a worker or crash and restart the backend. Tests run one at a time.
 
-## 5. CI
+| Test | What it shows |
+|---|---|
+| `01-journey` | Sign-in; both worker processes on the Workers page; a 256 × 256 matrix multiplication created in the form, analysed, run in distributed mode; the live monitor's timeline over 2 workers; the verified result downloaded as CSV (257 lines); the experiment report downloaded as PDF; the history row |
+| `02-batch` | A benchmark batch built in the interface from a completed experiment (sequential, 2 threads, distributed, 2 repetitions each), run to completion; the comparison's findings; the comparison report as PDF |
+| `03-faults` (1) | A third worker process is killed with SIGKILL while it runs partitions of a 1500 × 1500 distributed multiplication: the experiment completes, its result is verified, at least one partition was retried, the event log shows it and the worker shows as lost |
+| `03-faults` (2) | The backend is killed with SIGKILL during a run and started again: the experiment is marked failed because of the restart, both worker processes reconnect, and a new distributed experiment completes |
+
+All four passed locally (43 s) on the first run. Backend and worker logs stay in the directory the script prints.
+
+## 5. Manual checks in a browser
+
+The pages were also exercised in Chromium against the packaged jar, MySQL and two worker processes while they were
+built (screens of every page, dark theme, a 390-pixel-wide viewport, PDF reports rendered to images). These checks
+found the defects fixed in the commits that mention them; they are not automated beyond section 4.
+
+## 6. CI
 
 `.github/workflows/application-ci.yml`:
 
@@ -104,4 +120,6 @@ with three repetitions, the live monitor, results, metrics, configuration, worke
 2. `build-and-test`: verifies the submodule pins, builds Core and Distributed with their own quality gates, then
    `./mvnw verify -pl backend -Pwith-frontend` (unit, persistence and integration tests; Docker is available on
    the runner) and checks that the jar contains the interface.
-3. `component-tests`: the Core and Distributed suites at the pinned commits.
+3. `e2e`: builds the jars and runs `scripts/e2e.sh` (MySQL in Docker, two worker processes, Chromium); on failure
+   it keeps the Playwright report and the backend and worker logs.
+4. `component-tests`: the Core and Distributed suites at the pinned commits.

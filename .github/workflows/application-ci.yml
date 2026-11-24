@@ -85,6 +85,54 @@ jobs:
           path: backend/target/surefire-reports
           if-no-files-found: ignore
 
+  e2e:
+    name: End-to-end tests (interface, backend, MySQL, worker processes)
+    needs: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Download the built interface
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - name: Build the components (worker jar) and the backend jar with the interface
+        run: |
+          ./mvnw -B -ntp install -pl components/core,components/distributed/distributed -DskipTests
+          ./mvnw -B -ntp package -pl backend -Pwith-frontend -DskipTests
+      - name: Install Playwright and Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: End-to-end tests (MySQL 8.4 in Docker, two worker processes)
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: scripts/e2e.sh
+      - name: Upload the Playwright report and the backend and worker logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            ${{ runner.temp }}/districompute-e2e.*/logs
+          if-no-files-found: ignore
+
   component-tests:
     name: Component test suites at the pinned commits
     runs-on: ubuntu-24.04
