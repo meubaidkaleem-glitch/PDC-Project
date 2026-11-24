@@ -71,7 +71,7 @@ All of the following were run on 2026-11-24 on a 4-core Linux machine with JDK 2
 
 CI (`.github/workflows/application-ci.yml`) runs the frontend job, the backend job (with the interface in the jar),
 the end-to-end job, the Compose smoke test and the component suites; section 6 records the run for the final
-commit. CI was green for every pushed commit except two backend-job runs: `2c5f303`, where the simulated-restart
+commit. Before it, CI was green for every pushed commit except two backend-job runs: `2c5f303`, where the simulated-restart
 test assumed the first experiment of a batch could not finish before recovery reached it (true on the development
 machine, not on the faster CI machine; the test now checks only what it is about), and `346e993`, where a MySQL
 deadlock the CI machine exposed failed a cancellation (section 4, fixed in `a1dda6a`).
@@ -135,4 +135,7 @@ cp .env.example .env && docker compose up -d --build
 
 [deployment.md](deployment.md) describes running without Docker and operations.
 
-CI for the final commit: recorded in the commit that follows this report.
+CI for commit `2c5ae67` (the last change to code, configuration and tests): run
+[45407664972](https://github.com/meubaidkaleem-glitch/PDC-Project/actions/runs/45407664972) passed all five jobs:
+frontend; backend with the interface in the jar; end-to-end tests with MySQL and worker processes; Docker images and
+the Compose smoke test; Core and Distributed suites at the pinned commits.
