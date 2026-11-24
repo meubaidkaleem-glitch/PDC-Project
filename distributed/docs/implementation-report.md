@@ -201,10 +201,26 @@ From [benchmarks.md](benchmarks.md) (one 4-vCPU machine, loopback, medians of 5 
 ## 10. Version and commit intended for integration
 
 * **Version:** `0.1.0-SNAPSHOT`, protocol `0.1`.
-* **Commit:** **`055cb18`** on `feature/distributed-engine`. It is the last commit that changes code, and it includes
-  `5cd6ef0`. It was verified by GitHub Actions run 45206004346 (all four jobs succeeded) and by the local runs in
-  §4.1. Later commits change documentation only.
+* **Commit:** **`1931fd0`** on `feature/distributed-engine` (see [§11](#11-changes-requested-by-the-application)).
+  It is the last commit that changes code. It was verified by GitHub Actions run 45215288130 (all four jobs
+  succeeded) and locally: 134 default tests, plus the fault and process groups. The earlier release commit
+  `055cb18` was verified by run 45206004346.
 * **Core:** built from the same branch (`feature/core-engine` content at the base of this branch). The runtime
   needs no change in Core.
 * **Before merging:** review by the responsible contributor (see the header), and agreement of Contributors 1 and
   3 on the integration contract, which is still a draft.
+
+## 11. Changes requested by the Application
+
+During integration (2026-11-23), DistriCompute-Application (Contributor 3) needed two things the API did not
+offer. They were added in `1931fd0`, with tests and documentation:
+
+| Need | Addition | Tests |
+|---|---|---|
+| Store, preview and download full results (Core's `TaskResult` carries only a summary and a digest) | `Coordinator.submit(spec, options, ResultSink)`: the verified value of a `COMPLETED` task is handed over once, before the task's future completes; the coordinator keeps no copy | `ResultSinkTest` (distributed and local tasks, digest equality, ordering, failing sinks) |
+| Deactivate and remove workers from the user interface | `deactivateWorker`, `activateWorker` (new status `DEACTIVATED`, which survives reconnection), `disconnectWorker` (reconnect or stop) and `forgetWorker` | `WorkerAdministrationTest` (against real workers) |
+
+The same commit fixes a defect found while adding result delivery: finished tasks kept their Core session (input,
+partial results and value) while retained, up to 1000 tasks. They now release it, and later results are
+classified `LATE` without it, as Core would (covered by `ResultValidationTest`).
+
