@@ -4,7 +4,7 @@ DistriCompute-Core and DistriCompute-Distributed.
 
 ## Install on Windows (nothing else needed)
 
-1. Download **DistriCompute-@VERSION@-windows-x64.zip** below and unzip it (right-click, *Extract All*).
+1. Download **DistriCompute-windows-x64.zip** below and unzip it (right-click, *Extract All*).
 2. Open the folder and double-click **DistriCompute.cmd**. If SmartScreen says "Windows protected your PC", choose
    *More info*, then *Run anyway*.
 3. Your browser opens DistriCompute. Sign in with the user and password shown in the DistriCompute window, then
@@ -16,7 +16,7 @@ on your computer (127.0.0.1). Your data is kept in `%LOCALAPPDATA%\DistriCompute
 ## Install on Linux (x86-64)
 
 ```bash
-tar -xzf DistriCompute-@VERSION@-linux-x64.tar.gz
+tar -xzf DistriCompute-linux-x64.tar.gz
 ```
 
 ```bash

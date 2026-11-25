@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-preview.1 — Windows and Linux packages
+## 0.1.0 — Windows and Linux packages
 
 The application as one download that needs no installation ([docs/standalone.md](docs/standalone.md)).
 

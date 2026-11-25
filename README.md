@@ -20,8 +20,9 @@ the integration of the two other components, which are included as pinned Git su
 
 ## Install on Windows or Linux in one step
 
-Download the package for your system from the
-[releases](https://github.com/meubaidkaleem-glitch/PDC-Project/releases), unzip it and double-click
+Download [DistriCompute-windows-x64.zip](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-windows-x64.zip) or
+[DistriCompute-linux-x64.tar.gz](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-linux-x64.tar.gz) (newest
+[release](https://github.com/meubaidkaleem-glitch/PDC-Project/releases)), unzip it and double-click
 `DistriCompute.cmd` (Windows) or run `districompute.sh` (Linux). Java, the database and two workers are included;
 nothing has to be installed. The window shows the address and the password for the first sign-in
 ([docs/standalone.md](docs/standalone.md)). The server installation with MySQL and worker machines is below.

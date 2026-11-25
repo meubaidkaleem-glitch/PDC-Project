@@ -8,12 +8,16 @@ For several users or worker machines, use the server installation instead ([depl
 
 ## 1. Install and start
 
-Packages are attached to the GitHub releases of the repository:
-<https://github.com/meubaidkaleem-glitch/PDC-Project/releases>
+Packages are attached to the GitHub releases of the repository
+(<https://github.com/meubaidkaleem-glitch/PDC-Project/releases>). These links always give the newest release:
+
+- Windows: [DistriCompute-windows-x64.zip](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-windows-x64.zip)
+- Linux: [DistriCompute-linux-x64.tar.gz](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-linux-x64.tar.gz)
+- Checksums: [SHA256SUMS](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/SHA256SUMS)
 
 ### Windows 10 or 11 (64-bit)
 
-1. Download `DistriCompute-<version>-windows-x64.zip` and unzip it (right-click, *Extract All*) anywhere, for example
+1. Download `DistriCompute-windows-x64.zip` and unzip it (right-click, *Extract All*) anywhere, for example
    to Documents.
 2. Double-click `DistriCompute.cmd` in the unzipped folder. If SmartScreen says "Windows protected your PC", choose
    *More info*, then *Run anyway* (the launcher is a short text script; open it in Notepad to read it).
@@ -38,7 +42,7 @@ running only opens the browser.
 ### Linux (x86-64)
 
 ```bash
-tar -xzf DistriCompute-<version>-linux-x64.tar.gz
+tar -xzf DistriCompute-linux-x64.tar.gz
 ```
 
 ```bash
@@ -149,6 +153,15 @@ pwsh -File scripts\standalone-smoke.ps1 -Archive dist\DistriCompute-0.1.0-window
 
 The workflow `.github/workflows/standalone.yml` builds both packages for every push to `feature/application-gui`,
 tests the Linux package in an Ubuntu container without Java and the Windows package on a Windows runner with Java
-removed from `PATH` and `JAVA_HOME`, and keeps them as workflow artifacts. Pushing a tag `v<version>` (for example
-`v0.1.0-preview.1`) additionally publishes the tested packages as a GitHub release; a version with a hyphen is
-marked as a pre-release.
+removed from `PATH` and `JAVA_HOME`, and keeps them as workflow artifacts.
+
+**Publishing a release** (only after both tests passed):
+
+1. On GitHub open **Actions → Standalone packages → Run workflow**.
+2. Choose the branch `feature/application-gui`, enter the version under *Version to publish as a release* (for
+   example `0.1.0`) and click **Run workflow**.
+
+The run builds and tests the packages, then creates the tag `v<version>` on the tested commit and the release with
+`DistriCompute-windows-x64.zip`, `DistriCompute-linux-x64.tar.gz` and `SHA256SUMS`. The file names carry no version,
+so the links above always give the newest release; a version with a hyphen (`0.2.0-rc.1`) is published as a
+pre-release, which those links skip. Pushing a tag `v<version>` has the same effect.

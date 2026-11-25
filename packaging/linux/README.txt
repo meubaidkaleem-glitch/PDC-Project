@@ -7,7 +7,7 @@ installed.
 
 Start
 -----
-    tar -xzf DistriCompute-@VERSION@-linux-x64.tar.gz
+    tar -xzf DistriCompute-linux-x64.tar.gz
     DistriCompute-@VERSION@-linux-x64/districompute.sh
 
 Your browser shows DistriCompute after a few seconds (otherwise open the address printed in the terminal). Sign in
