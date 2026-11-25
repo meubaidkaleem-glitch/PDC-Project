@@ -7,10 +7,51 @@ produces reports.
 
 This page explains how to install and use it. Detailed documentation is listed at the end.
 
+![DistriCompute: overview page](https://raw.githubusercontent.com/meubaidkaleem-glitch/PDC-Project/feature/application-gui/docs/screenshots/02-overview.png)
+
+## Quick install: Windows or Linux, nothing else needed
+
+One download contains everything: a Java runtime, the application, its database and two workers. No Java, database,
+Docker or Node.js has to be installed, and no administrator rights are needed.
+
+| System | Download (newest release) |
+|---|---|
+| **Windows 10 / 11** (64-bit) | [DistriCompute-windows-x64.zip](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-windows-x64.zip) |
+| **Linux** (x86-64) | [DistriCompute-linux-x64.tar.gz](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/latest/download/DistriCompute-linux-x64.tar.gz) |
+
+Release notes, checksums and earlier versions: [Releases](https://github.com/meubaidkaleem-glitch/PDC-Project/releases).
+
+**Windows**
+
+1. Download the zip and unzip it (right-click, *Extract All*), for example to Documents.
+2. Double-click **`DistriCompute.cmd`** in the unzipped folder. If SmartScreen says "Windows protected your PC",
+   choose *More info*, then *Run anyway*.
+3. The browser opens DistriCompute after a few seconds. Sign in with the user and password shown in the DistriCompute
+   window (`First sign-in: user admin password ...`), then change the password in **Settings**.
+
+Keep the window open while you use DistriCompute; close it to stop. Your data stays in
+`%LOCALAPPDATA%\DistriCompute\data`, also when you unzip a newer version.
+
+**Linux**
+
+```bash
+tar -xzf DistriCompute-linux-x64.tar.gz
+```
+
+```bash
+DistriCompute-*-linux-x64/districompute.sh
+```
+
+The quick install runs everything on one computer and is reachable only from it. For several users or worker
+machines, use the server installation in section 2. Details:
+[standalone.md](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/standalone.md).
+Then continue with [section 3, Usage](#3-usage).
+
 ## Repository layout
 
-The project has three components, each on its own branch. The application includes the other two as pinned Git
-submodules, so **you install the `feature/application-gui` branch**.
+The project has three components, each on its own branch; they stay separate. The application includes the other
+two as pinned Git submodules, so the downloads above and **the server installation are built from the
+`feature/application-gui` branch**.
 
 | Branch | Component | Contents |
 |---|---|---|
@@ -19,7 +60,9 @@ submodules, so **you install the `feature/application-gui` branch**.
 | [`feature/distributed-engine`](https://github.com/meubaidkaleem-glitch/PDC-Project/tree/feature/distributed-engine) | DistriCompute-Distributed | Coordinator, worker processes, scheduling, fault tolerance |
 | [`feature/application-gui`](https://github.com/meubaidkaleem-glitch/PDC-Project/tree/feature/application-gui) | DistriCompute-Application | Web interface (React), backend (Spring Boot), MySQL; integrates Core and Distributed |
 
-## 1. Requirements
+## 1. Requirements (server installation)
+
+Only for the server installation built from the source code; the quick install above needs none of this.
 
 | Software | Version | Needed for |
 |---|---|---|
@@ -30,8 +73,9 @@ submodules, so **you install the `feature/application-gui` branch**.
 | MySQL | 8.4 | Only when installing without Docker |
 
 The commands below are for a Unix shell (Linux, macOS, or WSL on Windows). The project was built and tested on Linux.
+On Windows without WSL, use the quick install.
 
-## 2. Installation
+## 2. Server installation
 
 ### 2.1 Get the code and build it
 
@@ -150,7 +194,8 @@ lists all of them.
 
 ### 3.1 First steps
 
-1. **Sign in** as `admin`, open **Settings** and change the password.
+1. **Sign in** as `admin` (quick install: with the password shown in the DistriCompute window), open **Settings** and
+   change the password.
 2. Under **Settings → Users**, create accounts for other people (role *user* or *administrator*). Users see their own
    experiments; administrators see everything and manage workers, settings and the fault lab.
 3. Choose a level at the top of the page: **Beginner** shows the essential fields and explanations, **Advanced**
@@ -176,6 +221,8 @@ lists all of them.
 
 To reuse a task, click **Save as template**; next time choose it under **Start from a template**.
 
+![New task with the advisor's recommendation](https://raw.githubusercontent.com/meubaidkaleem-glitch/PDC-Project/feature/application-gui/docs/screenshots/03-new-task-and-advisor.png)
+
 ### 3.3 Watch it and read the results
 
 The experiment page has five tabs:
@@ -190,6 +237,8 @@ The experiment page has five tabs:
 
 Buttons: **Cancel** a running experiment, **Run again**, **Copy and edit**, **Report**, delete.
 
+![Live monitor of a distributed run](https://raw.githubusercontent.com/meubaidkaleem-glitch/PDC-Project/feature/application-gui/docs/screenshots/04-experiment-live-monitor.png)
+
 ### 3.4 Compare strategies
 
 - **Experiments** lists all your experiments with filters and sorting. Select two or more and click **Compare**.
@@ -200,6 +249,10 @@ Buttons: **Cancel** a running experiment, **Run again**, **Copy and edit**, **Re
 - **Batches** is the easiest way to benchmark: choose a completed experiment or template, tick the modes and thread
   counts (for example sequential, 2 and 4 threads, distributed), set the repetitions and submit. The experiments run
   one after another so they do not slow each other down; then click **Compare** on the batch page.
+
+![Performance analysis of a benchmark batch](https://raw.githubusercontent.com/meubaidkaleem-glitch/PDC-Project/feature/application-gui/docs/screenshots/07-performance-analysis.png)
+
+More screenshots of every page: [docs/screenshots](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/screenshots/README.md).
 
 ### 3.5 Reports
 
@@ -249,6 +302,7 @@ The answer contains the experiment's id; `GET /api/v1/experiments/{id}` returns 
 
 | Problem | What to do |
 |---|---|
+| Quick install: the window closes or shows an error | Read the messages in the window; if port 8080 is taken, set `DISTRICOMPUTE_HTTP_PORT` (see [standalone.md](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/standalone.md#6-troubleshooting)) |
 | `docker compose up` stops with *set DISTRICOMPUTE_DB_PASSWORD in .env* | Create `.env` from `.env.example` and set the password |
 | Port 8080 is already in use | Stop the other program, or publish another port: in `docker-compose.yml`, change the `app` service's `ports` entry from `...:8080:8080` to `...:9090:8080` (without Docker, set `DISTRICOMPUTE_HTTP_PORT=9090`) |
 | A worker does not appear on the Workers page | Check that it uses the same cluster secret as the application, that port 7650 is reachable, and read the worker's output (`docker compose logs worker`) |
@@ -266,7 +320,9 @@ branch:
 
 | Document | Contents |
 |---|---|
+| [Quick install packages](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/standalone.md) | The Windows and Linux packages: data folder, settings, troubleshooting, how they are built and tested |
 | [User guide](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/user-guide.md) | The interface in detail |
+| [Screenshots](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/screenshots/README.md) | Every page of the running application |
 | [Deployment](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/deployment.md) | Building, Docker Compose, running without Docker, backups and upgrades |
 | [Configuration](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/configuration.md) | Every setting |
 | [Security](https://github.com/meubaidkaleem-glitch/PDC-Project/blob/feature/application-gui/docs/security.md) | Accounts, access, secrets, and what to add in production (HTTPS) |
