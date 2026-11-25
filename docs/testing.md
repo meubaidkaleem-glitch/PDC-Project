@@ -9,10 +9,11 @@ What is tested, how to run it, and what is not covered yet. Section 2 of
 | --- | --- | --- | --- |
 | Backend unit tests | `backend/src/test/java/.../task`, `.../analysis`, `.../report` and others without a tag | JDK 21 | `./mvnw -pl backend test` |
 | Persistence tests | `PersistenceTest` | Docker (MySQL 8.4 in Testcontainers) | part of `./mvnw -pl backend verify` |
-| Backend integration tests | `ApplicationIntegrationTest` (`@Tag("integration")`) | Docker | part of `./mvnw -pl backend verify` |
+| Backend integration tests | `ApplicationOnMysqlTest` and `ApplicationStandaloneTest` (both run the tests of `ApplicationIntegrationTest`, `@Tag("integration")`) | Docker for the MySQL variant | part of `./mvnw -pl backend verify` |
 | Frontend unit tests | `frontend/src/**/*.test.ts(x)` | Node.js 22 | `cd frontend && npm test` |
 | Component suites | Core and Distributed, at the pinned commits | JDK 21 | `./mvnw -pl components/core,components/distributed/distributed install` |
 | End-to-end tests | `frontend/e2e/*.spec.ts` (Playwright) | JDK 21, Node.js 22, Docker (or an empty MySQL database) | `scripts/build.sh && scripts/e2e.sh` |
+| Standalone package tests | `scripts/standalone-smoke.sh` (Linux), `scripts/standalone-smoke.ps1` (Windows) | A package from `scripts/package-standalone.sh`; curl and python3, or PowerShell 7 | section 6 |
 
 Tests tagged `e2e` are excluded from the default backend run (`test.excludedGroups` in `backend/pom.xml`); the
 end-to-end tests are the Playwright suite of section 4.
@@ -22,9 +23,11 @@ components/core,components/distributed/distributed -DskipTests` (or run `scripts
 
 ## 2. Backend integration tests
 
-`ApplicationIntegrationTest` starts the whole application on a random port against MySQL 8.4 (Testcontainers),
-with the embedded coordinator on a loopback port and **two Distributed `WorkerNode`s in the same JVM** that connect
-to it over TCP. It drives the application only through HTTP, as the browser does: form login, CSRF token, JSON
+`ApplicationIntegrationTest` starts the whole application on a random port, with the embedded coordinator on a
+loopback port and **two Distributed `WorkerNode`s in the same JVM** that connect to it over TCP. Its tests run twice:
+`ApplicationOnMysqlTest` against MySQL 8.4 (Testcontainers) and `ApplicationStandaloneTest` with the standalone
+profile against the embedded H2 database and its migrations ([standalone.md](standalone.md)); the latter also checks
+that the console notice shows the initial password only while it is the administrator's password. It drives the application only through HTTP, as the browser does: form login, CSRF token, JSON
 API, multipart upload, Server-Sent Events. It covers:
 
 - anonymous access (401 problem), missing CSRF token (403 problem), public version information;
@@ -110,9 +113,32 @@ All four passed locally (43 s) on the first run. Backend and worker logs stay in
 
 The pages were also exercised in Chromium against the packaged jar, MySQL and two worker processes while they were
 built (screens of every page, dark theme, a 390-pixel-wide viewport, PDF reports rendered to images). These checks
-found the defects fixed in the commits that mention them; they are not automated beyond section 4.
+found the defects fixed in the commits that mention them; they are not automated beyond section 4. The screenshots
+in [screenshots/](screenshots/) were taken in Chromium from the packaged jar in the standalone mode, after running a
+benchmark batch, three experiments and a fault lab run through the API.
 
-## 6. CI
+## 6. Standalone packages
+
+`scripts/standalone-smoke.sh <linux package>` and `scripts/standalone-smoke.ps1 -Archive <windows package>` test a
+package the way a user starts it: unpacked into a folder whose name contains a space, the launcher started with a
+data folder whose name contains a space, then
+
+1. the ready notice and the generated initial password appear on the console;
+2. (Windows) the application listens only on 127.0.0.1;
+3. sign-in with that password, CSRF token included;
+4. both local workers are active;
+5. a distributed matrix multiplication completes with a verified result;
+6. starting the launcher again only reports the running instance;
+7. after a stop (on Windows a forced one) and a restart, the experiment is still there;
+8. the console has no error and no exception.
+
+The Linux script runs the launcher in an `ubuntu:24.04` container, which has neither Java nor curl, when
+`STANDALONE_SMOKE_IMAGE` names it; the Windows script removes every `PATH` entry with a `java.exe` and every
+`JAVA_HOME*` variable first. While these tests were written, the console output revealed two defects, fixed before
+the first package was published: worker events rejected during shutdown, and H2 closing the database before the
+application had stopped (an exception at every stop, caught by step 8).
+
+## 7. CI
 
 `.github/workflows/application-ci.yml`:
 
@@ -123,3 +149,7 @@ found the defects fixed in the commits that mention them; they are not automated
 3. `e2e`: builds the jars and runs `scripts/e2e.sh` (MySQL in Docker, two worker processes, Chromium); on failure
    it keeps the Playwright report and the backend and worker logs.
 4. `component-tests`: the Core and Distributed suites at the pinned commits.
+
+`.github/workflows/standalone.yml` ([standalone.md](standalone.md) §7): builds both packages, runs the Linux package
+test in an Ubuntu container without Java and the Windows package test on a `windows-2025` runner, keeps the
+packages as artifacts, and for a `v*` tag publishes them as a GitHub release only after both tests passed.

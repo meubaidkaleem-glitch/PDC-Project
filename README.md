@@ -18,6 +18,16 @@ the integration of the two other components, which are included as pinned Git su
 > [implementation report](docs/implementation-report.md) lists what was tested, what is limited and what is not
 > provided.
 
+## Install on Windows or Linux in one step
+
+Download the package for your system from the
+[releases](https://github.com/meubaidkaleem-glitch/PDC-Project/releases), unzip it and double-click
+`DistriCompute.cmd` (Windows) or run `districompute.sh` (Linux). Java, the database and two workers are included;
+nothing has to be installed. The window shows the address and the password for the first sign-in
+([docs/standalone.md](docs/standalone.md)). The server installation with MySQL and worker machines is below.
+
+![Overview page](docs/screenshots/02-overview.png)
+
 ## What it does
 
 - Run a task from Core's catalog (matrix operations, numerical methods, data processing) with generated, pasted or
@@ -95,6 +105,8 @@ checks the Docker Compose deployment. [docs/testing.md](docs/testing.md) describ
 | [docs/batches-and-templates.md](docs/batches-and-templates.md) | Templates and batches run in order |
 | [docs/testing.md](docs/testing.md) | Test suites, what they cover, how to run them, CI |
 | [docs/user-guide.md](docs/user-guide.md) | Using the interface: tasks, advisor, monitoring, comparison, batches, reports, workers |
+| [docs/standalone.md](docs/standalone.md) | Windows and Linux packages: one-step installation, data folder, settings, building and releasing them |
+| [docs/screenshots/](docs/screenshots/) | Screenshots of every page, taken from the running application |
 | [docs/deployment.md](docs/deployment.md) | Build, Docker Compose, running without Docker, operations |
 | [docs/configuration.md](docs/configuration.md) | Every setting and environment variable |
 | [docs/security.md](docs/security.md) | Authentication, access, input, workers, secrets, audit, what to add in production |

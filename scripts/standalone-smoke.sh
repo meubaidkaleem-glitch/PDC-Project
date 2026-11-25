@@ -24,8 +24,9 @@ LAUNCHER="$(ls "$DIR"/*/districompute.sh)"
 
 start_app() {
   if [ -n "$IMAGE" ]; then
-    docker run --rm --init --name "$CONTAINER" --network host -v "$WORK:$WORK" \
-      -e DISTRICOMPUTE_DATA_DIR="$DATA" -e DISTRICOMPUTE_HTTP_PORT="$PORT" "$IMAGE" \
+    # As the calling user, so that the files it writes can be deleted afterwards.
+    docker run --rm --init --name "$CONTAINER" --network host -v "$WORK:$WORK" --user "$(id -u):$(id -g)" \
+      -e HOME="$WORK" -e DISTRICOMPUTE_DATA_DIR="$DATA" -e DISTRICOMPUTE_HTTP_PORT="$PORT" "$IMAGE" \
       "$LAUNCHER" --districompute.standalone.open-browser=false > "$LOG" 2>&1 &
   else
     env -u JAVA_HOME DISTRICOMPUTE_DATA_DIR="$DATA" DISTRICOMPUTE_HTTP_PORT="$PORT" \
@@ -48,7 +49,7 @@ stop_app() {
 cleanup() {
   if [ -n "$IMAGE" ]; then docker rm -f "$CONTAINER" > /dev/null 2>&1 || true; fi
   if [ -n "${APP_PID:-}" ]; then kill "$APP_PID" 2>/dev/null || true; fi
-  if [ -n "${STANDALONE_SMOKE_KEEP:-}" ]; then echo "Kept $WORK"; else rm -rf "$WORK"; fi
+  if [ -n "${STANDALONE_SMOKE_KEEP:-}" ]; then echo "Kept $WORK"; else rm -rf "$WORK" || true; fi
 }
 trap cleanup EXIT
 

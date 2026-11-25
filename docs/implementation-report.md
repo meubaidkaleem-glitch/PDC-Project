@@ -39,6 +39,7 @@ deactivation, activation and removal. Core needed no change.
 | Interface | Pages A–J of the specification: overview, new task, advisor, live monitor, workers, topology, performance analysis, history, reports, settings; plus batches and the fault lab; beginner and advanced levels; light and dark themes; phone width | [user-guide.md](user-guide.md) |
 | Security | Session login with CSRF protection, roles, BCrypt, login throttling, rate and workload limits, owner-only access with 404, secrets from environment or owner-only files, audit log, CSP | [security.md](security.md) |
 | Deployment | Images for the application and the worker, Docker Compose with MySQL and scalable workers, smoke test | [deployment.md](deployment.md), [configuration.md](configuration.md) |
+| Standalone packages | Windows and Linux packages with a bundled Java runtime, embedded H2 database and two local workers: unzip and double-click, nothing to install; built, tested without Java and released by CI | [standalone.md](standalone.md) |
 
 ### Partial or limited
 
@@ -61,10 +62,11 @@ All of the following were run on 2026-11-24 on a 4-core Linux machine with JDK 2
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit, persistence and integration tests (MySQL 8.4 in Testcontainers, two worker nodes over TCP, fault lab scenarios) | `./mvnw verify -pl backend -Pwith-frontend` | 55 tests, 0 failures (20 integration, 3 persistence, 32 unit) |
+| Backend unit, persistence and integration tests (two worker nodes over TCP, fault lab scenarios; the integration tests once against MySQL 8.4 in Testcontainers and once against H2 with the standalone profile) | `./mvnw verify -pl backend -Pwith-frontend` | 76 tests, 0 failures (20 integration on MySQL, 21 on H2, 3 persistence, 32 unit); fault lab tests repeated three times on both databases after the fix of defect 10 |
 | Frontend tests (Vitest, recorded API responses) | `npm test` in `frontend` | 59 tests in 16 files, 0 failures; typecheck and build pass |
 | End-to-end tests (Playwright, packaged jar, MySQL in Docker, worker processes) | `scripts/e2e.sh` | 4 tests, 0 failures (42 s): journey to CSV and PDF downloads, benchmark batch with comparison report, worker process killed during a run, backend killed during a run |
 | Docker Compose smoke test | `scripts/compose-smoke.sh` | Passed: application healthy, two workers registered, distributed experiment verified |
+| Linux package test (2026-11-25), launcher in an `ubuntu:24.04` container without Java or curl | `STANDALONE_SMOKE_IMAGE=ubuntu:24.04 scripts/standalone-smoke.sh dist/…-linux-x64.tar.gz` | Passed: initial password printed and accepted, two local workers, distributed experiment verified, second start reports the running instance, data kept across a restart, no error in the console |
 | Stress check of cancellation | 25 batches cancelled right after creation, against MySQL | All answered 202, no deadlock, no run submitted after cancellation |
 | Fault lab, all scenarios, seed 7 | Through the API and in the integration tests | Six `RECOVERED`, two `UNAFFECTED`, every result equal to the fault-free reference |
 | Browser checks | Chromium against the packaged jar, MySQL and two worker processes | Every page in light and dark themes and at 390 px width; PDF reports rendered and inspected |
@@ -95,6 +97,11 @@ Found by running the application, by its tests or by CI, and fixed with a test w
 9. Several interface defects seen in the browser: wrong beginner fields, a repeated advisor message, overlapping
    timeline bars, phone-width overflow, a stranded chart caption in PDFs, an event timeline that missed the last
    events of a lab run.
+10. The fault lab's kernel-failure scenario chose failing attempts at random, so about one run in sixteen showed no
+    failure and the integration test failed (seen once); every attempt on the faulty worker now fails.
+11. Worker events arriving during shutdown were rejected by the stopped executor and logged as exceptions.
+12. In the standalone mode H2 closed the database in its own shutdown hook before the application had stopped
+    (found by the package test's console check).
 
 Known open issues: none that make a result wrong or a page fail. Limitations are in section 5.
 
@@ -112,6 +119,9 @@ Known open issues: none that make a result wrong or a page fail. Limitations are
 - **Interface bundle** is one 854 kB JavaScript file (248 kB compressed); no code splitting.
 - **Security in production** depends on the operator adding HTTPS, keeping the worker port private or using TLS,
   and protecting the secrets ([security.md](security.md) §8).
+- **Standalone packages** run everything on one computer: their distributed runs use two workers on the same
+  machine (a demonstration of the mechanism, not a cluster measurement), and they are not code-signed, so Windows
+  SmartScreen asks for confirmation at the first start ([standalone.md](standalone.md)).
 - **Component versions** are snapshots (`0.1.0-SNAPSHOT`); updating a component follows [integration.md](integration.md)
   §5 and must rerun all suites.
 
@@ -131,6 +141,10 @@ scripts/e2e.sh
 
 ```bash
 cp .env.example .env && docker compose up -d --build
+```
+
+```bash
+scripts/package-standalone.sh --version 0.1.0 --skip-build
 ```
 
 [deployment.md](deployment.md) describes running without Docker and operations.

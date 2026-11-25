@@ -51,6 +51,15 @@ Without an administrator password the application writes a random one to `<data-
 | `security.session-timeout` | `8h` | Idle time after which a session ends |
 | `workers.require-approval` | `false` | Workers not approved by an administrator are deactivated when they connect |
 | `faults.enabled` | `false` | Enables the fault lab ([fault-lab.md](fault-lab.md)); for test and demonstration environments |
+| `standalone.local-workers` | `0` | Workers started inside the application, connected to its coordinator over loopback TCP ([standalone.md](standalone.md)) |
+| `standalone.local-worker-slots` | `0` | Slots of each local worker (`0`: the processors divided among the local workers) |
+| `standalone.open-browser` | `false` | Open the interface in the default browser once the application is ready |
+| `standalone.show-sign-in` | `false` | Print the address and, while it is still valid, the generated initial password on the console (not in the log) |
+
+The Spring profile `standalone` (`--spring.profiles.active=standalone`, used by the Windows and Linux packages)
+switches to an embedded H2 database in `<data-dir>/database` with the migrations in `database/migrations-h2`, binds
+the web and worker ports to 127.0.0.1 with any free worker port, starts two local workers, opens the browser, shows
+the sign-in notice, enables the fault lab and keeps the console to warnings ([standalone.md](standalone.md)).
 
 ## 3. Settings changed at run time
 

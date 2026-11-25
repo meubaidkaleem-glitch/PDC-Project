@@ -4,6 +4,9 @@ DistriCompute runs as one Java process (the backend: interface, API and the embe
 MySQL 8.4 database, and any number of worker processes. [configuration.md](configuration.md) lists every setting,
 [security.md](security.md) what to secure, [workers.md](workers.md) how to run workers.
 
+For one person on one computer there is a simpler way: the Windows and Linux packages bring their own Java, an
+embedded database and two workers, and need no installation ([standalone.md](standalone.md)).
+
 ## 1. Build
 
 Requirements: Git, JDK 21, Node.js 22, and Docker for the integration tests and the images.

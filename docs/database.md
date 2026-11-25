@@ -59,5 +59,10 @@ deletes the experiment's result files.
   database holding V1 data without loss.
 * `V3__batch_order.sql` adds `experiments.batch_position` (the order of a batch's experiments, at least 1), also
   applied to a database holding data.
+* `database/migrations-h2` holds the same three migrations for the embedded H2 database of the standalone mode
+  ([standalone.md](standalone.md)): same tables, columns, keys, checks and constraint names; only the dialect
+  differs (identity columns, `VARCHAR(36)` identifiers, `VARCHAR(65535)` for `TEXT`, separate index statements).
+  **Every new migration needs both files**; Hibernate validates the schema at start-up against either database, and
+  the integration tests run against both (`ApplicationOnMysqlTest`, `ApplicationStandaloneTest`).
 * `PersistenceTest` runs the migrations on a real MySQL 8.4 (Testcontainers) and checks Hibernate's validation,
   round trips of every entity, cascades, and the unique, check, JSON and foreign-key constraints.

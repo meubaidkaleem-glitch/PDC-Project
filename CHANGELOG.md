@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.0-preview.1 — Windows and Linux packages
+
+The application as one download that needs no installation ([docs/standalone.md](docs/standalone.md)).
+
+### Added
+
+- **Standalone mode** (profile `standalone`): embedded H2 database in the data folder with its own migrations
+  (`database/migrations-h2`, same schema as MySQL), two workers started inside the application and connected to its
+  coordinator over loopback TCP, the browser opened when ready, the address and the initial password (while still
+  valid) on the console, web and worker ports bound to 127.0.0.1, fault lab enabled.
+- **Packages** built by `scripts/package-standalone.sh`: `DistriCompute-<version>-windows-x64.zip` and
+  `-linux-x64.tar.gz` with Eclipse Temurin 21.0.13.1+2 (pinned, SHA-256 checked), the application jar and a launcher
+  (`DistriCompute.cmd`, `districompute.sh`) that keeps the data in `%LOCALAPPDATA%\DistriCompute\data` or
+  `~/.local/share/districompute` and only opens the browser when DistriCompute is already running.
+- **Tests:** the integration tests run against MySQL and, with the standalone profile, against H2;
+  `scripts/standalone-smoke.sh` and `.ps1` test a package end to end without Java on the machine; the workflow
+  `standalone.yml` runs them on Linux and on a Windows runner and publishes the tested packages for `v*` tags.
+- Screenshots of every page in [docs/screenshots](docs/screenshots/).
+
+### Fixed
+
+- The fault lab's kernel-failure scenario failed half of the faulty worker's attempts at random, so about one run in
+  sixteen showed no failure (seen once in the integration tests); every attempt on the faulty worker now fails and
+  is retried elsewhere.
+- Worker events arriving during shutdown logged an exception each; they are ignored now.
+- `scripts/build.sh` cleans the backend first, so interface bundles of earlier builds no longer end up in the jar.
+
 ## 0.1.0-SNAPSHOT — DistriCompute-Application (branch `feature/application-gui`)
 
 First complete version of the application that integrates DistriCompute-Core (`f269bf6`) and
