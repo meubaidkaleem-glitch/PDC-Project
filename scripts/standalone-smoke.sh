@@ -26,11 +26,11 @@ start_app() {
   if [ -n "$IMAGE" ]; then
     # As the calling user, so that the files it writes can be deleted afterwards.
     docker run --rm --init --name "$CONTAINER" --network host -v "$WORK:$WORK" --user "$(id -u):$(id -g)" \
-      -e HOME="$WORK" -e DISTRICOMPUTE_DATA_DIR="$DATA" -e DISTRICOMPUTE_HTTP_PORT="$PORT" "$IMAGE" \
-      "$LAUNCHER" --districompute.standalone.open-browser=false > "$LOG" 2>&1 &
+      -e HOME="$WORK" -e DISTRICOMPUTE_DATA_DIR="$DATA" -e DISTRICOMPUTE_HTTP_PORT="$PORT" \
+      -e DISTRICOMPUTE_NO_BROWSER=1 "$IMAGE" "$LAUNCHER" > "$LOG" 2>&1 &
   else
-    env -u JAVA_HOME DISTRICOMPUTE_DATA_DIR="$DATA" DISTRICOMPUTE_HTTP_PORT="$PORT" \
-      "$LAUNCHER" --districompute.standalone.open-browser=false > "$LOG" 2>&1 &
+    env -u JAVA_HOME DISTRICOMPUTE_DATA_DIR="$DATA" DISTRICOMPUTE_HTTP_PORT="$PORT" DISTRICOMPUTE_NO_BROWSER=1 \
+      "$LAUNCHER" > "$LOG" 2>&1 &
   fi
   APP_PID=$!
   for _ in $(seq 1 180); do
@@ -92,7 +92,7 @@ VERIFIED="$(api GET "/api/v1/experiments/$ID" | json "d['runs'][0]['verification
 echo "distributed experiment completed and verified"
 
 echo "== Second start while running"
-SECOND="$(env DISTRICOMPUTE_HTTP_PORT="$PORT" DISTRICOMPUTE_DATA_DIR="$DATA" "$LAUNCHER")"
+SECOND="$(env DISTRICOMPUTE_HTTP_PORT="$PORT" DISTRICOMPUTE_DATA_DIR="$DATA" DISTRICOMPUTE_NO_BROWSER=1 "$LAUNCHER")"
 echo "$SECOND" | grep -q "already running" || { echo "FAIL: second start: $SECOND" >&2; exit 1; }
 echo "reported the running instance"
 

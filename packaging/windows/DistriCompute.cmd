@@ -5,19 +5,21 @@ setlocal
 title DistriCompute
 if not defined DISTRICOMPUTE_HTTP_PORT set "DISTRICOMPUTE_HTTP_PORT=8080"
 if not defined DISTRICOMPUTE_DATA_DIR set "DISTRICOMPUTE_DATA_DIR=%LOCALAPPDATA%\DistriCompute\data"
+set "BROWSER_OPTION="
+if defined DISTRICOMPUTE_NO_BROWSER set "BROWSER_OPTION=--districompute.standalone.open-browser=false"
 
 rem Already running? Then only open it in the browser.
 curl.exe --silent --fail --max-time 3 "http://127.0.0.1:%DISTRICOMPUTE_HTTP_PORT%/api/v1/system/info" 2>nul | findstr /c:"distributed" >nul 2>&1
 if not errorlevel 1 (
   echo DistriCompute is already running: http://localhost:%DISTRICOMPUTE_HTTP_PORT%/
-  start "" "http://localhost:%DISTRICOMPUTE_HTTP_PORT%/"
+  if not defined DISTRICOMPUTE_NO_BROWSER start "" "http://localhost:%DISTRICOMPUTE_HTTP_PORT%/"
   exit /b 0
 )
 
 if not exist "%DISTRICOMPUTE_DATA_DIR%" mkdir "%DISTRICOMPUTE_DATA_DIR%"
 echo Starting DistriCompute. Your browser opens when it is ready; this takes a few seconds.
 echo.
-"%~dp0runtime\bin\java.exe" -jar "%~dp0app\districompute.jar" --spring.profiles.active=standalone "--districompute.data-dir=%DISTRICOMPUTE_DATA_DIR%" %*
+"%~dp0runtime\bin\java.exe" -jar "%~dp0app\districompute.jar" --spring.profiles.active=standalone "--districompute.data-dir=%DISTRICOMPUTE_DATA_DIR%" %BROWSER_OPTION% %*
 set "CODE=%ERRORLEVEL%"
 if "%CODE%"=="0" exit /b 0
 if "%CODE%"=="130" exit /b 0

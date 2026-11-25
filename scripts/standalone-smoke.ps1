@@ -21,6 +21,7 @@ $dir = Join-Path $work 'Distri Compute'
 $env:DISTRICOMPUTE_DATA_DIR = Join-Path $work 'my data'
 $env:DISTRICOMPUTE_HTTP_PORT = "$Port"
 $env:DISTRICOMPUTE_NO_PAUSE = '1'
+$env:DISTRICOMPUTE_NO_BROWSER = '1'
 Expand-Archive -Path $Archive -DestinationPath $dir
 $launcher = (Get-ChildItem -Path $dir -Recurse -Filter DistriCompute.cmd | Select-Object -First 1).FullName
 $base = "http://127.0.0.1:$Port"
@@ -31,7 +32,7 @@ function Start-App {
     $script:log = Join-Path $work "console-$($script:starts).log"
     $started = Get-Date
     $script:proc = Start-Process -FilePath cmd.exe -NoNewWindow -PassThru `
-        -ArgumentList '/c', "`"`"$launcher`" --districompute.standalone.open-browser=false`"" `
+        -ArgumentList '/c', "`"`"$launcher`"`"" `
         -RedirectStandardOutput $script:log -RedirectStandardError (Join-Path $work "console-$($script:starts).err")
     $deadline = (Get-Date).AddSeconds(180)
     while ((Get-Date) -lt $deadline) {
@@ -114,8 +115,10 @@ try {
 
     Write-Host '== Second start while running'
     $secondLog = Join-Path $work 'second-start.txt'
-    $second = Start-Process -FilePath cmd.exe -NoNewWindow -PassThru -Wait -ArgumentList '/c', "`"`"$launcher`"`"" `
+    # Not Start-Process -Wait: it would also wait for any program the launcher starts.
+    $second = Start-Process -FilePath cmd.exe -NoNewWindow -PassThru -ArgumentList '/c', "`"`"$launcher`"`"" `
         -RedirectStandardOutput $secondLog -RedirectStandardError (Join-Path $work 'second-start.err')
+    if (-not $second.WaitForExit(60000)) { throw 'The second start did not finish within 60 s' }
     $text = Get-Content $secondLog -Raw
     if ($second.ExitCode -ne 0 -or $text -notmatch 'already running') { throw "Second start ($($second.ExitCode)): $text" }
     Write-Host 'Reported the running instance'

@@ -15,7 +15,8 @@ with the user and password printed there ("First sign-in") and change the passwo
 
 Your data: ~/.local/share/districompute (or $XDG_DATA_HOME/districompute). It stays when you replace this folder.
 
-Settings: DISTRICOMPUTE_HTTP_PORT (default 8080), DISTRICOMPUTE_DATA_DIR.
+Settings: DISTRICOMPUTE_HTTP_PORT (default 8080), DISTRICOMPUTE_DATA_DIR, DISTRICOMPUTE_NO_BROWSER=1 (do not
+open the browser).
 
 DistriCompute listens only on this computer (127.0.0.1). For several users or worker computers, use the server
 installation with MySQL and Docker described at https://github.com/meubaidkaleem-glitch/PDC-Project

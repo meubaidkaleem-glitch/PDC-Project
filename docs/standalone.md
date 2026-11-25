@@ -80,6 +80,7 @@ Environment variables read by the launcher:
 |---|---|---|
 | `DISTRICOMPUTE_HTTP_PORT` | `8080` | Web port, if another program already uses 8080 |
 | `DISTRICOMPUTE_DATA_DIR` | see section 3 | Another data folder |
+| `DISTRICOMPUTE_NO_BROWSER` | not set | Set to `1` to never open the browser (for example on a machine without a desktop) |
 
 Options after the launcher's name are passed to the application, for example four local workers with two slots each:
 

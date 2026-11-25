@@ -26,6 +26,7 @@ Settings (optional, set before starting, for example in a command prompt)
 -------------------------------------------------------------------------
 DISTRICOMPUTE_HTTP_PORT   web port (default 8080), if another program uses 8080
 DISTRICOMPUTE_DATA_DIR    another data folder
+DISTRICOMPUTE_NO_BROWSER  set to 1 to not open the browser
 
 DistriCompute listens only on this computer (127.0.0.1). For several users or worker computers, use the server
 installation with MySQL and Docker described at
