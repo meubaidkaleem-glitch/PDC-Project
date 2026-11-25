@@ -71,7 +71,12 @@ curl -sf -b "$JAR" -c "$JAR" -H "X-XSRF-TOKEN: $(xsrf)" --data-urlencode usernam
   --data-urlencode "password=$PASSWORD" "$BASE/api/v1/auth/login" > /dev/null
 echo "signed in"
 
-ACTIVE="$(api GET /api/v1/workers | json "sum(1 for w in d if w['status'] == 'ACTIVE' and w['workerId'].startswith('local-'))")"
+# The worker records are updated from the coordinator's events: give them a moment.
+for _ in $(seq 1 30); do
+  ACTIVE="$(api GET /api/v1/workers | json "sum(1 for w in d if w['status'] == 'ACTIVE' and w['workerId'].startswith('local-'))")"
+  [ "$ACTIVE" = 2 ] && break
+  sleep 1
+done
 [ "$ACTIVE" = 2 ] || { echo "FAIL: $ACTIVE active local workers" >&2; exit 1; }
 echo "2 local workers active"
 

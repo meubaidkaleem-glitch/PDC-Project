@@ -88,7 +88,15 @@ try {
     Connect-App $password
     Write-Host 'Signed in'
 
-    $active = @(Invoke-Api GET '/api/v1/workers' | Where-Object { $_.status -eq 'ACTIVE' -and $_.workerId -like 'local-*' })
+    # Invoke-RestMethod may pass a JSON array on as one object: ForEach-Object unrolls it. The worker records are
+    # updated from the coordinator's events, so give them a moment.
+    $deadline = (Get-Date).AddSeconds(30)
+    do {
+        $active = @(Invoke-Api GET '/api/v1/workers' | ForEach-Object { $_ } |
+            Where-Object { $_.status -eq 'ACTIVE' -and $_.workerId -like 'local-*' })
+        if ($active.Count -eq 2) { break }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date) -lt $deadline)
     if ($active.Count -ne 2) { throw "$($active.Count) active local workers" }
     Write-Host '2 local workers active'
 
