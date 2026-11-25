@@ -54,8 +54,12 @@ describe('ExperimentPage', () => {
     const { requests } = backend({ ...experiment, summary: { ...experiment.summary, status: 'RUNNING' } });
     renderApp(`/experiments/${id}`);
     await screen.findByRole('heading', { name: experiment.summary.name });
-    const stream = FakeEventSource.instances.find((s) => s.url.includes(`/experiments/${id}/stream`))!;
-    expect(stream).toBeDefined();
+    // The page opens the stream in an effect, possibly after the heading appeared: wait for it.
+    const stream = await vi.waitFor(() => {
+      const opened = FakeEventSource.instances.find((s) => s.url.includes(`/experiments/${id}/stream`));
+      expect(opened).toBeDefined();
+      return opened!;
+    });
     const loads = () => requests.filter((r) => r.path === `/api/v1/experiments/${id}`).length;
     const before = loads();
     act(() => {

@@ -79,6 +79,13 @@ test assumed the first experiment of a batch could not finish before recovery re
 machine, not on the faster CI machine; the test now checks only what it is about), and `346e993`, where a MySQL
 deadlock the CI machine exposed failed a cancellation (section 4, fixed in `a1dda6a`).
 
+The standalone packages workflow failed three times before it passed, each time in the tests rather than in the
+packages: `3000f80` (the Linux test passed but could not delete files the container had written as root),
+`5ef5f3c` (the Windows test miscounted the workers: PowerShell passed the JSON array on as one object) and
+`b8754fe` (the Windows test's second start waited for the browser the launcher opened, until the job timed out).
+Application CI then failed once on `232150a`, a documentation commit: a frontend test looked for the live stream as
+soon as the page heading appeared, while the page opens it in an effect just after; the test now waits for it.
+
 ## 4. Defects found and fixed
 
 Found by running the application, by its tests or by CI, and fixed with a test where possible:
