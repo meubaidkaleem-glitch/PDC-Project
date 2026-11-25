@@ -47,7 +47,7 @@ Timing still varies between runs.
 | `MISSED_HEARTBEATS` | stops heartbeats 300 ms after registering; answers after 4 s | suspect, then lost after the 2 s heartbeat timeout | partitions retried elsewhere; late results ignored |
 | `CORRUPTED_RESULTS` | every result corrupted in transit | checksum mismatch; results rejected as invalid | partitions retried on other workers |
 | `DUPLICATE_RESULTS` | every result sent twice | the second copy is recognised | duplicates ignored |
-| `KERNEL_FAILURES` | half of the attempts fail (retryable) | failures reported with their reason | retried, up to 6 attempts per partition |
+| `KERNEL_FAILURES` | every attempt fails (retryable) | failures reported with their reason | retried on workers that have not failed the partition, up to 6 attempts each |
 | `HANGING_ATTEMPTS` | every attempt hangs, ignoring cancellation | attempt timeout (2 s) | timed-out partitions retried elsewhere |
 | `SLOW_WORKER` | computes 5 times slower | nothing fails; load imbalance | completes |
 | `SLOW_NETWORK` | every message delayed 150 ms | nothing fails; transfer time | completes, later |

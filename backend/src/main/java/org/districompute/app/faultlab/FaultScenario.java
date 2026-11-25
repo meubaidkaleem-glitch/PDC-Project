@@ -55,14 +55,17 @@ public enum FaultScenario {
             return new FaultProfile(true, seed, 0, 0, 1.0, 0, 0, 0, 0, 0, 1.0, List.of());
         }
     },
-    /** Half of the attempts fail with a retryable kernel error. */
-    KERNEL_FAILURES("Kernel failures", "Half of the faulty worker's attempts report a (retryable) kernel failure.",
+    /**
+     * Every attempt fails with a retryable kernel error. (With a probability below 1 the round-robin lab task can
+     * give the faulty worker attempts that all succeed, and the run would show nothing.)
+     */
+    KERNEL_FAILURES("Kernel failures", "Every attempt on the faulty worker reports a (retryable) kernel failure.",
             "Each failure is reported by the worker and recorded with its reason.",
-            "Failed partitions are retried, up to six attempts each.",
+            "Failed partitions are retried on workers that have not failed them, up to six attempts each.",
             Duration.ofSeconds(20), 6) {
         @Override
         FaultProfile profile(long seed) {
-            return new FaultProfile(true, seed, 0, 0, 1.0, 0, 0, 0, 0.5, 0, 0, List.of());
+            return new FaultProfile(true, seed, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, List.of());
         }
     },
     /** Attempts never answer. */

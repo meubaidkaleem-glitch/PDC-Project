@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,7 +85,12 @@ public class WorkerService {
     public void follow() {
         bridge.onWorkerEvent(e -> {
             if (e.workerId() != null) {
-                executor.execute(() -> sync(e.workerId()));
+                try {
+                    executor.execute(() -> sync(e.workerId()));
+                } catch (TaskRejectedException shuttingDown) {
+                    // The application is stopping: workers leave with the coordinator; the next start resynchronises.
+                    LOG.debug("Worker event {} not recorded during shutdown", e.type());
+                }
             }
         });
         syncAll();

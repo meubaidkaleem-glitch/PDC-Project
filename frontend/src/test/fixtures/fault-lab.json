@@ -42,9 +42,9 @@
         {
             "id": "KERNEL_FAILURES",
             "title": "Kernel failures",
-            "fault": "Half of the faulty worker's attempts report a (retryable) kernel failure.",
+            "fault": "Every attempt on the faulty worker reports a (retryable) kernel failure.",
             "expectedDetection": "Each failure is reported by the worker and recorded with its reason.",
-            "expectedRecovery": "Failed partitions are retried, up to six attempts each.",
+            "expectedRecovery": "Failed partitions are retried on workers that have not failed them, up to six attempts each.",
             "attemptTimeoutSeconds": 20,
             "maxAttempts": 6
         },
