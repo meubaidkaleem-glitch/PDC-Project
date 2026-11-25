@@ -157,6 +157,16 @@ scripts/package-standalone.sh --version 0.1.0 --skip-build
 
 [deployment.md](deployment.md) describes running without Docker and operations.
 
+**Release v0.1.0** (2026-11-25): the standalone workflow, run by hand with version `0.1.0` on `146a89d` (run
+[45673976023](https://github.com/meubaidkaleem-glitch/PDC-Project/actions/runs/45673976023)), built both packages,
+passed the Linux test and the Windows test (no Java; ready after 12 s; listening only on 127.0.0.1; verified
+distributed experiment; data kept across a forced restart) and published
+[v0.1.0](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/tag/v0.1.0) with
+`DistriCompute-windows-x64.zip` (116,671,739 bytes), `DistriCompute-linux-x64.tar.gz` (120,247,704 bytes) and
+`SHA256SUMS`. Afterwards the three files were downloaded through the `releases/latest/download` links of the README
+on `main`, both checksums matched, and the downloaded Linux package passed `scripts/standalone-smoke.sh` again in an
+`ubuntu:24.04` container without Java.
+
 CI for commit `2c5ae67` (the last change to code, configuration and tests): run
 [45407664972](https://github.com/meubaidkaleem-glitch/PDC-Project/actions/runs/45407664972) passed all five jobs:
 frontend; backend with the interface in the jar; end-to-end tests with MySQL and worker processes; Docker images and

@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.1.0 — Windows and Linux packages
+## 0.1.0 — Windows and Linux packages (released 2026-11-25)
 
-The application as one download that needs no installation ([docs/standalone.md](docs/standalone.md)).
+The application as one download that needs no installation ([docs/standalone.md](docs/standalone.md)). Release
+[v0.1.0](https://github.com/meubaidkaleem-glitch/PDC-Project/releases/tag/v0.1.0), built from `146a89d` and published
+by workflow run [45673976023](https://github.com/meubaidkaleem-glitch/PDC-Project/actions/runs/45673976023) after its
+Linux and Windows package tests passed.
 
 ### Added
 
