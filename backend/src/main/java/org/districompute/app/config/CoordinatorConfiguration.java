@@ -67,7 +67,7 @@ public class CoordinatorConfiguration {
      * @return the secret
      * @throws IOException if a file cannot be read or written
      */
-    static String clusterSecret(AppProperties properties) throws IOException {
+    public static String clusterSecret(AppProperties properties) throws IOException {
         String fromEnvironment = System.getenv(SECRET_VARIABLE);
         if (fromEnvironment != null && !fromEnvironment.isBlank()) {
             return fromEnvironment.strip();

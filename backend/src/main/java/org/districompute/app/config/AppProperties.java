@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param security accounts and sessions
  * @param workers worker policy
  * @param faults fault-simulation lab
+ * @param standalone single-process installation without separate workers ({@code docs/standalone.md})
  */
 @ConfigurationProperties("districompute")
 public record AppProperties(
@@ -25,7 +26,8 @@ public record AppProperties(
         @DefaultValue Storage storage,
         @DefaultValue Security security,
         @DefaultValue Workers workers,
-        @DefaultValue Faults faults) {
+        @DefaultValue Faults faults,
+        @DefaultValue Standalone standalone) {
 
     /**
      * Embedded coordinator.
@@ -123,5 +125,19 @@ public record AppProperties(
      * @param enabled whether the lab is available (test and demonstration environments only)
      */
     public record Faults(@DefaultValue("false") boolean enabled) {
+    }
+
+    /**
+     * Conveniences for a single-process installation ({@code docs/standalone.md}).
+     *
+     * @param localWorkers workers started inside the application, connected to its coordinator over loopback TCP
+     *     (0: none; separate worker processes connect as usual)
+     * @param localWorkerSlots slots of each local worker (0: the processors divided among the local workers)
+     * @param openBrowser whether to open the interface in the default browser once the application is ready
+     */
+    public record Standalone(
+            @DefaultValue("0") int localWorkers,
+            @DefaultValue("0") int localWorkerSlots,
+            @DefaultValue("false") boolean openBrowser) {
     }
 }

@@ -91,6 +91,12 @@
       <artifactId>mysql-connector-j</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <!-- Embedded database of the standalone mode (docs/standalone.md); version managed by Spring Boot. -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
     <!-- API documentation -->
     <dependency>
@@ -148,6 +154,11 @@
       <resource>
         <directory>${project.basedir}/../database/migrations</directory>
         <targetPath>db/migration</targetPath>
+      </resource>
+      <!-- The same schema for the embedded H2 database of the standalone mode. -->
+      <resource>
+        <directory>${project.basedir}/../database/migrations-h2</directory>
+        <targetPath>db/migration-h2</targetPath>
       </resource>
     </resources>
     <plugins>

@@ -8,6 +8,10 @@ districompute:
     heartbeat-timeout: 3s
   faults:
     enabled: true
+  # The tests start their own worker nodes and never open a browser, also with the standalone profile.
+  standalone:
+    local-workers: 0
+    open-browser: false
   limits:
     submissions-per-minute: 200
     max-active-experiments-per-user: 20

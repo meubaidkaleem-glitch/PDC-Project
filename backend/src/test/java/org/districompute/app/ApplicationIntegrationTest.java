@@ -26,7 +26,6 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.districompute.app.testing.ApiClient;
 import org.districompute.app.testing.ApiClient.Response;
-import org.districompute.app.testing.TestDatabase;
 import org.districompute.distributed.coordinator.Coordinator;
 import org.districompute.distributed.scheduler.PolicyName;
 import org.districompute.distributed.security.SharedSecret;
@@ -40,22 +39,22 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.JsonNode;
 
 /**
- * The application end to end over real HTTP: a MySQL container, the embedded coordinator, two worker nodes on
- * loopback TCP, the browser's session and CSRF handling. No component is mocked.
+ * The application end to end over real HTTP: the embedded coordinator, two worker nodes on loopback TCP, the
+ * browser's session and CSRF handling. No component is mocked. The same tests run against each supported database:
+ * MySQL ({@link ApplicationOnMysqlTest}) and the standalone mode's embedded H2
+ * ({@link ApplicationStandaloneTest}).
  */
 @Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Import(TestDatabase.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ApplicationIntegrationTest {
+abstract class ApplicationIntegrationTest {
 
     private static final String SECRET = "integration-test-cluster-secret";
     private static final String ADMIN_PASSWORD = "admin-password-for-tests";
@@ -74,9 +73,16 @@ class ApplicationIntegrationTest {
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        registry.add("districompute.data-dir", DATA::toString);
         registry.add("districompute.coordinator.secret-file", () -> DATA.resolve("cluster.secret").toString());
         registry.add("districompute.security.admin-password-file", () -> DATA.resolve("admin.password").toString());
+    }
+
+    static String newDataDirectory(String name) {
+        try {
+            return Files.createDirectories(DATA.resolve(name)).toString();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @LocalServerPort
