@@ -2,12 +2,17 @@ package org.districompute.app.standalone;
 
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.districompute.app.config.AppProperties;
 import org.districompute.app.config.CoordinatorConfiguration;
+import org.districompute.app.config.SecretFiles;
+import org.districompute.app.persistence.AppUserRepository;
 import org.districompute.core.registry.AlgorithmRegistry;
 import org.districompute.distributed.coordinator.Coordinator;
 import org.districompute.distributed.security.SharedSecret;
@@ -18,13 +23,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Conveniences of a single-process installation ({@code docs/standalone.md}): workers started inside the
  * application, connected to its coordinator over loopback TCP with the cluster secret (so distributed runs work
  * without separate worker processes), and opening the interface in the default browser. Both are off unless
- * configured; the standalone profile turns them on.
+ * configured; the standalone profile turns them on, with a sign-in notice on the console for the person who started
+ * the application.
  */
 @Component
 public class StandaloneSupport {
@@ -35,14 +42,18 @@ public class StandaloneSupport {
     private final Coordinator coordinator;
     private final AlgorithmRegistry registry;
     private final Environment environment;
+    private final AppUserRepository users;
+    private final PasswordEncoder encoder;
     private final List<WorkerNode> workers = new ArrayList<>();
 
     StandaloneSupport(AppProperties properties, Coordinator coordinator, AlgorithmRegistry registry,
-            Environment environment) {
+            Environment environment, AppUserRepository users, PasswordEncoder encoder) {
         this.properties = properties;
         this.coordinator = coordinator;
         this.registry = registry;
         this.environment = environment;
+        this.users = users;
+        this.encoder = encoder;
     }
 
     /**
@@ -72,9 +83,41 @@ public class StandaloneSupport {
         }
         String url = "http://localhost:" + environment.getProperty("local.server.port", "8080") + "/";
         LOG.info("DistriCompute is ready: open {} in a browser", url);
+        if (s.showSignIn()) {
+            printSignIn(System.out, url);
+        }
         if (s.openBrowser()) {
             open(url);
         }
+    }
+
+    /**
+     * Prints where to sign in. The generated initial password is shown only while it is still the administrator's
+     * password (read from its owner-only file and checked against the stored hash), and only on the console.
+     *
+     * @param out the console
+     * @param url the interface's address
+     * @throws IOException if the password file cannot be read
+     */
+    public void printSignIn(PrintStream out, String url) throws IOException {
+        String admin = properties.security().adminUsername();
+        Path file = properties.dataDir().resolve("initial-admin-password").toAbsolutePath();
+        String password = Files.isRegularFile(file) ? SecretFiles.read(file) : null;
+        boolean initial = password != null && users.findByUsername(admin)
+                .filter(u -> encoder.matches(password, u.getPasswordHash())).isPresent();
+        String rule = "=".repeat(76);
+        out.println();
+        out.println(rule);
+        out.println("  DistriCompute is running at " + url);
+        if (initial) {
+            out.println("  First sign-in:  user " + admin + "   password " + password);
+            out.println("  Change the password in Settings after signing in.");
+        }
+        out.println("  Data: " + properties.dataDir().toAbsolutePath());
+        out.println("  Keep this window open while you use DistriCompute; close it or press Ctrl+C to stop.");
+        out.println(rule);
+        out.println();
+        out.flush();
     }
 
     /** Stops the local workers before the coordinator closes. */

@@ -57,7 +57,7 @@ import tools.jackson.databind.JsonNode;
 abstract class ApplicationIntegrationTest {
 
     private static final String SECRET = "integration-test-cluster-secret";
-    private static final String ADMIN_PASSWORD = "admin-password-for-tests";
+    static final String ADMIN_PASSWORD = "admin-password-for-tests";
     private static final String USER_PASSWORD = "alice-password-for-tests";
     private static final Path DATA;
 

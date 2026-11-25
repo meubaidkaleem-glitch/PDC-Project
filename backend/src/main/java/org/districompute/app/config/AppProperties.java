@@ -134,10 +134,14 @@ public record AppProperties(
      *     (0: none; separate worker processes connect as usual)
      * @param localWorkerSlots slots of each local worker (0: the processors divided among the local workers)
      * @param openBrowser whether to open the interface in the default browser once the application is ready
+     * @param showSignIn whether to print the address and, while it is still the administrator's password, the
+     *     generated initial password to the console (not to the log) once the application is ready: for a
+     *     single-computer installation started by the person who will use it
      */
     public record Standalone(
             @DefaultValue("0") int localWorkers,
             @DefaultValue("0") int localWorkerSlots,
-            @DefaultValue("false") boolean openBrowser) {
+            @DefaultValue("false") boolean openBrowser,
+            @DefaultValue("false") boolean showSignIn) {
     }
 }

@@ -41,9 +41,9 @@ fi
 
 echo "== Backend"
 if [ "$SKIP_TESTS" = 1 ]; then
-  ./mvnw -B -ntp package -pl backend $PROFILE -DskipTests
+  ./mvnw -B -ntp clean package -pl backend $PROFILE -DskipTests
 else
-  ./mvnw -B -ntp verify -pl backend $PROFILE
+  ./mvnw -B -ntp clean verify -pl backend $PROFILE
 fi
 
 echo

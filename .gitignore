@@ -30,3 +30,6 @@ data/
 .DS_Store
 Thumbs.db
 *.password
+
+# Standalone packages (scripts/package-standalone.sh)
+/dist/

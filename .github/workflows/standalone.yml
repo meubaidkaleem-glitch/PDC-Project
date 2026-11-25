@@ -1,0 +1,134 @@
+name: Standalone packages
+
+# Builds the Windows and Linux packages (docs/standalone.md), tests the Linux one in a container without Java and
+# the Windows one on a Windows runner without Java, and publishes both as a GitHub release when a v* tag is pushed.
+on:
+  push:
+    branches: [feature/application-gui]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standalone-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  package:
+    name: Build the packages, test the Linux one without Java
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out with the pinned component submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Version
+        id: version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else v="0.1.0-ci.${GITHUB_RUN_NUMBER}"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Build the components, the interface and the application (tests run in Application CI)
+        run: scripts/build.sh --skip-tests
+
+      - name: Cache the Java runtimes
+        uses: actions/cache@v4
+        with:
+          path: dist/cache
+          key: temurin-${{ hashFiles('scripts/package-standalone.sh') }}
+
+      - name: Package
+        run: scripts/package-standalone.sh --version "${{ steps.version.outputs.version }}" --skip-build
+
+      - name: Test the Linux package in an Ubuntu container without Java
+        env:
+          STANDALONE_SMOKE_IMAGE: ubuntu:24.04
+        run: scripts/standalone-smoke.sh "dist/DistriCompute-${{ steps.version.outputs.version }}-linux-x64.tar.gz"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: standalone-packages
+          path: |
+            dist/DistriCompute-*
+            dist/SHA256SUMS
+          retention-days: 14
+          compression-level: 0
+
+  windows:
+    name: Test the Windows package on Windows without Java
+    needs: package
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: standalone-packages
+          path: dist
+
+      - name: Smoke test (Java removed from PATH and JAVA_HOME inside the script)
+        shell: pwsh
+        run: scripts/standalone-smoke.ps1 -Archive "dist/DistriCompute-${{ needs.package.outputs.version }}-windows-x64.zip"
+
+      - name: Keep the console logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-console-logs
+          path: ${{ runner.temp }}/districompute-smoke-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Publish the release
+    if: github.ref_type == 'tag'
+    needs: [package, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: standalone-packages
+          path: dist
+
+      - name: Create the GitHub release with the tested packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.package.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          sed -e "s|@VERSION@|$VERSION|g" -e "s|@COMMIT@|${GITHUB_SHA:0:7}|g" -e "s|@RUN_URL@|$RUN_URL|g" \
+            packaging/release-notes.md > notes.md
+          { echo '```'; cat dist/SHA256SUMS; echo '```'; } >> notes.md
+          flags=()
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/DistriCompute-* dist/SHA256SUMS --verify-tag \
+            --title "DistriCompute $VERSION" --notes-file notes.md "${flags[@]}"

@@ -79,7 +79,9 @@ public class CoordinatorConfiguration {
         Path generated = properties.dataDir().resolve("cluster.secret");
         boolean existed = generated.toFile().exists();
         String secret = SecretFiles.readOrCreate(generated, 32);
-        if (!existed) {
+        if (!existed && properties.standalone().localWorkers() > 0) {
+            LOG.info("Generated the cluster secret of the local workers in {}", generated.toAbsolutePath());
+        } else if (!existed) {
             LOG.warn("No cluster secret configured; generated one in {}. Give this file to the workers "
                     + "(--secret-file) or set {} everywhere.", generated.toAbsolutePath(), SECRET_VARIABLE);
         }

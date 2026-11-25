@@ -2,8 +2,10 @@
 # in the data directory replaces MySQL, two workers run inside the application, the interface opens in the browser,
 # the fault lab is available, and nothing listens beyond this computer. Used by the Windows and Linux packages.
 spring:
+  main:
+    banner-mode: "off"
   datasource:
-    url: jdbc:h2:file:${districompute.data-dir:./data}/database/districompute;MODE=MySQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=10000
+    url: jdbc:h2:file:${districompute.data-dir:./data}/database/districompute;MODE=MySQL;DATABASE_TO_LOWER=TRUE;LOCK_TIMEOUT=10000;DB_CLOSE_ON_EXIT=FALSE
     username: districompute
     password: ""
     driver-class-name: org.h2.Driver
@@ -16,10 +18,23 @@ server:
 districompute:
   coordinator:
     bind-address: 127.0.0.1
+    # Any free port: only the local workers connect, and they are told the port.
+    port: 0
   standalone:
     local-workers: 2
     open-browser: true
+    show-sign-in: true
   # The fault lab runs its simulated workers on an isolated coordinator inside this process (docs/fault-lab.md);
   # on a single computer there is no cluster it could disturb.
   faults:
     enabled: true
+
+# The console is the window of the launcher: warnings and the application's own messages only.
+logging:
+  level:
+    root: WARN
+    org.districompute: INFO
+    # Flyway has not certified this H2 version; the H2 migrations are tested with it (ApplicationStandaloneTest).
+    org.flywaydb.core.internal.database.base.Database: ERROR
+    # The API documentation requires a signed-in user (docs/security.md); the notice is meant for servers.
+    org.springdoc.core.events.SpringDocAppInitializer: ERROR

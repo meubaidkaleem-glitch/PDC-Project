@@ -12,6 +12,7 @@ districompute:
   standalone:
     local-workers: 0
     open-browser: false
+    show-sign-in: false
   limits:
     submissions-per-minute: 200
     max-active-experiments-per-user: 20
